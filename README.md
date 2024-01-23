@@ -16,6 +16,7 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 ## Known Issues
 - As mentioned above, no support yet for any strings containing time data, or for intervals.
 - Not performance optimized - regexing, or better yet a finite state machine parser would be much more performant.
+- Also mentioned above: Basic CLI platform's Utc type does not support dates before 1970-01-01.
 
 ## ISO 8601 Date/Time Format
 Description of ISO date/time [format](FORMAT.md) (WIP)
