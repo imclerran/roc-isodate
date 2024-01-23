@@ -13,7 +13,7 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Support for time, date & time representations is planned
 - Support for time intervals may be considered after full date/time support is complete.
 
-# Known Issues
+## Known Issues
 - As mentioned above, no support yet for any strings containing time data, or for intervals.
 - Not performance optimized - regexing, or better yet a finite state machine parser would be much more performant.
 
