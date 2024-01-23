@@ -6,6 +6,10 @@ interface Utils
         numDaysSinceEpochToYMD,
         daysToNanos,
         splitStrAtDelimiter,
+        splitStrAtIndex,
+        splitStrAtIndices,
+        calendarWeekToDaysInYear,
+        allOk,
     ]
     imports [
         Const.{
@@ -21,6 +25,13 @@ unwrap = \result, message ->
     when result is
         Ok x -> x
         Err _ -> crash message
+
+allOk = \results ->
+    List.all results (\result -> 
+            when result is 
+                Ok _ -> Bool.true
+                Err _ -> Bool.false
+    )
 
 splitStrAtDelimiter = \str, delimiter ->
     Str.walkUtf8WithIndex 
