@@ -41,7 +41,6 @@ splitStrAtDelimiter = \str, delimiter ->
         [""]
         (\strList, byte, i -> 
             char = unwrap (Str.fromUtf8 [byte]) "splitStrAtDelimiter: Invalid UTF-8 byte"
-            crashMsg = "splitStrAtDelimiter: List should always have last element"
             if char == delimiter then
                 if 0 == i || Str.countUtf8Bytes str == i + 1 then
                     strList
@@ -49,7 +48,7 @@ splitStrAtDelimiter = \str, delimiter ->
                     List.append strList ""
             else
                 strs = List.takeFirst strList (List.len strList - 1)
-                lastStr = unwrap (List.last strList) crashMsg
+                lastStr = unwrap (List.last strList) "splitStrAtDelimiter: List will always have last element"
                 List.append strs (Str.concat lastStr char)
         )
 
@@ -68,7 +67,7 @@ splitStrAtIndices = \str, indices ->
         str
         [""]
         (\strList, byte, i ->
-            char = unwrap (Str.fromUtf8 [byte]) "splitStrAtDelimiter: Invalid UTF-8 byte"
+            char = unwrap (Str.fromUtf8 [byte]) "splitStrAtIndices: Invalid UTF-8 byte"
             if List.contains indices i then
                 if i == 0 then
                     [char]
@@ -76,7 +75,7 @@ splitStrAtIndices = \str, indices ->
                     List.append strList char
             else
                 strs = List.takeFirst strList (List.len strList - 1)
-                lastStr = unwrap (List.last strList) "splitStrAtDelimiter: List should always have last element"
+                lastStr = unwrap (List.last strList) "splitStrAtIndices: List should always have last element"
                 List.append strs (Str.concat lastStr char)
         )
 
