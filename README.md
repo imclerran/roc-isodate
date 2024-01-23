@@ -14,4 +14,4 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Support for time intervals may be considered after full date/time support is complete.
 
 ## ISO 8601 Date/Time Format
-Description of ISO date/time [format](FORMAT.md)
+Description of ISO date/time [format](FORMAT.md) (WIP)
