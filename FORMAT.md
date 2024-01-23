@@ -15,3 +15,11 @@
 1) Complete Representations
   - Basic: __YYYYDDD__
   - Extended: __YYYY-DD__
+
+### Week Date
+1) Complete Representation
+  - Basic: __YYYYWwwD__
+  - Extended: __YYYY-Www-D__
+2) Reduced Accuracy
+  - Basic: __YYYYWww__
+  - Extended: __YYYY-Www__
