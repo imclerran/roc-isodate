@@ -18,6 +18,10 @@ interface Utils
             monthDaysNonLeap,
             secondsPerDay,
             nanosPerSecond,
+            daysPerWeek,
+            leapInterval,
+            leapException,
+            leapNonException,
         },
     ]
 
@@ -83,12 +87,10 @@ expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]
 
 
 isLeapYear = \year ->
-    if year % 4 == 0 then
-        yearIsDivisBy100 = year % 100 == 0
-        yearIsDivisBy400 = year % 400 == 0
-        if yearIsDivisBy100 && yearIsDivisBy400 then
+    if year % leapInterval == 0 then
+        if year % leapNonException == 0 then
             Bool.true
-        else if yearIsDivisBy100 then
+        else if year % leapException == 0 then
             Bool.false
         else 
             Bool.true
@@ -145,7 +147,7 @@ calendarWeekToDaysInYear = \week, year->
     if lengthOfFirstWeek >= 4 && week == 1 then
         0
     else
-        (week - 1) * 7 + lengthOfFirstWeek
+        (week - 1) * daysPerWeek + lengthOfFirstWeek
 
 expect calendarWeekToDaysInYear 1 1970  == 0
 expect calendarWeekToDaysInYear 1 1971 == 3

@@ -9,6 +9,9 @@ interface Const
         secondsPerMinute,
         secondsPerHour,
         secondsPerDay,
+        leapInterval,
+        leapException,
+        leapNonException,
         daysPerNonLeapYear,
         daysPerLeapYear,
         daysPerWeek,
@@ -22,12 +25,16 @@ epochMonth = 1
 epochDay = 1
 epochWeekOffset = 4
 
-nanosPerSecond = 1000000000
-nanosPerMilisecond = 1000000
+nanosPerSecond = 1_000_000_000
+nanosPerMilisecond = 1_000_000
 
 secondsPerMinute = 60
 secondsPerHour = 3600
-secondsPerDay = 86400
+secondsPerDay = 86_400
+
+leapInterval = 4
+leapException = 100
+leapNonException = 400
 
 daysPerNonLeapYear = 365
 daysPerLeapYear = 366
