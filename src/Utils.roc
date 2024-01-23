@@ -21,11 +21,13 @@ interface Utils
         },
     ]
 
+unwrap : [Ok a, Err _], Str -> a
 unwrap = \result, message ->
     when result is
         Ok x -> x
         Err _ -> crash message
 
+allOk : List [Ok _, Err _] -> Bool
 allOk = \results ->
     List.all results (\result -> 
             when result is 
