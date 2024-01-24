@@ -55,15 +55,9 @@ expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]
 
 
 isLeapYear = \year ->
-    if year % leapInterval == 0 then
-        if year % leapNonException == 0 then
-            Bool.true
-        else if year % leapException == 0 then
-            Bool.false
-        else 
-            Bool.true
-    else
-        Bool.false
+    (year % leapInterval == 0 &&
+    year % leapException != 0) || 
+    year % leapNonException == 0
 
 numLeapYearsSinceEpoch : U64, [IncludeCurrent, ExcludeCurrent] -> U64
 numLeapYearsSinceEpoch = \year, inclusive ->
