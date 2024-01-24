@@ -3,7 +3,7 @@ interface Utils
         unwrap,
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
-        numDaysSinceEpochToYMD,
+        #numDaysSinceEpochToYMD,
         daysToNanos,
         splitStrAtIndex,
         splitStrAtIndices,
@@ -75,13 +75,22 @@ numLeapYearsSinceEpoch = \year, inclusive ->
     Num.intCast (List.countIf years isLeapYear) # TODO: Remove intCast call after Nat type removal from language
 
 numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> U64
-numDaysSinceEpoch = \{year, month ? 1, day ? 1} ->
-    numDaysSinceEpochToYMD year month day
+numDaysSinceEpoch = \{year, month? 1, day? 1} ->
+    numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
+    daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
+    isLeap = isLeapYear year
+    daysInMonths = List.sum (
+        List.map (List.range { start: At 1, end: Before month }) 
+        (\mapMonth -> 
+            unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"
+        ), 
+    )
+    daysInYears + daysInMonths + day - 1
 
-expect numDaysSinceEpoch {year: 2024} == 19723
+#expect numDaysSinceEpoch {year: 2024} == 19723
 
 numDaysSinceEpochToYear = \year ->
-    numDaysSinceEpochToYMD year 1 1
+    numDaysSinceEpoch {year}
 
 expect numDaysSinceEpochToYear 1970 == 0
 expect numDaysSinceEpochToYear 1971 == 365
@@ -89,24 +98,21 @@ expect numDaysSinceEpochToYear 1972 == 365 + 365
 expect numDaysSinceEpochToYear 1973 == 365 + 365 + 366
 expect numDaysSinceEpochToYear 2024 == 19723
 
-numDaysSinceEpochToYMD = \year, month, day ->
-    numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
-    daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
-    isLeap = isLeapYear year
-    daysInMonths = List.sum (
-        List.map (List.range { start: At 1, end: Before month }) 
-        (\mapMonth -> 
-            #daysInMonth {month: mapMonth, isLeap}
-            unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"
-        ), 
-    )
-    daysInYears + daysInMonths + day - 1
+# numDaysSinceEpochToYMD = \year, month, day ->
+#     numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
+#     daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
+#     isLeap = isLeapYear year
+#     daysInMonths = List.sum (
+#         List.map (List.range { start: At 1, end: Before month }) 
+#         (\mapMonth -> unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"), 
+#     )
+#     daysInYears + daysInMonths + day - 1
 
-expect numDaysSinceEpochToYMD 1970 12 31 == 365 - 1
-expect numDaysSinceEpochToYMD 1971 1 2 == 365 + 1
-expect numDaysSinceEpochToYMD 2024 1 1 == 19723
-expect numDaysSinceEpochToYMD 2024 2 1 == 19723 + 31
-expect numDaysSinceEpochToYMD 2024 12 31 == 19723 + 366 - 1
+expect numDaysSinceEpoch {year: 1970, month: 12, day: 31} == 365 - 1
+expect numDaysSinceEpoch {year: 1971, month: 1, day: 2} == 365 + 1
+expect numDaysSinceEpoch {year: 2024, month: 1, day: 1} == 19723
+expect numDaysSinceEpoch {year: 2024, month: 2, day: 1} == 19723 + 31
+expect numDaysSinceEpoch {year: 2024, month: 12, day: 31} == 19723 + 366 - 1
 
 daysToNanos = \days ->
     days * secondsPerDay * nanosPerSecond |> Num.toU128
