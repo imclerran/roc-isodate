@@ -28,31 +28,31 @@ unwrap = \result, message ->
         Ok x -> x
         Err _ -> crash message
 
+splitStrAtIndices = \str, indices ->
+    sortedIndices = List.sortAsc indices
+    splitStrAtIndicesRecur str sortedIndices
+
+splitStrAtIndicesRecur = \str, indices ->
+    u8List = Str.toUtf8 str
+    when List.last indices is
+        Ok index if index > 0 && index < List.len u8List ->
+            lists = List.split u8List index
+            when (Str.fromUtf8 lists.before, Str.fromUtf8 lists.others) is
+                (Ok headStr, Ok tailStr) -> 
+                    splitStrAtIndicesRecur headStr (List.dropLast indices 1)
+                    |> List.append tailStr
+                (_, _) -> crash "splitStrAtIndices2: Will never fail since u8 list came from a str"
+        Ok _ -> splitStrAtIndicesRecur str (List.dropLast indices 1)
+        Err _ -> [str]
+
 splitStrAtIndex = \str, index -> splitStrAtIndices str [index]
 
 expect splitStrAtIndex "abc" 0 == ["abc"]
 expect splitStrAtIndex "abc" 1 == ["a", "bc"]
 expect splitStrAtIndex "abc" 3 == ["abc"]
-
-splitStrAtIndices = \str, indices ->
-    Str.walkUtf8WithIndex 
-        str
-        [""]
-        (\strList, byte, i ->
-            char = unwrap (Str.fromUtf8 [byte]) "splitStrAtIndices: Invalid UTF-8 byte"
-            if List.contains indices i then
-                if i == 0 then
-                    [char]
-                else
-                    List.append strList char
-            else
-                strs = List.takeFirst strList (List.len strList - 1)
-                lastStr = unwrap (List.last strList) "splitStrAtIndices: List should always have last element"
-                List.append strs (Str.concat lastStr char)
-        )
-
-expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]
-
+expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]  
+expect splitStrAtIndices "abcde" [3,1,4,2] == ["a", "b", "c", "d", "e"]
+expect splitStrAtIndices "abc" [0,5] == ["abc"]
 
 isLeapYear = \year ->
     (year % leapInterval == 0 &&
