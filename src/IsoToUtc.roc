@@ -72,12 +72,9 @@ parseCalendarDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateBasic = \str ->
     when splitStrAtIndices str [4, 6] is
         [yearStr, monthStr, dayStr] -> 
-            year = Str.toU64 yearStr
-            month = Str.toU64 monthStr
-            day = Str.toU64 dayStr
-            when (year, month, day) is
-            (Ok y, Ok m, Ok d) ->
-                numDaysSinceEpoch { year: y, month: m, day: d} 
+            when (Str.toU64 yearStr, Str.toU64 monthStr, Str.toU64 dayStr) is
+            (Ok year, Ok month, Ok day) ->
+                numDaysSinceEpoch { year, month, day} 
                     |> daysToNanos |> @Utc |> Ok
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
