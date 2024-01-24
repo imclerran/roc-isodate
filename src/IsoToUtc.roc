@@ -7,14 +7,13 @@ interface IsoToUtc
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             calendarWeekToDaysInYear,
-            splitStrAtDelimiter,
             splitStrAtIndices,
-            allOk,
         },
         Const.{
             epochYear,
             secondsPerDay,
             nanosPerSecond,
+            weeksPerYear,
         }
     ]
 
@@ -73,33 +72,31 @@ expect unwrap (parseDate "2024-02") "Could not parse!" == @Utc (Num.toU128 ((19_
 
 parseCalendarDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateBasic = \str ->
-    strs = splitStrAtIndices str [4, 6]
-    if List.len strs == 3 then
-        year = unwrap (List.get strs 0) "parseCalendarDateBasic: will always have index 0" |> Str.toNat
-        month = unwrap (List.get strs 1) "parseCalendarDateBasic: will always have index 1" |> Str.toNat
-        day = unwrap (List.get strs 2) "parseCalendarDateBasic: will always have index 2" |> Str.toNat
-        if allOk [year, month, day] then
-            numDaysSinceEpoch { year: (unwrap year "Ok"), month: (unwrap month "Ok"), day: (unwrap day "Ok")} 
-                |> daysToNanos |> @Utc |> Ok
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when splitStrAtIndices str [4, 6] is
+        [yearStr, monthStr, dayStr] -> 
+            year = Str.toNat yearStr
+            month = Str.toNat monthStr
+            day = Str.toNat dayStr
+            when (year, month, day) is
+            (Ok y, Ok m, Ok d) ->
+                numDaysSinceEpoch { year: y, month: m, day: d} 
+                    |> daysToNanos |> @Utc |> Ok
+            (_, _, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseCalendarDateExtended  : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateExtended = \str -> 
-    strs = splitStrAtDelimiter str "-"
-    if List.len strs == 3 then
-        year = unwrap (List.get strs 0) "parseCalendarDateExtended: will always have index 0" |> Str.toNat
-        month = unwrap (List.get strs 1) "parseCalendarDateExtended: will always have index 1" |> Str.toNat 
-        day = unwrap (List.get strs 2) "parseCalendarDateExtended: will always have index 2" |> Str.toNat
-        if allOk [year, month, day] then
-            numDaysSinceEpoch { year: (unwrap year "Ok"), month: (unwrap month "Ok"), day: (unwrap day "Ok")} 
-                |> daysToNanos |> @Utc |> Ok
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when Str.split str "-" is
+        [yearStr, monthStr, dayStr] -> 
+            year = Str.toNat yearStr
+            month = Str.toNat monthStr
+            day = Str.toNat dayStr
+            when (year, month, day) is
+            (Ok y, Ok m, Ok d) ->
+                numDaysSinceEpoch { year: y, month: m, day: d} 
+                    |> daysToNanos |> @Utc |> Ok
+            (_, _, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseCalendarDateCentury : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateCentury = \str ->
@@ -115,7 +112,7 @@ parseCalendarDateCentury = \str ->
 parseCalendarDateYear : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateYear = \str ->
     when Str.toNat str is
-        Ok year if year >= 1970 ->
+        Ok year if year >= epochYear ->
             nanos = year
                 |> numDaysSinceEpochToYear
                 |> daysToNanos
@@ -125,103 +122,96 @@ parseCalendarDateYear = \str ->
 
 parseCalendarDateMonth : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateMonth = \str -> 
-    strs = splitStrAtDelimiter str "-"
-    if List.len strs == 2 then
-        year = unwrap (List.get strs 0) "parseCalendarDateMonth: will always have index 0" |> Str.toNat
-        month = unwrap (List.get strs 1) "parseCalendarDateMonth: will always have index 1" |> Str.toNat
-        if allOk [year, month] then
-            numDaysSinceEpoch { year: (unwrap year "Ok"), month: (unwrap month "Ok"), day: 1} 
-                |> daysToNanos |> @Utc |> Ok
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when Str.split str "-" is
+        [yearStr, monthStr] -> 
+            year = Str.toNat yearStr
+            month = Str.toNat monthStr
+            when (year, month) is
+            (Ok y, Ok m) ->
+                numDaysSinceEpoch { year: y, month: m, day: 1} 
+                    |> daysToNanos |> @Utc |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseOrdinalDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseOrdinalDateBasic = \str -> 
-    strs = splitStrAtIndices str [4]
-    if List.len strs == 2 then
-        year = unwrap (List.get strs 0) "parseOrdinalDateBasic: will always have index 0" |> Str.toNat
-        day = unwrap (List.get strs 1) "parseOrdinalDateBasic: will always have index 1" |> Str.toNat
-        if allOk [year, day] then
-            numDaysSinceEpoch {year: (unwrap year "Ok"), month: 1, day: (unwrap day "Ok")} 
-                |> daysToNanos |> @Utc |> Ok
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when splitStrAtIndices str [4] is
+        [yearStr, dayStr] -> 
+            year = Str.toNat yearStr
+            day = Str.toNat dayStr
+            when (year, day) is
+            (Ok y, Ok d) ->
+                numDaysSinceEpoch {year: y, month: 1, day: d} 
+                    |> daysToNanos |> @Utc |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseOrdinalDateExtended : Str -> Result Utc [InvalidDateFormat]
 parseOrdinalDateExtended = \str -> 
-    strs = splitStrAtDelimiter str "-"
-    if List.len strs == 2 then
-        year = unwrap (List.get strs 0) "parseOrdinalDateExtended: will always have index 0" |> Str.toNat 
-        day = unwrap (List.get strs 1) "parseOrdinalDateExtended: will always have index 1" |> Str.toNat
-        if allOk [year, day] then
-            numDaysSinceEpoch {year: (unwrap year "Ok"), month: 1, day: (unwrap day "Ok")} 
-                |> daysToNanos |> @Utc |> Ok
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when Str.split str "-" is
+        [yearStr, dayStr] -> 
+            year = Str.toNat yearStr
+            day = Str.toNat dayStr
+            when (year, day) is
+            (Ok y, Ok d) ->
+                numDaysSinceEpoch {year: y, month: 1, day: d} 
+                    |> daysToNanos |> @Utc |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseWeekDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateBasic = \str -> 
-    strs = splitStrAtIndices str [4,5,7]
-    if List.len strs == 4 then
-        year = unwrap (List.get strs 0) "parseWeekDateBasic: will always have index 0" |> Str.toNat #parseYearStr 
-        week = unwrap (List.get strs 2) "parseWeekDateBasic: will always have index 2" |> Str.toNat #parseWeekStr 
-        day = unwrap (List.get strs 3) "parseWeekDateBasic: will always have index 3" |> Str.toNat #parseDayStr
-        if allOk [year, week, day] then
-            calendarWeekToUtc {year: (unwrap year "Ok"), week: (unwrap week "Ok"), day: (unwrap day "Ok")}
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when splitStrAtIndices str [4,5,7] is
+        [yearStr, _, weekStr, dayStr] -> 
+            year = Str.toNat yearStr
+            week = Str.toNat weekStr
+            day = Str.toNat dayStr
+            when (year, week, day) is
+            (Ok y, Ok w, Ok d) ->
+                calendarWeekToUtc {year: y, week: w, day: d}
+            (_, _, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseWeekDateExtended : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateExtended = \str -> 
-    strs = splitStrAtIndices str [4,6,8,9]
-    if List.len strs == 5 then
-        year = unwrap (List.get strs 0) "parseWeekDateExtended: will alwasy have index 0" |> Str.toNat
-        week = unwrap (List.get strs 2) "parseWeekDateExtended: will always have index 2" |> Str.toNat
-        day = unwrap (List.get strs 4) "parseWeekDateExtended: will always have index 4" |> Str.toNat
-        if allOk [year, week, day] then
-            calendarWeekToUtc {year: (unwrap year "year Err"), week: (unwrap week "week Err"), day: (unwrap day "day Err")}
-        else
-            Err InvalidDateFormat
-    else 
-        Err InvalidDateFormat
+    when splitStrAtIndices str [4,6,8,9] is
+        [yearStr, _, weekStr, _, dayStr] -> 
+            year = Str.toNat yearStr
+            week = Str.toNat weekStr
+            day = Str.toNat dayStr
+            when (year, week, day) is
+            (Ok y, Ok w, Ok d) ->
+                calendarWeekToUtc {year: y, week: w, day: d}
+            (_, _, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseWeekDateReducedBasic : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedBasic = \str -> 
-    strs = splitStrAtIndices str [4,5]
-    if List.len strs == 3 then
-        year = unwrap (List.get strs 0) "parseWeekDateReducedBasic: will always have index 0" |> Str.toNat
-        week = unwrap (List.get strs 2) "parseWeekDateReducedBasic: will always have index 2" |> Str.toNat
-        if allOk [year, week] then
-            calendarWeekToUtc {year: (unwrap year "year Err"), week: (unwrap week "week Err"), day: 1}
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when splitStrAtIndices str [4,5] is
+        [yearStr, _, weekStr] -> 
+            year = Str.toNat yearStr
+            week = Str.toNat weekStr
+            when (year, week) is
+            (Ok y, Ok w) ->
+                calendarWeekToUtc {year: y, week: w, day: 1}
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 parseWeekDateReducedExtended : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedExtended = \str -> 
-    strs = splitStrAtIndices str [4,6]
-    if List.len strs == 3 then
-        year = unwrap (List.get strs 0) "parseWeekDateReducedExtended: will always have index 0" |> Str.toNat
-        week = unwrap (List.get strs 2) "parseWeekDateReducedExtended: will always have index 2" |> Str.toNat
-        if allOk [year, week] then
-            calendarWeekToUtc {year: (unwrap year "year Err"), week: (unwrap week "week Err"), day: 1}
-        else
-            Err InvalidDateFormat
-    else
-        Err InvalidDateFormat
+    when splitStrAtIndices str [4,6] is
+        [yearStr, _, weekStr] -> 
+            year = Str.toNat yearStr
+            week = Str.toNat weekStr
+            when (year, week) is
+            (Ok y, Ok w) ->
+                calendarWeekToUtc {year: y, week: w, day: 1}
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
 
 calendarWeekToUtc : {year: Nat, week: Nat, day? Nat} -> Result Utc [InvalidDateFormat]
 calendarWeekToUtc = \{week, year, day? 1} ->
-    if week >= 1 && week <= 52 && year > 1970 then
+    if week >= 1 && week <= weeksPerYear && year > epochYear then
         weekDaysSoFar = (calendarWeekToDaysInYear week year)
         numDaysSinceEpoch {year, day: (day + weekDaysSoFar)} |> daysToNanos |> @Utc |> Ok
     else

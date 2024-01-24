@@ -16,6 +16,7 @@ interface Const
         daysPerLeapYear,
         daysPerWeek,
         monthDaysNonLeap,
+        weeksPerYear,
     ]
     imports []
 
@@ -40,6 +41,7 @@ daysPerNonLeapYear = 365
 daysPerLeapYear = 366
 
 daysPerWeek = 7
+weeksPerYear = 52
 
 monthDaysNonLeap = 
     Dict.empty {}

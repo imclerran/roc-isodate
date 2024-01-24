@@ -5,11 +5,9 @@ interface Utils
         numDaysSinceEpochToYear,
         numDaysSinceEpochToYMD,
         daysToNanos,
-        splitStrAtDelimiter,
         splitStrAtIndex,
         splitStrAtIndices,
         calendarWeekToDaysInYear,
-        allOk,
     ]
     imports [
         Const.{
@@ -30,35 +28,6 @@ unwrap = \result, message ->
     when result is
         Ok x -> x
         Err _ -> crash message
-
-allOk : List [Ok _, Err _] -> Bool
-allOk = \results ->
-    List.all results (\result -> 
-            when result is 
-                Ok _ -> Bool.true
-                Err _ -> Bool.false
-    )
-
-splitStrAtDelimiter = \str, delimiter ->
-    Str.walkUtf8WithIndex 
-        str
-        [""]
-        (\strList, byte, i -> 
-            char = unwrap (Str.fromUtf8 [byte]) "splitStrAtDelimiter: Invalid UTF-8 byte"
-            if char == delimiter then
-                if 0 == i || Str.countUtf8Bytes str == i + 1 then
-                    strList
-                else
-                    List.append strList ""
-            else
-                strs = List.takeFirst strList (List.len strList - 1)
-                lastStr = unwrap (List.last strList) "splitStrAtDelimiter: List will always have last element"
-                List.append strs (Str.concat lastStr char)
-        )
-
-expect splitStrAtDelimiter "abc" "a" == ["bc"]
-expect splitStrAtDelimiter "abc" "b" == ["a", "c"]
-expect splitStrAtDelimiter "abc" "c" == ["ab"]
 
 splitStrAtIndex = \str, index -> splitStrAtIndices str [index]
 
@@ -143,11 +112,11 @@ daysToNanos = \days ->
 calendarWeekToDaysInYear = \week, year->
     # Week 1 of a year is the first week with a majority of its days in that year
     # https://en.wikipedia.org/wiki/ISO_week_date#First_week
-    lengthOfFirstWeek = epochWeekOffset - (numDaysSinceEpochToYear year) % 7
-    if lengthOfFirstWeek >= 4 && week == 1 then
+    lengthOfMaybeFirstWeek = epochWeekOffset - (numDaysSinceEpochToYear year) % 7
+    if lengthOfMaybeFirstWeek >= 4 && week == 1 then
         0
     else
-        (week - 1) * daysPerWeek + lengthOfFirstWeek
+        (week - 1) * daysPerWeek + lengthOfMaybeFirstWeek
 
 expect calendarWeekToDaysInYear 1 1970  == 0
 expect calendarWeekToDaysInYear 1 1971 == 3
