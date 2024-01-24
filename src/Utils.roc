@@ -13,13 +13,13 @@ interface Utils
         Const.{
             epochYear, 
             epochWeekOffset,
-            monthDaysNonLeap,
             secondsPerDay,
             nanosPerSecond,
             daysPerWeek,
             leapInterval,
             leapException,
             leapNonException,
+            monthDays,
         },
     ]
 
@@ -66,19 +66,15 @@ isLeapYear = \year ->
     else
         Bool.false
 
+numLeapYearsSinceEpoch : U64, [IncludeCurrent, ExcludeCurrent] -> U64
 numLeapYearsSinceEpoch = \year, inclusive ->
     years =
         when inclusive is  
             IncludeCurrent -> List.range { start: At epochYear, end: At year }
             ExcludeCurrent -> List.range { start: At epochYear, end: Before year }
-    List.countIf years isLeapYear
+    Num.intCast (List.countIf years isLeapYear) # TODO: Remove intCast call after Nat type removal from language
 
-daysInMonth = \{month, isLeap ? Bool.false} ->
-    if month == 2 && isLeap then
-        29
-    else
-        unwrap (Dict.get monthDaysNonLeap month) "daysInMonth: Invalid month"
-
+numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> U64
 numDaysSinceEpoch = \{year, month ? 1, day ? 1} ->
     numDaysSinceEpochToYMD year month day
 
@@ -97,7 +93,13 @@ numDaysSinceEpochToYMD = \year, month, day ->
     numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
     daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
     isLeap = isLeapYear year
-    daysInMonths = List.sum (List.map (List.range { start: At 1, end: Before month }) (\walkMonth -> daysInMonth {month: walkMonth, isLeap}), )
+    daysInMonths = List.sum (
+        List.map (List.range { start: At 1, end: Before month }) 
+        (\mapMonth -> 
+            #daysInMonth {month: mapMonth, isLeap}
+            unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"
+        ), 
+    )
     daysInYears + daysInMonths + day - 1
 
 expect numDaysSinceEpochToYMD 1970 12 31 == 365 - 1

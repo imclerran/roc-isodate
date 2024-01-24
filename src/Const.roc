@@ -15,7 +15,7 @@ interface Const
         daysPerNonLeapYear,
         daysPerLeapYear,
         daysPerWeek,
-        monthDaysNonLeap,
+        monthDays,
         weeksPerYear,
     ]
     imports []
@@ -43,17 +43,11 @@ daysPerLeapYear = 366
 daysPerWeek = 7
 weeksPerYear = 52
 
-monthDaysNonLeap = 
-    Dict.empty {}
-    |> Dict.insert 1 31
-    |> Dict.insert 2 28
-    |> Dict.insert 3 31
-    |> Dict.insert 4 30
-    |> Dict.insert 5 31
-    |> Dict.insert 6 30
-    |> Dict.insert 7 31
-    |> Dict.insert 8 31
-    |> Dict.insert 9 30
-    |> Dict.insert 10 31
-    |> Dict.insert 11 30
-    |> Dict.insert 12 31
+monthDays : {month: U64, isLeap? Bool} -> Result U64 [InvalidMonth]
+monthDays = \{month, isLeap? Bool.false} ->
+    when month is
+        1 | 3 | 5 | 7 | 8 | 10 | 12 -> Ok 31
+        4 | 6 | 9 | 11 -> Ok 30
+        2 if isLeap -> Ok 29
+        2 -> Ok 28
+        _ -> Err InvalidMonth

@@ -2,7 +2,6 @@ interface IsoToUtc
     exposes [parseDate]
     imports [
         Utils.{
-            unwrap, 
             daysToNanos,
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
@@ -21,7 +20,7 @@ interface IsoToUtc
 ## Note that this implementation only supports dates after 1970
 Utc := U128 implements [Inspect, Eq]
 
-# TODO: use regex - library?
+# TODO: More efficient parsing method?
 parseDate : Str -> Result Utc [InvalidDateFormat]
 parseDate = \str ->
     when Str.countUtf8Bytes str is
@@ -45,38 +44,37 @@ parseDate = \str ->
             parseCalendarDateExtended str # YYYY-MM-DD
         _ -> Err InvalidDateFormat
 
-# CalendarDateExtended
-expect unwrap (parseDate "2024-01-23") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 22) * secondsPerDay * nanosPerSecond))
-# CalendarDateBasic
-expect unwrap (parseDate "20240123") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 22) * secondsPerDay * nanosPerSecond))
-# OrdinalDateBasic
-expect unwrap (parseDate "2024023") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 22) * secondsPerDay * nanosPerSecond))
-# OrdinalDateExtended
-expect unwrap (parseDate "2024-023") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 22) * secondsPerDay * nanosPerSecond))
-# WeekDateBasic
-expect unwrap (parseDate "2024W042") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 22) * secondsPerDay * nanosPerSecond))
-# WeekDateExtended
-expect unwrap (parseDate "2024-W04-2") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 22) * secondsPerDay * nanosPerSecond))
-# WeekDateReducedBasic
-expect unwrap (parseDate "2024W04") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 21) * secondsPerDay * nanosPerSecond))
-# WeekDateReducedExtended
-expect unwrap (parseDate "2024-W04") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 21) * secondsPerDay * nanosPerSecond))
 # CalendarDateCentury
-expect unwrap (parseDate "20") "Could not parse!" == @Utc (Num.toU128 (10_957 * secondsPerDay * nanosPerSecond))
+expect parseDate "20" == (10_957) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
 # CalendarDateYear
-expect unwrap (parseDate "2024") "Could not parse!" == @Utc (Num.toU128 (19_723 * secondsPerDay * nanosPerSecond))
+expect parseDate "2024" == (19_723) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# WeekDateReducedBasic
+expect parseDate "2024W04" == (19_723 + 21) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
 # CalendarDateMonth
-expect unwrap (parseDate "2024-02") "Could not parse!" == @Utc (Num.toU128 ((19_723 + 31) * secondsPerDay * nanosPerSecond))
-
+expect parseDate "2024-02" == (19_723 + 31) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# OrdinalDateBasic
+expect parseDate "2024023" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# WeekDateReducedExtended
+expect parseDate "2024-W04" == (19_723 + 21) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# WeekDateBasic
+expect parseDate "2024W042" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# OrdinalDateExtended
+expect parseDate "2024-023" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# CalendarDateBasic
+expect parseDate "20240123" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# WeekDateExtended
+expect parseDate "2024-W04-2" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
+# CalendarDateExtended
+expect parseDate "2024-01-23" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok
 
 
 parseCalendarDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateBasic = \str ->
     when splitStrAtIndices str [4, 6] is
         [yearStr, monthStr, dayStr] -> 
-            year = Str.toNat yearStr
-            month = Str.toNat monthStr
-            day = Str.toNat dayStr
+            year = Str.toU64 yearStr
+            month = Str.toU64 monthStr
+            day = Str.toU64 dayStr
             when (year, month, day) is
             (Ok y, Ok m, Ok d) ->
                 numDaysSinceEpoch { year: y, month: m, day: d} 
@@ -88,9 +86,9 @@ parseCalendarDateExtended  : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateExtended = \str -> 
     when Str.split str "-" is
         [yearStr, monthStr, dayStr] -> 
-            year = Str.toNat yearStr
-            month = Str.toNat monthStr
-            day = Str.toNat dayStr
+            year = Str.toU64 yearStr
+            month = Str.toU64 monthStr
+            day = Str.toU64 dayStr
             when (year, month, day) is
             (Ok y, Ok m, Ok d) ->
                 numDaysSinceEpoch { year: y, month: m, day: d} 
@@ -100,7 +98,7 @@ parseCalendarDateExtended = \str ->
 
 parseCalendarDateCentury : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateCentury = \str ->
-    when Str.toNat str is
+    when Str.toU64 str is
         Ok century if century >= 20 ->
             nanos = century * 100
                 |> numDaysSinceEpochToYear
@@ -111,7 +109,7 @@ parseCalendarDateCentury = \str ->
 
 parseCalendarDateYear : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateYear = \str ->
-    when Str.toNat str is
+    when Str.toU64 str is
         Ok year if year >= epochYear ->
             nanos = year
                 |> numDaysSinceEpochToYear
@@ -124,8 +122,8 @@ parseCalendarDateMonth : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateMonth = \str -> 
     when Str.split str "-" is
         [yearStr, monthStr] -> 
-            year = Str.toNat yearStr
-            month = Str.toNat monthStr
+            year = Str.toU64 yearStr
+            month = Str.toU64 monthStr
             when (year, month) is
             (Ok y, Ok m) ->
                 numDaysSinceEpoch { year: y, month: m, day: 1} 
@@ -137,8 +135,8 @@ parseOrdinalDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseOrdinalDateBasic = \str -> 
     when splitStrAtIndices str [4] is
         [yearStr, dayStr] -> 
-            year = Str.toNat yearStr
-            day = Str.toNat dayStr
+            year = Str.toU64 yearStr
+            day = Str.toU64 dayStr
             when (year, day) is
             (Ok y, Ok d) ->
                 numDaysSinceEpoch {year: y, month: 1, day: d} 
@@ -150,8 +148,8 @@ parseOrdinalDateExtended : Str -> Result Utc [InvalidDateFormat]
 parseOrdinalDateExtended = \str -> 
     when Str.split str "-" is
         [yearStr, dayStr] -> 
-            year = Str.toNat yearStr
-            day = Str.toNat dayStr
+            year = Str.toU64 yearStr
+            day = Str.toU64 dayStr
             when (year, day) is
             (Ok y, Ok d) ->
                 numDaysSinceEpoch {year: y, month: 1, day: d} 
@@ -163,9 +161,9 @@ parseWeekDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateBasic = \str -> 
     when splitStrAtIndices str [4,5,7] is
         [yearStr, _, weekStr, dayStr] -> 
-            year = Str.toNat yearStr
-            week = Str.toNat weekStr
-            day = Str.toNat dayStr
+            year = Str.toU64 yearStr
+            week = Str.toU64 weekStr
+            day = Str.toU64 dayStr
             when (year, week, day) is
             (Ok y, Ok w, Ok d) ->
                 calendarWeekToUtc {year: y, week: w, day: d}
@@ -176,9 +174,9 @@ parseWeekDateExtended : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateExtended = \str -> 
     when splitStrAtIndices str [4,6,8,9] is
         [yearStr, _, weekStr, _, dayStr] -> 
-            year = Str.toNat yearStr
-            week = Str.toNat weekStr
-            day = Str.toNat dayStr
+            year = Str.toU64 yearStr
+            week = Str.toU64 weekStr
+            day = Str.toU64 dayStr
             when (year, week, day) is
             (Ok y, Ok w, Ok d) ->
                 calendarWeekToUtc {year: y, week: w, day: d}
@@ -189,8 +187,8 @@ parseWeekDateReducedBasic : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedBasic = \str -> 
     when splitStrAtIndices str [4,5] is
         [yearStr, _, weekStr] -> 
-            year = Str.toNat yearStr
-            week = Str.toNat weekStr
+            year = Str.toU64 yearStr
+            week = Str.toU64 weekStr
             when (year, week) is
             (Ok y, Ok w) ->
                 calendarWeekToUtc {year: y, week: w, day: 1}
@@ -201,15 +199,15 @@ parseWeekDateReducedExtended : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedExtended = \str -> 
     when splitStrAtIndices str [4,6] is
         [yearStr, _, weekStr] -> 
-            year = Str.toNat yearStr
-            week = Str.toNat weekStr
+            year = Str.toU64 yearStr
+            week = Str.toU64 weekStr
             when (year, week) is
             (Ok y, Ok w) ->
                 calendarWeekToUtc {year: y, week: w, day: 1}
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
-calendarWeekToUtc : {year: Nat, week: Nat, day? Nat} -> Result Utc [InvalidDateFormat]
+calendarWeekToUtc : {year: U64, week: U64, day? U64} -> Result Utc [InvalidDateFormat]
 calendarWeekToUtc = \{week, year, day? 1} ->
     if week >= 1 && week <= weeksPerYear && year > epochYear then
         weekDaysSoFar = (calendarWeekToDaysInYear week year)
