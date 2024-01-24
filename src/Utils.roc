@@ -3,7 +3,6 @@ interface Utils
         unwrap,
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
-        #numDaysSinceEpochToYMD,
         daysToNanos,
         splitStrAtIndex,
         splitStrAtIndices,
@@ -87,32 +86,21 @@ numDaysSinceEpoch = \{year, month? 1, day? 1} ->
     )
     daysInYears + daysInMonths + day - 1
 
-#expect numDaysSinceEpoch {year: 2024} == 19723
+# expect numDaysSinceEpoch {year: 2024} == 19723 # Removed due to compiler bug with optional record fields
+expect numDaysSinceEpoch {year: 1970, month: 12, day: 31} == 365 - 1
+expect numDaysSinceEpoch {year: 1971, month: 1, day: 2} == 365 + 1
+expect numDaysSinceEpoch {year: 2024, month: 1, day: 1} == 19723
+expect numDaysSinceEpoch {year: 2024, month: 2, day: 1} == 19723 + 31
+expect numDaysSinceEpoch {year: 2024, month: 12, day: 31} == 19723 + 366 - 1
 
 numDaysSinceEpochToYear = \year ->
-    numDaysSinceEpoch {year}
+    numDaysSinceEpoch {year, month: 1, day: 1}
 
 expect numDaysSinceEpochToYear 1970 == 0
 expect numDaysSinceEpochToYear 1971 == 365
 expect numDaysSinceEpochToYear 1972 == 365 + 365
 expect numDaysSinceEpochToYear 1973 == 365 + 365 + 366
 expect numDaysSinceEpochToYear 2024 == 19723
-
-# numDaysSinceEpochToYMD = \year, month, day ->
-#     numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
-#     daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
-#     isLeap = isLeapYear year
-#     daysInMonths = List.sum (
-#         List.map (List.range { start: At 1, end: Before month }) 
-#         (\mapMonth -> unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"), 
-#     )
-#     daysInYears + daysInMonths + day - 1
-
-expect numDaysSinceEpoch {year: 1970, month: 12, day: 31} == 365 - 1
-expect numDaysSinceEpoch {year: 1971, month: 1, day: 2} == 365 + 1
-expect numDaysSinceEpoch {year: 2024, month: 1, day: 1} == 19723
-expect numDaysSinceEpoch {year: 2024, month: 2, day: 1} == 19723 + 31
-expect numDaysSinceEpoch {year: 2024, month: 12, day: 31} == 19723 + 366 - 1
 
 daysToNanos = \days ->
     days * secondsPerDay * nanosPerSecond |> Num.toU128

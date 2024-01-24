@@ -211,6 +211,6 @@ calendarWeekToUtc : {year: U64, week: U64, day? U64} -> Result Utc [InvalidDateF
 calendarWeekToUtc = \{week, year, day? 1} ->
     if week >= 1 && week <= weeksPerYear && year > epochYear then
         weekDaysSoFar = (calendarWeekToDaysInYear week year)
-        numDaysSinceEpoch {year, day: (day + weekDaysSoFar)} |> daysToNanos |> @Utc |> Ok
+        numDaysSinceEpoch {year, month: 1, day: (day + weekDaysSoFar)} |> daysToNanos |> @Utc |> Ok # month field should be optional, bug compiler bug prevents this
     else
         Err InvalidDateFormat
