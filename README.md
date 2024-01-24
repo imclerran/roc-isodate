@@ -1,5 +1,5 @@
 # Roc ISO Date Time
-A Roc Library for parsing ISO 8601 Date/Time Strings
+A Roc package for parsing ISO 8601 Date/Time Strings 
 
 ## Implementation
 This implementation is currently designed to convert an ISO date/time string into the [Utc](https://github.com/roc-lang/basic-cli/blob/main/platform/Utc.roc) Roc type provided by the Roc Basic-CLI platform. One of the shortcomings of this implementation is that the Utc type is backed by an unsigned integer (U128), meaning that it has no means of representing dates/time prior to the UNIX epoch date.

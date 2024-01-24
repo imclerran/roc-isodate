@@ -1,25 +1,78 @@
-## ISO Conventions
-### Calendar date
+# ISO Date Time Standards
+Below are the basics of the ISO 8601 Date / Time specification
+## Dates
+### Calendar date ✅
 1) Complete Representations
-  - Basic: __YYYYMMDD__
-  - Extended: __YYYY-MM-DD__
+  - Basic: `YYYYMMDD` ✔
+  - Extended: `YYYY-MM-DD` ✔
 2) Reduced Accuracy
   - Specific Month
-    - Basic: __YYYY-MM__
+    - Basic: `YYYY-MM` ✔
   - Specific Year
-    - Basic: __YYYY__
+    - Basic: `YYYY` ✔
   - Specific Century
-    - Basic: __YY__
+    - Basic: `YY` ✔
 
 ### Ordinal Date
 1) Complete Representations
-  - Basic: __YYYYDDD__
-  - Extended: __YYYY-DD__
+  - Basic: `YYYYDDD` ✔
+  - Extended: `YYYY-DD` ✔
 
 ### Week Date
 1) Complete Representation
-  - Basic: __YYYYWwwD__
-  - Extended: __YYYY-Www-D__
+  - Basic: `YYYYWwwD` ✔
+  - Extended: `YYYY-Www-D` ✔
 2) Reduced Accuracy
-  - Basic: __YYYYWww__
-  - Extended: __YYYY-Www__
+  - Basic: `YYYYWww` ✔
+  - Extended: `YYYY-Www` ✔
+
+## Time of Day
+### Local Time
+1) Complete Representations
+  - Basic: `hhmmss`
+  - Extended: `hh:mm:ss`
+2) Reduced Accuracy
+  - Specific Minute
+    - Basic: `hhmm`
+    - Extended: `hh:mm`
+  - Specific Hour
+    - Basic: `hh`
+3) Decimal Fractions
+  - A minimum of 1 digit after the decimal point, up to as many as needed.
+  - Fraction of Second
+    - Basic: `hhmmss,ss` or `hhmmss.ss`
+    - Extended: `hh:mm:ss,ss` or `hh:mm:ss.ss`
+  - Fraction of Minute
+    - Basic: `hhmm,ss` or `hhmm.mm`
+    - Extended: `hh:mm,mm` or `hh:mm.mm`
+  - Fraction of hour
+    - Basic: `hh,hh` or `hh.hh`
+### Time designator
+- Any local time may be preceded bt the time designator: `T`
+- If the context is ambiguous, the time _must_ be preceeded by `T`
+### Beginning / End of Day
+1) Beginning
+  - Basic: `000000`
+  - Extended: `00:00:00`
+2) End
+  - Basic: `240000`
+  - Extended: `24:00:00`
+### UTC of day
+1) Basic
+  - `hhmmssZ`
+  - `hhmmZ`
+  - `hhZ`
+2) Extended
+  - `hh:mm:ssZ`
+  - `hh:mmZ`
+### Difference between UTC and local
+1) Basic
+  - `hhmmss+hhmm` or `hhmmss-hhmm`
+  - `hhmmss+hh` or `hhmmss-hh`
+2) Extended
+  - `hh:mm:ss+hh:mm` or `hh:mm:ss-hh:mm`
+  - `hh:mm:ss+hh` or `hh:mm:ss-hh`
+
+
+
+
