@@ -61,11 +61,13 @@ isLeapYear = \year ->
 
 numLeapYearsSinceEpoch : U64, [IncludeCurrent, ExcludeCurrent] -> U64
 numLeapYearsSinceEpoch = \year, inclusive ->
-    years =
-        when inclusive is  
-            IncludeCurrent -> List.range { start: At epochYear, end: At year }
-            ExcludeCurrent -> List.range { start: At epochYear, end: Before year }
-    Num.intCast (List.countIf years isLeapYear) # TODO: Remove intCast call after Nat type removal from language
+    leapIncr = isLeapYear year |> (\isLeap -> if isLeap && inclusive == IncludeCurrent then 1 else 0)
+    nextYear = if year > epochYear then year - 1 else year + 1
+    when inclusive is
+        ExcludeCurrent if year != epochYear -> numLeapYearsSinceEpoch nextYear IncludeCurrent
+        ExcludeCurrent -> 0
+        IncludeCurrent if year != epochYear -> leapIncr + numLeapYearsSinceEpoch nextYear inclusive
+        IncludeCurrent -> leapIncr
 
 numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> U64
 numDaysSinceEpoch = \{year, month? 1, day? 1} ->
