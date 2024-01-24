@@ -1,6 +1,5 @@
 interface Utils
     exposes [
-        unwrap,
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
         daysToNanos,
@@ -22,12 +21,6 @@ interface Utils
         },
     ]
 
-unwrap : [Ok a, Err _], Str -> a
-unwrap = \result, message ->
-    when result is
-        Ok x -> x
-        Err _ -> crash message
-
 splitStrAtIndices = \str, indices ->
     sortedIndices = List.sortAsc indices
     splitStrAtIndicesRecur str sortedIndices
@@ -41,7 +34,9 @@ splitStrAtIndicesRecur = \str, indices ->
                 (Ok headStr, Ok tailStr) -> 
                     splitStrAtIndicesRecur headStr (List.dropLast indices 1)
                     |> List.append tailStr
-                (_, _) -> splitStrAtIndicesRecur str (List.dropLast indices 1) # Will never happen since u8List was parsed from Str
+                (_, _) -> 
+                    # TODO: consider reverting to crash failure mode, since if this condition has been met, something has gone HORRIBLY wrong
+                    splitStrAtIndicesRecur str (List.dropLast indices 1) # Will never happen since u8List was parsed from Str
         Ok _ -> splitStrAtIndicesRecur str (List.dropLast indices 1)
         Err _ -> [str]
 
@@ -76,8 +71,7 @@ numDaysSinceEpoch = \{year, month? 1, day? 1} ->
     isLeap = isLeapYear year
     daysInMonths = List.sum (
         List.map (List.range { start: At 1, end: Before month }) 
-        \mapMonth -> 
-            unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"
+        \mapMonth -> monthDays {month: mapMonth, isLeap}
     )
     daysInYears + daysInMonths + day - 1
 
