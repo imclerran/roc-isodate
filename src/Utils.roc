@@ -41,7 +41,7 @@ splitStrAtIndicesRecur = \str, indices ->
                 (Ok headStr, Ok tailStr) -> 
                     splitStrAtIndicesRecur headStr (List.dropLast indices 1)
                     |> List.append tailStr
-                (_, _) -> crash "splitStrAtIndices2: Will never fail since u8 list came from a str"
+                (_, _) -> splitStrAtIndicesRecur str (List.dropLast indices 1) # Will never happen since u8List was parsed from Str
         Ok _ -> splitStrAtIndicesRecur str (List.dropLast indices 1)
         Err _ -> [str]
 
@@ -61,7 +61,7 @@ isLeapYear = \year ->
 
 numLeapYearsSinceEpoch : U64, [IncludeCurrent, ExcludeCurrent] -> U64
 numLeapYearsSinceEpoch = \year, inclusive ->
-    leapIncr = isLeapYear year |> (\isLeap -> if isLeap && inclusive == IncludeCurrent then 1 else 0)
+    leapIncr = isLeapYear year |> \isLeap -> if isLeap && inclusive == IncludeCurrent then 1 else 0
     nextYear = if year > epochYear then year - 1 else year + 1
     when inclusive is
         ExcludeCurrent if year != epochYear -> numLeapYearsSinceEpoch nextYear IncludeCurrent
@@ -76,9 +76,8 @@ numDaysSinceEpoch = \{year, month? 1, day? 1} ->
     isLeap = isLeapYear year
     daysInMonths = List.sum (
         List.map (List.range { start: At 1, end: Before month }) 
-        (\mapMonth -> 
+        \mapMonth -> 
             unwrap (monthDays {month: mapMonth, isLeap}) "numDaysSinceEpochToYMD: Invalid month"
-        ), 
     )
     daysInYears + daysInMonths + day - 1
 

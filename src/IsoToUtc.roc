@@ -114,7 +114,7 @@ parseCalendarDateYear = \str ->
             nanos = year
                 |> numDaysSinceEpochToYear
                 |> daysToNanos
-            Ok (@Utc nanos)
+            nanos |> @Utc |> Ok
         Ok _ -> Err InvalidDateFormat
         Err _ -> Err InvalidDateFormat
 
