@@ -63,7 +63,7 @@ utf8ToInt = \u8List ->
                     Err InvalidBytes
             Err InvalidBytes -> Err InvalidBytes
 
-expect utf8ToInt ['0', '1', '2', '3'] == Ok 123
+expect ['0','1','2','3','4','5','6','7','8','9'] |> utf8ToInt == Ok 123456789
 expect utf8ToInt ['@'] == Err InvalidBytes
 expect utf8ToInt ['/'] == Err InvalidBytes
 
