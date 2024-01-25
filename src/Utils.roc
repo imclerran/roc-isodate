@@ -5,8 +5,10 @@ interface Utils
         daysToNanos,
         splitStrAtIndex,
         splitStrAtIndices,
+        splitListAtIndices,
         calendarWeekToDaysInYear,
         validateUtf8SingleBytes,
+        utf8ToInt,
     ]
     imports [
         Const.{
@@ -48,6 +50,25 @@ expect splitStrAtIndex "abc" 3 == ["abc"]
 expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]  
 expect splitStrAtIndices "abcde" [3,1,4,2] == ["a", "b", "c", "d", "e"]
 expect splitStrAtIndices "abc" [0,5] == ["abc"]
+
+splitListAtIndices : List a, List U64 -> List (List a)
+splitListAtIndices = \list, indices ->
+    splitListAtIndicesRecur list (List.sortDesc indices)
+
+splitListAtIndicesRecur : List a, List U64 -> List (List a)
+splitListAtIndicesRecur = \list, indices ->
+    when indices is
+        [x, .. as xs] if x != 0 && x != List.len list |> Num.toU64-> 
+            when List.split list (Num.toNat x) is
+                {before: head, others: tail} -> 
+                    splitListAtIndicesRecur head xs |> List.append tail
+        [_, .. as xs] -> 
+            splitListAtIndicesRecur list xs
+        [] -> [list]
+
+expect splitListAtIndices [1,2] [0,1,2] == [[1], [2]]
+expect splitListAtIndices [1,2] [0] == [[1,2]]
+expect splitListAtIndices [1,2] [1] == [[1], [2]]
 
 validateUtf8SingleBytes : List U8 -> Result (List U8) [MultibyteCharacters]
 validateUtf8SingleBytes = \u8List ->
