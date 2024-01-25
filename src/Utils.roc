@@ -7,7 +7,6 @@ interface Utils
         splitStrAtIndices,
         calendarWeekToDaysInYear,
         validateUtf8,
-        checkByteInList,
     ]
     imports [
         Const.{
@@ -60,12 +59,6 @@ validateUtf8 = \u8List ->
         Ok u8List
     else
         Err MultibyteCharacters
-
-checkByteInList : List U8, U64, U8 -> Bool
-checkByteInList = \bytes, index, byte ->
-    when List.get bytes (Num.toNat index) is
-        Ok b if b == byte -> Bool.true
-        _ -> Bool.false
 
 isLeapYear = \year ->
     (year % leapInterval == 0 &&
