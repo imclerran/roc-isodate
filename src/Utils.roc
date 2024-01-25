@@ -3,8 +3,6 @@ interface Utils
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
         daysToNanos,
-        splitStrAtIndex,
-        splitStrAtIndices,
         splitListAtIndices,
         calendarWeekToDaysInYear,
         validateUtf8SingleBytes,
@@ -23,33 +21,6 @@ interface Utils
             monthDays,
         },
     ]
-
-splitStrAtIndices = \str, indices ->
-    sortedIndices = List.sortAsc indices
-    splitStrAtIndicesRecur str sortedIndices
-
-splitStrAtIndicesRecur = \str, indices ->
-    u8List = Str.toUtf8 str
-    when List.last indices is
-        Ok index if index > 0 && index < List.len u8List ->
-            lists = List.split u8List index
-            when (Str.fromUtf8 lists.before, Str.fromUtf8 lists.others) is
-                (Ok headStr, Ok tailStr) -> 
-                    splitStrAtIndicesRecur headStr (List.dropLast indices 1)
-                    |> List.append tailStr
-                (_, _) -> 
-                    crash "splitStrAtIndicesRecur: should never happen because u8List was parsed from str"
-        Ok _ -> splitStrAtIndicesRecur str (List.dropLast indices 1)
-        Err _ -> [str]
-
-splitStrAtIndex = \str, index -> splitStrAtIndices str [index]
-
-expect splitStrAtIndex "abc" 0 == ["abc"]
-expect splitStrAtIndex "abc" 1 == ["a", "bc"]
-expect splitStrAtIndex "abc" 3 == ["abc"]
-expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]  
-expect splitStrAtIndices "abcde" [3,1,4,2] == ["a", "b", "c", "d", "e"]
-expect splitStrAtIndices "abc" [0,5] == ["abc"]
 
 splitListAtIndices : List a, List U64 -> List (List a)
 splitListAtIndices = \list, indices ->
@@ -70,16 +41,16 @@ expect splitListAtIndices [1,2] [0,1,2] == [[1], [2]]
 expect splitListAtIndices [1,2] [0] == [[1,2]]
 expect splitListAtIndices [1,2] [1] == [[1], [2]]
 
-validateUtf8SingleBytes : List U8 -> Result (List U8) [MultibyteCharacters]
+validateUtf8SingleBytes : List U8 -> Bool
 validateUtf8SingleBytes = \u8List ->
     if List.all u8List \u8 -> Num.bitwiseAnd u8 0b10000000 == 0b00000000 then
-        Ok u8List
+        Bool.true
     else
-        Err MultibyteCharacters
+        Bool.false
 
-expect validateUtf8SingleBytes [0b01111111] == Ok [0b01111111]
-expect validateUtf8SingleBytes [0b10000000, 0b00000001] == Err MultibyteCharacters
-expect "🔥" |> Str.toUtf8 |> validateUtf8SingleBytes == Err MultibyteCharacters
+expect validateUtf8SingleBytes [0b01111111]
+expect !(validateUtf8SingleBytes [0b10000000, 0b00000001])
+expect !("🔥" |> Str.toUtf8 |> validateUtf8SingleBytes)
 
 utf8ToInt : List U8 -> Result U64 [InvalidBytes]
 utf8ToInt = \u8List ->
