@@ -7,6 +7,7 @@ interface IsoToUtc
             numDaysSinceEpochToYear,
             calendarWeekToDaysInYear,
             splitStrAtIndices,
+            validateUtf8,
         },
         Const.{
             epochYear,
@@ -23,26 +24,30 @@ Utc := U128 implements [Inspect, Eq]
 # TODO: More efficient parsing method?
 parseDate : Str -> Result Utc [InvalidDateFormat]
 parseDate = \str ->
-    when Str.countUtf8Bytes str is
-        2 -> parseCalendarDateCentury str # YY
-        4 -> parseCalendarDateYear str # YYYY
-        7 if Str.contains str "W" -> 
-            parseWeekDateReducedBasic str # YYYYWww
-        7 if Str.contains str "-" -> 
-            parseCalendarDateMonth str # YYYY-MM
-        7 -> parseOrdinalDateBasic str # YYYYDDD
-        8 if Str.contains str "W" && Str.contains str "-" ->
-            parseWeekDateReducedExtended str # YYYY-Www
-        8 if Str.contains str "W" ->
-            parseWeekDateBasic str # YYYYWwwD
-        8 if Str.contains str "-" ->
-            parseOrdinalDateExtended str # YYYY-DDD
-        8 -> parseCalendarDateBasic str # YYYYMMDD
-        10 if Str.contains str "W" -> 
-            parseWeekDateExtended str # YYYY-Www-D
-        10 if Str.contains str "-" ->
-            parseCalendarDateExtended str # YYYY-MM-DD
-        _ -> Err InvalidDateFormat
+    when Str.toUtf8 str |> validateUtf8 is
+        Ok bytes ->
+            when List.len bytes is
+                2 -> parseCalendarDateCentury str # YY
+                4 -> parseCalendarDateYear str # YYYY
+                7 if Str.contains str "W" -> 
+                    parseWeekDateReducedBasic str # YYYYWww
+                7 if Str.contains str "-" -> 
+                    parseCalendarDateMonth str # YYYY-MM
+                7 -> parseOrdinalDateBasic str # YYYYDDD
+                8 if Str.contains str "W" && Str.contains str "-" ->
+                    parseWeekDateReducedExtended str # YYYY-Www
+                8 if Str.contains str "W" ->
+                    parseWeekDateBasic str # YYYYWwwD
+                8 if Str.contains str "-" ->
+                    parseOrdinalDateExtended str # YYYY-DDD
+                8 -> parseCalendarDateBasic str # YYYYMMDD
+                10 if Str.contains str "W" -> 
+                    parseWeekDateExtended str # YYYY-Www-D
+                10 if Str.contains str "-" ->
+                    parseCalendarDateExtended str # YYYY-MM-DD
+                _ -> Err InvalidDateFormat
+        Err MultibyteCharacters -> Err InvalidDateFormat
+    
 
 # CalendarDateCentury
 expect parseDate "20" == (10_957) * secondsPerDay * nanosPerSecond |> Num.toU128 |> @Utc |> Ok

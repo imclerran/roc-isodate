@@ -6,6 +6,7 @@ interface Utils
         splitStrAtIndex,
         splitStrAtIndices,
         calendarWeekToDaysInYear,
+        validateUtf8,
     ]
     imports [
         Const.{
@@ -35,8 +36,7 @@ splitStrAtIndicesRecur = \str, indices ->
                     splitStrAtIndicesRecur headStr (List.dropLast indices 1)
                     |> List.append tailStr
                 (_, _) -> 
-                    # TODO: consider reverting to crash failure mode, since if this condition has been met, something has gone HORRIBLY wrong
-                    splitStrAtIndicesRecur str (List.dropLast indices 1) # Will never happen since u8List was parsed from Str
+                    crash "splitStrAtIndicesRecur: should never happen because u8List was parsed from str"
         Ok _ -> splitStrAtIndicesRecur str (List.dropLast indices 1)
         Err _ -> [str]
 
@@ -48,6 +48,17 @@ expect splitStrAtIndex "abc" 3 == ["abc"]
 expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]  
 expect splitStrAtIndices "abcde" [3,1,4,2] == ["a", "b", "c", "d", "e"]
 expect splitStrAtIndices "abc" [0,5] == ["abc"]
+
+expect validateUtf8 [0b01111111] == Ok [0b01111111]
+expect validateUtf8 [0b10000000, 0b00000001] == Err MultibyteCharacters
+expect "🔥" |> Str.toUtf8 |> validateUtf8 == Err MultibyteCharacters
+
+validateUtf8 : List U8 -> Result (List U8) [MultibyteCharacters]
+validateUtf8 = \u8List ->
+    if List.all u8List \u8 -> Num.bitwiseAnd u8 0b10000000 == 0b00000000 then
+        Ok u8List
+    else
+        Err MultibyteCharacters
 
 isLeapYear = \year ->
     (year % leapInterval == 0 &&
