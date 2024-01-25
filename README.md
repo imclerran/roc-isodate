@@ -10,12 +10,16 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 
 ## Progress
 - So far this library has full support for parsing all date string types, as described [here](FORMAT.md).
-- Support for time, date & time representations is planned
-- Support for time intervals may be considered after full date/time support is complete.
+- can Parse from `Str` or from a `List U8` of Utf-8 bytes.
+
+## Future Plans
+- Full support for time as well as date/time representations.
+- Time interval representations will be added once date/time support is complete.
+- Once Parsing from iso is complete, add formatting dates and times to ISO strings.
+- Research adding custom encoding/decoding for json parsers.
 
 ## Known Issues
 - As mentioned above, no support yet for any strings containing time data, or for intervals.
-- Not performance optimized - regexing, or better yet a finite state machine parser would be much more performant.
 - Also mentioned above: Basic CLI platform's Utc type does not support dates before 1970-01-01.
 
 ## ISO 8601 Date/Time Format
