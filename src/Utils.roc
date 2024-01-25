@@ -6,7 +6,7 @@ interface Utils
         splitStrAtIndex,
         splitStrAtIndices,
         calendarWeekToDaysInYear,
-        validateUtf8,
+        validateUtf8SingleBytes,
     ]
     imports [
         Const.{
@@ -49,16 +49,32 @@ expect splitStrAtIndices "abc" [1, 2] == ["a", "b", "c"]
 expect splitStrAtIndices "abcde" [3,1,4,2] == ["a", "b", "c", "d", "e"]
 expect splitStrAtIndices "abc" [0,5] == ["abc"]
 
-expect validateUtf8 [0b01111111] == Ok [0b01111111]
-expect validateUtf8 [0b10000000, 0b00000001] == Err MultibyteCharacters
-expect "🔥" |> Str.toUtf8 |> validateUtf8 == Err MultibyteCharacters
-
-validateUtf8 : List U8 -> Result (List U8) [MultibyteCharacters]
-validateUtf8 = \u8List ->
+validateUtf8SingleBytes : List U8 -> Result (List U8) [MultibyteCharacters]
+validateUtf8SingleBytes = \u8List ->
     if List.all u8List \u8 -> Num.bitwiseAnd u8 0b10000000 == 0b00000000 then
         Ok u8List
     else
         Err MultibyteCharacters
+
+expect validateUtf8SingleBytes [0b01111111] == Ok [0b01111111]
+expect validateUtf8SingleBytes [0b10000000, 0b00000001] == Err MultibyteCharacters
+expect "🔥" |> Str.toUtf8 |> validateUtf8SingleBytes == Err MultibyteCharacters
+
+utf8ToInt : List U8 -> Result U64 [InvalidBytes]
+utf8ToInt = \u8List ->
+    u8List 
+        |> List.reverse 
+        |> List.walkWithIndex (Ok 0) \numResult, byte, index ->
+                when numResult is
+                    Ok num ->
+                        digit = Num.toU64 (byte - 0x30)
+                        if digit >= 0 && digit <= 9 then
+                            Ok (num + digit * (Num.toU64 (Num.powInt 10 (Num.toNat index))))
+                        else
+                            Err InvalidBytes
+                    Err InvalidBytes -> Err InvalidBytes
+
+expect utf8ToInt ['0', '1', '2', '3'] == Ok 123
 
 isLeapYear = \year ->
     (year % leapInterval == 0 &&
