@@ -1,4 +1,4 @@
-package "ISORocDate"
+package "RocISODate"
     exposes [
         IsoToUtc,
     ]
