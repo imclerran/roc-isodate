@@ -116,11 +116,9 @@ parseCalendarDateMonth : Str -> Result Utc [InvalidDateFormat]
 parseCalendarDateMonth = \str -> 
     when Str.split str "-" is
         [yearStr, monthStr] -> 
-            year = Str.toU64 yearStr
-            month = Str.toU64 monthStr
-            when (year, month) is
-            (Ok y, Ok m) ->
-                numDaysSinceEpoch { year: y, month: m, day: 1} 
+            when (Str.toU64 yearStr, Str.toU64 monthStr) is
+            (Ok year, Ok month) ->
+                numDaysSinceEpoch { year, month, day: 1} 
                     |> daysToNanos |> @Utc |> Ok
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
@@ -129,11 +127,9 @@ parseOrdinalDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseOrdinalDateBasic = \str -> 
     when splitStrAtIndices str [4] is
         [yearStr, dayStr] -> 
-            year = Str.toU64 yearStr
-            day = Str.toU64 dayStr
-            when (year, day) is
-            (Ok y, Ok d) ->
-                numDaysSinceEpoch {year: y, month: 1, day: d} 
+            when (Str.toU64 yearStr, Str.toU64 dayStr) is
+            (Ok year, Ok day) ->
+                numDaysSinceEpoch {year, month: 1, day} 
                     |> daysToNanos |> @Utc |> Ok
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
@@ -142,11 +138,9 @@ parseOrdinalDateExtended : Str -> Result Utc [InvalidDateFormat]
 parseOrdinalDateExtended = \str -> 
     when Str.split str "-" is
         [yearStr, dayStr] -> 
-            year = Str.toU64 yearStr
-            day = Str.toU64 dayStr
-            when (year, day) is
-            (Ok y, Ok d) ->
-                numDaysSinceEpoch {year: y, month: 1, day: d} 
+            when (Str.toU64 yearStr, Str.toU64 dayStr) is
+            (Ok year, Ok day) ->
+                numDaysSinceEpoch {year, month: 1, day} 
                     |> daysToNanos |> @Utc |> Ok
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
@@ -155,12 +149,9 @@ parseWeekDateBasic : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateBasic = \str -> 
     when splitStrAtIndices str [4,5,7] is
         [yearStr, _, weekStr, dayStr] -> 
-            year = Str.toU64 yearStr
-            week = Str.toU64 weekStr
-            day = Str.toU64 dayStr
-            when (year, week, day) is
-            (Ok y, Ok w, Ok d) ->
-                calendarWeekToUtc {year: y, week: w, day: d}
+            when (Str.toU64 yearStr, Str.toU64 weekStr, Str.toU64 dayStr) is
+            (Ok year, Ok week, Ok day) ->
+                calendarWeekToUtc {year, week, day}
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -168,12 +159,9 @@ parseWeekDateExtended : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateExtended = \str -> 
     when splitStrAtIndices str [4,6,8,9] is
         [yearStr, _, weekStr, _, dayStr] -> 
-            year = Str.toU64 yearStr
-            week = Str.toU64 weekStr
-            day = Str.toU64 dayStr
-            when (year, week, day) is
-            (Ok y, Ok w, Ok d) ->
-                calendarWeekToUtc {year: y, week: w, day: d}
+            when (Str.toU64 yearStr, Str.toU64 weekStr, Str.toU64 dayStr) is
+            (Ok year, Ok week, Ok day) ->
+                calendarWeekToUtc {year, week, day}
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -181,11 +169,9 @@ parseWeekDateReducedBasic : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedBasic = \str -> 
     when splitStrAtIndices str [4,5] is
         [yearStr, _, weekStr] -> 
-            year = Str.toU64 yearStr
-            week = Str.toU64 weekStr
-            when (year, week) is
-            (Ok y, Ok w) ->
-                calendarWeekToUtc {year: y, week: w, day: 1}
+            when (Str.toU64 yearStr, Str.toU64 weekStr) is
+            (Ok year, Ok week) ->
+                calendarWeekToUtc {year, week, day: 1}
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -193,11 +179,9 @@ parseWeekDateReducedExtended : Str -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedExtended = \str -> 
     when splitStrAtIndices str [4,6] is
         [yearStr, _, weekStr] -> 
-            year = Str.toU64 yearStr
-            week = Str.toU64 weekStr
-            when (year, week) is
-            (Ok y, Ok w) ->
-                calendarWeekToUtc {year: y, week: w, day: 1}
+            when (Str.toU64 yearStr, Str.toU64 weekStr) is
+            (Ok year, Ok week) ->
+                calendarWeekToUtc {year, week, day: 1}
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
