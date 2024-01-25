@@ -1,4 +1,4 @@
-# ISO RocDate
+# RocISODate
 A Roc package for parsing ISO 8601 Date/Time Strings 
 
 ## Implementation
