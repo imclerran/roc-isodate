@@ -7,7 +7,9 @@ interface IsoToUtc
             numDaysSinceEpochToYear,
             calendarWeekToDaysInYear,
             splitStrAtIndices,
+            splitListAtIndices,
             validateUtf8SingleBytes,
+            utf8ToInt,
         },
         Const.{
             epochYear,
@@ -35,18 +37,18 @@ parseDate = \str ->
                 [_,_,_,_,'-','W',_,_] -> parseWeekDateReducedExtended str # YYYY-Www
                 [_,_,_,_,'W',_,_,_] -> parseWeekDateBasic str # YYYYWwwD
                 [_,_,_,_,'-',_,_,_] -> parseOrdinalDateExtended str # YYYY-DDD
-                [_,_,_,_,_,_,_,_] -> parseCalendarDateBasic str # YYYYMMDD
+                [_,_,_,_,_,_,_,_] -> parseCalendarDateBasic bytes # YYYYMMDD
                 [_,_,_,_,'-','W',_,_,'-',_] -> parseWeekDateExtended str # YYYY-Www-D
                 [_,_,_,_,'-',_,_,'-',_,_] -> parseCalendarDateExtended str # YYYY-MM-DD
                 _ -> Err InvalidDateFormat
         Err MultibyteCharacters -> Err InvalidDateFormat
-        
 
-parseCalendarDateBasic : Str -> Result Utc [InvalidDateFormat]
-parseCalendarDateBasic = \str ->
-    when splitStrAtIndices str [4, 6] is
-        [yearStr, monthStr, dayStr] -> 
-            when (Str.toU64 yearStr, Str.toU64 monthStr, Str.toU64 dayStr) is
+
+parseCalendarDateBasic : List U8 -> Result Utc [InvalidDateFormat]
+parseCalendarDateBasic = \bytes ->
+    when splitListAtIndices bytes [4, 6] is
+        [yearBytes, monthBytes, dayBytes] -> 
+            when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
             (Ok y, Ok m, Ok d) if y >= epochYear && m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
                 numDaysSinceEpoch {year: y, month: m, day: d} 
                     |> daysToNanos |> @Utc |> Ok
