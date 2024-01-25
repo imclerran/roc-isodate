@@ -8,6 +8,7 @@ interface IsoToUtc
             calendarWeekToDaysInYear,
             splitStrAtIndices,
             validateUtf8,
+            checkByteInList,
         },
         Const.{
             epochYear,
@@ -29,21 +30,21 @@ parseDate = \str ->
             when List.len bytes is
                 2 -> parseCalendarDateCentury str # YY
                 4 -> parseCalendarDateYear str # YYYY
-                7 if Str.contains str "W" -> 
+                7 if checkByteInList bytes 4 'W' ->
                     parseWeekDateReducedBasic str # YYYYWww
-                7 if Str.contains str "-" -> 
+                7 if checkByteInList bytes 4 '-' -> 
                     parseCalendarDateMonth str # YYYY-MM
                 7 -> parseOrdinalDateBasic str # YYYYDDD
-                8 if Str.contains str "W" && Str.contains str "-" ->
+                8 if checkByteInList bytes 5 'W' ->
                     parseWeekDateReducedExtended str # YYYY-Www
-                8 if Str.contains str "W" ->
+                8 if checkByteInList bytes 4 'W' ->
                     parseWeekDateBasic str # YYYYWwwD
-                8 if Str.contains str "-" ->
+                8 if checkByteInList bytes 4 '-' ->
                     parseOrdinalDateExtended str # YYYY-DDD
                 8 -> parseCalendarDateBasic str # YYYYMMDD
-                10 if Str.contains str "W" -> 
+                10 if checkByteInList bytes 5 'W' -> 
                     parseWeekDateExtended str # YYYY-Www-D
-                10 if Str.contains str "-" ->
+                10 if checkByteInList bytes 4 '-' ->
                     parseCalendarDateExtended str # YYYY-MM-DD
                 _ -> Err InvalidDateFormat
         Err MultibyteCharacters -> Err InvalidDateFormat
