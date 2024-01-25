@@ -54,19 +54,18 @@ expect !("🔥" |> Str.toUtf8 |> validateUtf8SingleBytes)
 
 utf8ToInt : List U8 -> Result U64 [InvalidBytes]
 utf8ToInt = \u8List ->
-    u8List 
-        |> List.reverse 
-        |> List.walkWithIndex (Ok 0) \numResult, byte, index ->
-                when numResult is
-                    Ok num ->
-                        digit = Num.toU64 (byte - 0x30)
-                        if digit >= 0 && digit <= 9 then
-                            Ok (num + digit * (Num.toU64 (Num.powInt 10 (Num.toNat index))))
-                        else
-                            Err InvalidBytes
-                    Err InvalidBytes -> Err InvalidBytes
+    u8List |> List.reverse |> List.walkWithIndex (Ok 0) \numResult, byte, index ->
+        when numResult is
+            Ok num ->
+                if 0x30 <= byte && byte <= 0x39 then
+                    Ok (num + (Num.toU64 byte - 0x30) * (Num.toU64 (Num.powInt 10 (Num.toNat index))))
+                else
+                    Err InvalidBytes
+            Err InvalidBytes -> Err InvalidBytes
 
 expect utf8ToInt ['0', '1', '2', '3'] == Ok 123
+expect utf8ToInt ['@'] == Err InvalidBytes
+expect utf8ToInt ['/'] == Err InvalidBytes
 
 isLeapYear = \year ->
     (year % leapInterval == 0 &&
