@@ -110,7 +110,7 @@ expect numDaysSinceEpochToYear 1973 == 365 + 365 + 366
 expect numDaysSinceEpochToYear 2024 == 19723
 
 daysToNanos = \days ->
-    days * secondsPerDay * nanosPerSecond |> Num.toU128
+    days * secondsPerDay * nanosPerSecond |> Num.toI128
 
 calendarWeekToDaysInYear = \week, year->
     # Week 1 of a year is the first week with a majority of its days in that year
