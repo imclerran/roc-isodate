@@ -2,6 +2,8 @@ interface IsoToUtc
     exposes [
         parseDateFromStr,
         parseDateFromU8,
+        parseTimeFromStr,
+        parseTimeFromU8,
     ]
     imports [
         Utils.{
@@ -16,11 +18,16 @@ interface IsoToUtc
         Const.{
             epochYear,
             weeksPerYear,
+            nanosPerSecond,
         },
         Utc.{
             Utc,
             fromNanosSinceEpoch,
-        }
+        },
+        UtcTime.{
+            UtcTime,
+            fromNanosSinceMidnight,
+        },
     ]
 
 parseDateFromStr: Str -> Result Utc [InvalidDateFormat]
@@ -171,3 +178,96 @@ calendarWeekToUtc = \{week, year, day? 1} ->
         numDaysSinceEpoch {year, month: 1, day: (day + weekDaysSoFar)} |> daysToNanos |> fromNanosSinceEpoch |> Ok # month field should be optional, bug compiler bug prevents this
     else
         Err InvalidDateFormat
+
+parseTimeFromStr: Str -> Result UtcTime [InvalidTimeFormat]
+parseTimeFromStr = \str ->
+    Str.toUtf8 str |> parseTimeFromU8
+        
+parseTimeFromU8 : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseTimeFromU8 = \bytes ->
+    if validateUtf8SingleBytes bytes then
+        strippedBytes = stripTandZ bytes
+        when strippedBytes is
+            [_,_] -> parseLocalTimeHour strippedBytes # hh
+            [_,_,_,_] -> parseLocalTimeMinuteBasic strippedBytes # hhmm
+            [_,_,':',_,_] -> parseLocalTimeMinuteExtended strippedBytes # hh:mm
+            [_,_,_,_,_,_] -> parseLocalTimeBasic strippedBytes # hhmmss
+            [_,_,':',_,_,':',_,_] -> parseLocalTimeExtended strippedBytes # hh:mm:ss
+            _ -> Err InvalidTimeFormat
+    else
+        Err InvalidTimeFormat
+
+parseLocalTimeHour : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseLocalTimeHour = \bytes ->
+    when utf8ToInt bytes is
+        Ok hour if hour >= 0 && hour <= 24 ->
+            hour * 60 * 60 * nanosPerSecond
+                |> fromNanosSinceMidnight |> Ok
+        Ok _ -> Err InvalidTimeFormat
+        Err _ -> Err InvalidTimeFormat
+
+parseLocalTimeMinuteBasic : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseLocalTimeMinuteBasic = \bytes ->
+    when splitListAtIndices bytes [2] is
+        [hourBytes, minuteBytes] -> 
+            when (utf8ToInt hourBytes, utf8ToInt minuteBytes) is
+            (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
+                hourNanos = (hour * 60 * 60 * nanosPerSecond) 
+                minuteNanos = (minute * 60 * nanosPerSecond)
+                hourNanos + minuteNanos |> fromNanosSinceMidnight |> Ok
+            (Ok 24, Ok 0) -> 
+                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+            (_, _) -> Err InvalidTimeFormat
+        _ -> Err InvalidTimeFormat
+
+parseLocalTimeMinuteExtended : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseLocalTimeMinuteExtended = \bytes ->
+    when splitListAtIndices bytes [2,3] is
+        [hourBytes, _, minuteBytes] -> 
+            when (utf8ToInt hourBytes, utf8ToInt minuteBytes) is
+            (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
+                hourNanos = (hour * 60 * 60 * nanosPerSecond) 
+                minuteNanos = (minute * 60 * nanosPerSecond)
+                hourNanos + minuteNanos |> fromNanosSinceMidnight |> Ok
+            (Ok 24, Ok 0) ->
+                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+            (_, _) -> Err InvalidTimeFormat
+        _ -> Err InvalidTimeFormat
+
+parseLocalTimeBasic : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseLocalTimeBasic = \bytes ->
+    when splitListAtIndices bytes [2,4] is
+        [hourBytes, minuteBytes, secondBytes] -> 
+            when (utf8ToInt hourBytes, utf8ToInt minuteBytes, utf8ToInt secondBytes) is
+            (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
+                hourNanos = (h * 60 * 60 * nanosPerSecond) 
+                minuteNanos = (m * 60 * nanosPerSecond)
+                secondNanos = (s * nanosPerSecond)
+                hourNanos + minuteNanos + secondNanos |> fromNanosSinceMidnight |> Ok
+            (Ok 24, Ok 0, Ok 0) ->
+                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+            (_, _, _) -> Err InvalidTimeFormat
+        _ -> Err InvalidTimeFormat
+
+parseLocalTimeExtended : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseLocalTimeExtended = \bytes ->
+    when splitListAtIndices bytes [2,3,5,6] is
+        [hourBytes, _, minuteBytes, _, secondBytes] -> 
+            when (utf8ToInt hourBytes, utf8ToInt minuteBytes, utf8ToInt secondBytes) is
+            (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
+                hourNanos = (h * 60 * 60 * nanosPerSecond) 
+                minuteNanos = (m * 60 * nanosPerSecond)
+                secondNanos = (s * nanosPerSecond)
+                hourNanos + minuteNanos + secondNanos |> fromNanosSinceMidnight |> Ok
+            (Ok 24, Ok 0, Ok 0) ->
+                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+            (_, _, _) -> Err InvalidTimeFormat
+        _ -> Err InvalidTimeFormat
+
+stripTandZ : List U8 -> List U8
+stripTandZ = \bytes ->
+    when bytes is
+        ['T', .. as tail] -> stripTandZ tail
+        [.. as head, 'Z'] -> head
+        _ -> bytes
+

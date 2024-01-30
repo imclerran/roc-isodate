@@ -7,11 +7,16 @@ interface Tests
         },
         IsoToUtc.{
             parseDateFromStr,
+            parseTimeFromStr,
         },
         Utc.{
             Utc,
             fromNanosSinceEpoch,
-        }
+        },
+        UtcTime.{
+            UtcTime,
+            fromNanosSinceMidnight,
+        },
     ]
 
 # -- IsoToUtc.roc -- 
@@ -105,3 +110,33 @@ expect parseDateFromStr "2024-01-32" == Err InvalidDateFormat
 expect parseDateFromStr "2024-00-01" == Err InvalidDateFormat
 expect parseDateFromStr "2024-13-01" == Err InvalidDateFormat
 expect parseDateFromStr "2024-0a-01" == Err InvalidDateFormat
+
+# LocalTimeHour
+expect parseTimeFromStr "T00" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T23" == (23 * 60 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24" == (24 * 60 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T25" == Err InvalidTimeFormat
+
+# LocalTimeMinuteBasic
+expect parseTimeFromStr "T0000" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T2359" == (23 * 60 * 60 * nanosPerSecond + 59 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T2400" == (24 * 60 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T2401" == Err InvalidTimeFormat
+
+# LocalTimeMinuteExtended
+expect parseTimeFromStr "T00:00" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T23:59" == (23 * 60 * 60 * nanosPerSecond + 59 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24:00" == (24 * 60 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24:01" == Err InvalidTimeFormat
+
+# LocalTimeBasic
+expect parseTimeFromStr "T000000" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T235959" == (23 * 60 * 60 * nanosPerSecond + 59 * 60 * nanosPerSecond + 59 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T240000" == (24 * 60 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T240001" == Err InvalidTimeFormat
+
+# LocalTimeExtended
+expect parseTimeFromStr "T00:00:00" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T23:59:59" == (23 * 60 * 60 * nanosPerSecond + 59 * 60 * nanosPerSecond + 59 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24:00:00" == (24 * 60 * 60 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24:00:01" == Err InvalidTimeFormat
