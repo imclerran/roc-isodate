@@ -6,16 +6,20 @@ This implementation is currently designed to convert an ISO date/time string int
 
 This shortcoming may be addressed in future by supporting parsing ISO strings into other date/time formats such as [Roc DateTimes](https://github.com/Hasnep/roc-datetimes). However for the time being, implementation remains limited to the Basic CLI Utc type.
 
+**NOTE:** *Pull requests are currently in progress on both roc-lang/basic-cli and basic-webserver platfomrs to convert Utc to use signed integers. With this change in motion, plans for this library have been updated to support conversion of pre-epoch dates to Utc*
+
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release](https://www.loc.gov/standards/datetime/iso-tc154-wg5_n0038_iso_wd_8601-1_2016-02-16.pdf) copy of the 8601-1 standard, so my implementation does not conform to the latest revision to the standard.
 
 ## Progress
 - Full support for parsing all date string types, as described [here](FORMAT.md).
+  - **Note:** *beginning work on support for pre-epoch dates.*
 - Partial support for parsing time strings.
   - local time representations, with the exception of fractional times are fully supported.
 - can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
 
 ## Future Plans
+- Support for parsing pre-epoch dates to Utc.
 - Fractional time representations.
 - UTC timezone offset time representations.
 - Full support for combined date/time representations.
