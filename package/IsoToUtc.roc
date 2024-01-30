@@ -23,12 +23,6 @@ interface IsoToUtc
         }
     ]
 
-## Stores a timestamp as nanoseconds since UNIX EPOCH
-#Utc := I128 implements [Inspect, Eq]
-
-## Stores a timestamp as nanoseconds since 00:00:00 of a given day
-UtcTime := U64 implements [Inspect, Eq]
-
 parseDateFromStr: Str -> Result Utc [InvalidDateFormat]
 parseDateFromStr = \str ->
     Str.toUtf8 str |> parseDateFromU8
