@@ -9,11 +9,16 @@ This shortcoming may be addressed in future by supporting parsing ISO strings in
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release](https://www.loc.gov/standards/datetime/iso-tc154-wg5_n0038_iso_wd_8601-1_2016-02-16.pdf) copy of the 8601-1 standard, so my implementation does not conform to the latest revision to the standard.
 
 ## Progress
-- So far this library has full support for parsing all date string types, as described [here](FORMAT.md).
+- Full support for parsing all date string types, as described [here](FORMAT.md).
+- Partial support for parsing time strings.
+  - local time representations, with the exception of fractional times are fully supported.
 - can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
+
 ## Future Plans
-- Full support for time as well as date/time representations.
+- Fractional time representations.
+- UTC timezone offset time representations.
+- Full support for combined date/time representations.
 - Time interval representations will be added once date/time support is complete.
 - Once Parsing from iso is complete, add formatting dates and times to ISO strings.
 - Research adding custom encoding/decoding for json parsers.

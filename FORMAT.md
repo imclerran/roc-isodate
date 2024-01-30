@@ -3,40 +3,40 @@ Below are the basics of the ISO 8601 Date / Time specification
 ## Dates
 ### Calendar date ✅
 1) Complete Representations
-  - Basic: `YYYYMMDD` ✔
-  - Extended: `YYYY-MM-DD` ✔
+  - Basic: `YYYYMMDD` ✅
+  - Extended: `YYYY-MM-DD` ✅
 2) Reduced Accuracy
   - Specific Month
-    - Basic: `YYYY-MM` ✔
+    - Basic: `YYYY-MM` ✅
   - Specific Year
-    - Basic: `YYYY` ✔
+    - Basic: `YYYY` ✅
   - Specific Century
-    - Basic: `YY` ✔
+    - Basic: `YY` ✅
 
 ### Ordinal Date
 1) Complete Representations
-  - Basic: `YYYYDDD` ✔
-  - Extended: `YYYY-DD` ✔
+  - Basic: `YYYYDDD` ✅
+  - Extended: `YYYY-DD` ✅
 
 ### Week Date
 1) Complete Representation
-  - Basic: `YYYYWwwD` ✔
-  - Extended: `YYYY-Www-D` ✔
+  - Basic: `YYYYWwwD` ✅
+  - Extended: `YYYY-Www-D` ✅
 2) Reduced Accuracy
-  - Basic: `YYYYWww` ✔
-  - Extended: `YYYY-Www` ✔
+  - Basic: `YYYYWww` ✅
+  - Extended: `YYYY-Www` ✅
 
 ## Time of Day
 ### Local Time
 1) Complete Representations
-  - Basic: `hhmmss`
-  - Extended: `hh:mm:ss`
+  - Basic: `hhmmss` ✅
+  - Extended: `hh:mm:ss` ✅
 2) Reduced Accuracy
   - Specific Minute
-    - Basic: `hhmm`
-    - Extended: `hh:mm`
+    - Basic: `hhmm` ✅
+    - Extended: `hh:mm` ✅
   - Specific Hour
-    - Basic: `hh`
+    - Basic: `hh` ✅
 3) Decimal Fractions
   - A minimum of 1 digit after the decimal point, up to as many as needed.
   - Fraction of Second
@@ -48,23 +48,23 @@ Below are the basics of the ISO 8601 Date / Time specification
   - Fraction of hour
     - Basic: `hh,hh` or `hh.hh`
 ### Time designator
-- Any local time may be preceded bt the time designator: `T`
-- If the context is ambiguous, the time _must_ be preceeded by `T`
+- Any local time may be preceded bt the time designator: `T` ✅
+- If the context is ambiguous, the time _must_ be preceeded by `T` ✅
 ### Beginning / End of Day
 1) Beginning
-  - Basic: `000000`
-  - Extended: `00:00:00`
+  - Basic: `000000` ✅
+  - Extended: `00:00:00` ✅
 2) End
-  - Basic: `240000`
-  - Extended: `24:00:00`
+  - Basic: `240000` ✅
+  - Extended: `24:00:00` ✅
 ### UTC of day
 1) Basic
-  - `hhmmssZ`
-  - `hhmmZ`
-  - `hhZ`
+  - `hhmmssZ` ✅
+  - `hhmmZ` ✅
+  - `hhZ` ✅
 2) Extended
-  - `hh:mm:ssZ`
-  - `hh:mmZ`
+  - `hh:mm:ssZ` ✅
+  - `hh:mmZ` ✅
 ### Difference between UTC and local
 1) Basic
   - `hhmmss+hhmm` or `hhmmss-hhmm`
