@@ -2,6 +2,11 @@ interface UtcTime
     exposes [
         UtcTime,
         toMillisSinceMidnight,
+        fromMillisSinceMidnight,
+        toNanosSinceMidnight,
+        fromNanosSinceMidnight,
+        deltaAsMillis,
+        deltaAsNanos,
     ]
     imports []
 
@@ -19,7 +24,7 @@ toMillisSinceMidnight = \@UtcTime nanos ->
 ## Convert milliseconds to UtcTime timestamp
 fromMillisSinceMidnight : U64 -> UtcTime
 fromMillisSinceMidnight = \millis ->
-    @Utc (millis * nanosPerMilli)
+    @UtcTime (millis * nanosPerMilli)
 
 ## Convert UtcTime timestamp to nanoseconds
 toNanosSinceMidnight : UtcTime -> U64
@@ -28,7 +33,7 @@ toNanosSinceMidnight = \@UtcTime nanos ->
 
 ## Convert nanoseconds to UtcTime timestamp
 fromNanosSinceMidnight : U64 -> UtcTime
-fromNanosSinceMidnight = @Utc
+fromNanosSinceMidnight = @UtcTime
 
 ## Calculate milliseconds between two UtcTime timestamps
 deltaAsMillis : UtcTime, UtcTime -> U64
