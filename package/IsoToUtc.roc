@@ -15,8 +15,6 @@ interface IsoToUtc
         },
         Const.{
             epochYear,
-            secondsPerDay,
-            nanosPerSecond,
             weeksPerYear,
         },
         Utc.{
