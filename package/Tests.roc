@@ -17,6 +17,14 @@ interface Tests
             UtcTime,
             fromNanosSinceMidnight,
         },
+        Utils.{
+            splitListAtIndices,
+            validateUtf8SingleBytes,
+            utf8ToInt,
+            numDaysSinceEpoch,
+            numDaysSinceEpochToYear,
+            calendarWeekToDaysInYear,
+        },
     ]
 
 # <==== IsoToUtc.roc ====>
@@ -163,3 +171,41 @@ expect parseTimeFromStr "T24:00:00" == (24 * 60 * 60 * nanosPerSecond) |> Num.to
 expect parseTimeFromStr "T24:00:01" == Err InvalidTimeFormat
 expect parseTimeFromStr "T00:00:0Z" == Err InvalidTimeFormat
 
+
+# <==== Utils.roc ====>
+# <---- splitListAtIndices ---->
+expect splitListAtIndices [1,2] [0,1,2] == [[1], [2]]
+expect splitListAtIndices [1,2] [0] == [[1,2]]
+expect splitListAtIndices [1,2] [1] == [[1], [2]]
+
+# <---- validateUtf8SingleBytes ---->
+expect validateUtf8SingleBytes [0b01111111]
+expect !(validateUtf8SingleBytes [0b10000000, 0b00000001])
+expect !("🔥" |> Str.toUtf8 |> validateUtf8SingleBytes)
+
+# <---- utf8ToInt ---->
+expect ['0','1','2','3','4','5','6','7','8','9'] |> utf8ToInt == Ok 123456789
+expect utf8ToInt ['@'] == Err InvalidBytes
+expect utf8ToInt ['/'] == Err InvalidBytes
+
+# <---- numDaysSinceEpoch ---->
+# expect numDaysSinceEpoch {year: 2024} == 19723 # Removed due to compiler bug with optional record fields
+expect numDaysSinceEpoch {year: 1970, month: 12, day: 31} == 365 - 1
+expect numDaysSinceEpoch {year: 1971, month: 1, day: 2} == 365 + 1
+expect numDaysSinceEpoch {year: 2024, month: 1, day: 1} == 19723
+expect numDaysSinceEpoch {year: 2024, month: 2, day: 1} == 19723 + 31
+expect numDaysSinceEpoch {year: 2024, month: 12, day: 31} == 19723 + 366 - 1
+
+# <---- numDaysSinceEpochToYear ---->
+expect numDaysSinceEpochToYear 1970 == 0
+expect numDaysSinceEpochToYear 1971 == 365
+expect numDaysSinceEpochToYear 1972 == 365 + 365
+expect numDaysSinceEpochToYear 1973 == 365 + 365 + 366
+expect numDaysSinceEpochToYear 2024 == 19723
+
+# <---- calendarWeekToDaysInYear ---->
+expect calendarWeekToDaysInYear 1 1970  == 0
+expect calendarWeekToDaysInYear 1 1971 == 3
+expect calendarWeekToDaysInYear 1 1972 == 2
+expect calendarWeekToDaysInYear 1 1973 == 0
+expect calendarWeekToDaysInYear 2 2024 == 7
