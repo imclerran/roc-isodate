@@ -1,25 +1,24 @@
 interface Const
     exposes [
-        epochYear,
-        epochMonth,
-        epochDay,
-        epochWeekOffset,
-        nanosPerSecond,
-        nanosPerMilisecond,
-        secondsPerMinute,
-        secondsPerHour,
-        secondsPerDay,
-        leapInterval,
-        leapException,
-        leapNonException,
-        daysPerNonLeapYear,
         daysPerLeapYear,
+        daysPerNonLeapYear,
         daysPerWeek,
+        epochDay,
+        epochMonth,
+        epochWeekOffset,
+        epochYear,
+        leapException,
+        leapInterval,
+        leapNonException,
         monthDays,
+        nanosPerMilisecond,
+        nanosPerSecond,
+        secondsPerDay,
+        secondsPerHour,
+        secondsPerMinute,
         weeksPerYear,
     ]
     imports []
-
 
 epochYear = 1970
 epochMonth = 1
