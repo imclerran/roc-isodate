@@ -100,7 +100,11 @@ calendarWeekToDaysInYear : U64, U64 -> U64
 calendarWeekToDaysInYear = \week, year->
     # Week 1 of a year is the first week with a majority of its days in that year
     # https://en.wikipedia.org/wiki/ISO_week_date#First_week
-    lengthOfMaybeFirstWeek = epochWeekOffset - (numDaysSinceEpochToYear year |> Num.toU64) % 7
+    lengthOfMaybeFirstWeek = 
+        if year >= epochYear then 
+            epochWeekOffset - (numDaysSinceEpochToYear year |> Num.toU64) % 7
+        else
+            (epochWeekOffset + (numDaysSinceEpochToYear year |> Num.abs |> Num.toU64)) % 7
     if lengthOfMaybeFirstWeek >= 4 && week == 1 then
         0
     else
