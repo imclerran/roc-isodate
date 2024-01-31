@@ -2,8 +2,8 @@ interface Tests
     exposes []
     imports [
         Const.{
-            secondsPerDay,
             nanosPerSecond,
+            secondsPerDay,
         },
         IsoToUtc.{
             parseDateFromStr,
@@ -18,12 +18,12 @@ interface Tests
             fromNanosSinceMidnight,
         },
         Utils.{
-            splitListAtIndices,
-            validateUtf8SingleBytes,
-            utf8ToInt,
+            calendarWeekToDaysInYear,
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
-            calendarWeekToDaysInYear,
+            splitListAtIndices,
+            utf8ToInt,
+            validateUtf8SingleBytes,
         },
     ]
 

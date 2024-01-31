@@ -1,24 +1,24 @@
 interface Utils
     exposes [
+        calendarWeekToDaysInYear,
+        daysToNanos,
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
-        daysToNanos,
         splitListAtIndices,
-        calendarWeekToDaysInYear,
-        validateUtf8SingleBytes,
         utf8ToInt,
+        validateUtf8SingleBytes,
     ]
     imports [
         Const.{
             epochYear, 
             epochWeekOffset,
-            secondsPerDay,
-            nanosPerSecond,
             daysPerWeek,
-            leapInterval,
             leapException,
+            leapInterval,
             leapNonException,
             monthDays,
+            nanosPerSecond,
+            secondsPerDay,
         },
     ]
 

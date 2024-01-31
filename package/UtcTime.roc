@@ -1,12 +1,12 @@
 interface UtcTime
     exposes [
         UtcTime,
-        toMillisSinceMidnight,
-        fromMillisSinceMidnight,
-        toNanosSinceMidnight,
-        fromNanosSinceMidnight,
         deltaAsMillis,
         deltaAsNanos,
+        toMillisSinceMidnight,
+        toNanosSinceMidnight,
+        fromMillisSinceMidnight,
+        fromNanosSinceMidnight,
     ]
     imports []
 

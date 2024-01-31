@@ -6,19 +6,10 @@ interface IsoToUtc
         parseTimeFromU8,
     ]
     imports [
-        Utils.{
-            daysToNanos,
-            numDaysSinceEpoch,
-            numDaysSinceEpochToYear,
-            calendarWeekToDaysInYear,
-            splitListAtIndices,
-            validateUtf8SingleBytes,
-            utf8ToInt,
-        },
         Const.{
             epochYear,
-            weeksPerYear,
             nanosPerSecond,
+            weeksPerYear,
         },
         Utc.{
             Utc,
@@ -27,6 +18,15 @@ interface IsoToUtc
         UtcTime.{
             UtcTime,
             fromNanosSinceMidnight,
+        },
+        Utils.{
+            calendarWeekToDaysInYear,
+            daysToNanos,
+            numDaysSinceEpoch,
+            numDaysSinceEpochToYear,
+            splitListAtIndices,
+            utf8ToInt,
+            validateUtf8SingleBytes,
         },
     ]
 

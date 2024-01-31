@@ -1,12 +1,12 @@
 interface Utc
     exposes [
         Utc,
-        toMillisSinceEpoch,
-        fromMillisSinceEpoch,
-        toNanosSinceEpoch,
-        fromNanosSinceEpoch,
         deltaAsMillis,
         deltaAsNanos,
+        fromMillisSinceEpoch,
+        fromNanosSinceEpoch,
+        toMillisSinceEpoch,
+        toNanosSinceEpoch,
     ]
     imports []
 
