@@ -7,7 +7,6 @@ interface IsoToUtc
     ]
     imports [
         Const.{
-            epochYear,
             nanosPerSecond,
             weeksPerYear,
         },
@@ -57,9 +56,9 @@ parseDateFromU8 = \bytes ->
 parseCalendarDateBasic : List U8 -> Result Utc [InvalidDateFormat]
 parseCalendarDateBasic = \bytes ->
     when splitListAtIndices bytes [4, 6] is
-        [yearBytes, monthBytes, dayBytes] -> 
+        [yearBytes, monthBytes, dayBytes] ->
             when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok m, Ok d) if y >= epochYear && m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
+            (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
                 numDaysSinceEpoch {year: y, month: m, day: d} 
                     |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _, _) -> Err InvalidDateFormat
@@ -70,7 +69,7 @@ parseCalendarDateExtended = \bytes ->
     when splitListAtIndices bytes [4,5,7,8] is
         [yearBytes, _, monthBytes, _, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok m, Ok d) if y >= epochYear && m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
+            (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
                 numDaysSinceEpoch {year: y, month: m, day: d} 
                     |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _, _) -> Err InvalidDateFormat
@@ -79,23 +78,21 @@ parseCalendarDateExtended = \bytes ->
 parseCalendarDateCentury : List U8 -> Result Utc [InvalidDateFormat]
 parseCalendarDateCentury = \bytes ->
     when utf8ToInt bytes is
-        Ok century if century >= 20 ->
+        Ok century ->
             nanos = century * 100
                 |> numDaysSinceEpochToYear
                 |> daysToNanos
             nanos |> fromNanosSinceEpoch |> Ok
-        Ok _ -> Err InvalidDateFormat
         Err _ -> Err InvalidDateFormat
 
 parseCalendarDateYear : List U8 -> Result Utc [InvalidDateFormat]
 parseCalendarDateYear = \bytes ->
     when utf8ToInt bytes is
-        Ok year if year >= epochYear ->
+        Ok year ->
             nanos = year
                 |> numDaysSinceEpochToYear
                 |> daysToNanos
             nanos |> fromNanosSinceEpoch |> Ok
-        Ok _ -> Err InvalidDateFormat
         Err _ -> Err InvalidDateFormat
 
 parseCalendarDateMonth : List U8 -> Result Utc [InvalidDateFormat]
@@ -103,7 +100,7 @@ parseCalendarDateMonth = \bytes ->
     when splitListAtIndices bytes [4,5] is
         [yearBytes, _, monthBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt monthBytes) is
-            (Ok year, Ok month) if year >= epochYear && month >= 1 && month <= 12 ->
+            (Ok year, Ok month) if month >= 1 && month <= 12 ->
                 numDaysSinceEpoch { year, month, day: 1} 
                     |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _) -> Err InvalidDateFormat
@@ -114,7 +111,7 @@ parseOrdinalDateBasic = \bytes ->
     when splitListAtIndices bytes [4] is
         [yearBytes, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt dayBytes) is
-            (Ok year, Ok day) if year >= epochYear && day >= 1 && day <= 366 ->
+            (Ok year, Ok day) if day >= 1 && day <= 366 ->
                 numDaysSinceEpoch {year, month: 1, day} 
                     |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _) -> Err InvalidDateFormat
@@ -125,7 +122,7 @@ parseOrdinalDateExtended = \bytes ->
     when splitListAtIndices bytes [4,5] is
         [yearBytes, _, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt dayBytes) is
-            (Ok year, Ok day) if year >= epochYear && day >= 1 && day <= 366 ->
+            (Ok year, Ok day) if day >= 1 && day <= 366 ->
                 numDaysSinceEpoch {year, month: 1, day} 
                     |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _) -> Err InvalidDateFormat
@@ -136,7 +133,7 @@ parseWeekDateBasic = \bytes ->
     when splitListAtIndices bytes [4,5,7] is
         [yearBytes, _, weekBytes, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok w, Ok d) if y >= epochYear && w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+            (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
                 calendarWeekToUtc {year: y, week: w, day: d}
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
@@ -146,7 +143,7 @@ parseWeekDateExtended = \bytes ->
     when splitListAtIndices bytes [4,6,8,9] is
         [yearBytes, _, weekBytes, _, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok w, Ok d) if y >= epochYear && w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+            (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
                 calendarWeekToUtc {year: y, week: w, day: d}
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
@@ -156,7 +153,7 @@ parseWeekDateReducedBasic = \bytes ->
     when splitListAtIndices bytes [4,5] is
         [yearBytes, _, weekBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt weekBytes) is
-            (Ok year, Ok week) if year >= epochYear && week >= 1 && week <= 52 ->
+            (Ok year, Ok week) if week >= 1 && week <= 52 ->
                 calendarWeekToUtc {year, week, day: 1}
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
@@ -166,14 +163,14 @@ parseWeekDateReducedExtended = \bytes ->
     when splitListAtIndices bytes [4,6] is
         [yearBytes, _, weekBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt weekBytes) is
-            (Ok year, Ok week) if year >= epochYear && week >= 1 && week <= 52  ->
+            (Ok year, Ok week) if week >= 1 && week <= 52  ->
                 calendarWeekToUtc {year, week, day: 1}
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
 calendarWeekToUtc : {year: U64, week: U64, day? U64} -> Result Utc [InvalidDateFormat]
 calendarWeekToUtc = \{week, year, day? 1} ->
-    if week >= 1 && week <= weeksPerYear && year >= epochYear then
+    if week >= 1 && week <= weeksPerYear then
         weekDaysSoFar = (calendarWeekToDaysInYear week year)
         numDaysSinceEpoch {year, month: 1, day: (day + weekDaysSoFar)} |> daysToNanos |> fromNanosSinceEpoch |> Ok # month field should be optional, bug compiler bug prevents this
     else
