@@ -5,22 +5,18 @@ A Roc package for parsing ISO 8601 Date/Time Strings
 ![CI status][ci_status_badge]
 
 ## Implementation
-This implementation is currently designed to convert an ISO date/time string into the [Utc][utc_roc]. Roc type provided by the Roc Basic-CLI platform. One of the shortcomings of this implementation is that the Utc type is backed by an unsigned integer (U128), meaning that it has no means of representing dates/time prior to the UNIX epoch date.
+This implementation is currently designed to convert an ISO date/time string into the [Utc][utc_roc] type provided by the Basic CLI and Basic Webserver platforms. The `Utc` type in these platforms are currently based on an unsigned integer which will not support pre-epoch dates. However, pull requests are currently in progress on both platfomrs to convert Utc to use signed integers. With this change in motion, this library has pre-emptively moved its own `Utc` type to a signed integer type.
 
-*NOTE: Pull requests are currently in progress on both roc-lang/basic-cli and basic-webserver platfomrs to convert Utc to use signed integers. With this change in motion, plans for this library have been updated to support conversion of pre-epoch dates to Utc*
-
-Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation does not conform to the latest revision to the standard.
+Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
 ## Progress
 - Full support for parsing all date string types, as described [here][iso_8601_md].
-  - *Note: All ISO formats are fully supported for dates after the epoch. Pre-epoch support is planned.
 - Partial support for parsing time strings.
   - local time representations, with the exception of fractional times are fully supported.
 - can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
 
 ## Future Plans
-- Support for parsing pre-epoch dates to Utc.
 - Fractional time representations.
 - UTC timezone offset time representations.
 - Full support for combined date/time representations.
