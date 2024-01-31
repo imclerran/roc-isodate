@@ -5,10 +5,10 @@ set -euxo pipefail
 
 roc='./roc_nightly/roc'
 
-examples_dir='./package/'
+package_dir='./package/'
 
 # roc check
-for roc_file in $examples_dir*.roc; do
+for roc_file in $package_dir*.roc; do
     $roc check $roc_file
 done
 
