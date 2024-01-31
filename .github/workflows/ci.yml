@@ -21,7 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
           
-      - id: try_fetching_testing_release
+      - name: try fetching TESTING release
+        id: try_fetching_testing_release
         continue-on-error: true
         run: |
           curl -fOL https://github.com/roc-lang/roc/releases/download/nightly/roc_nightly-linuxTESTING_x86_64-latest.tar.gz
