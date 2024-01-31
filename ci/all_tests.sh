@@ -10,5 +10,6 @@ examples_dir='./package/'
 # roc check
 for roc_file in $examples_dir*.roc; do
     $roc check $roc_file
-    $roc test $roc_file
 done
+
+$roc test ./package/Tests.roc
