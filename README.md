@@ -10,7 +10,7 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 
 ## Progress
 - Full support for parsing all date string types, as described [here](FORMAT.md).
-  - **Note:** *beginning work on support for pre-epoch dates.*
+  - *Note: All ISO formats are fully supported for dates after the epoch. Pre-epoch support is planned.
 - Partial support for parsing time strings.
   - local time representations, with the exception of fractional times are fully supported.
 - can Parse from `Str` or from a `List U8` of Utf-8 bytes.
