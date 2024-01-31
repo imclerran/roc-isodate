@@ -2,7 +2,7 @@
 A Roc package for parsing ISO 8601 Date/Time Strings 
 
 ![GitHub last commit][last_commit_badge]
-![GitHub Actions Workflow Status][ci_status_badge]
+![CI status][ci_status_badge]
 
 ## Implementation
 This implementation is currently designed to convert an ISO date/time string into the [Utc][utc_roc]. Roc type provided by the Roc Basic-CLI platform. One of the shortcomings of this implementation is that the Utc type is backed by an unsigned integer (U128), meaning that it has no means of representing dates/time prior to the UNIX epoch date.
