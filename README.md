@@ -1,8 +1,8 @@
 # Roc IsoDate
 A Roc package for parsing ISO 8601 Date/Time Strings 
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/imclerran/roc-isodate/ci.yml)
-
+![GitHub Actions Workflow Status][ci_status_badge]
+![GitHub last commit][last_commit_badge]
 
 ## Implementation
 This implementation is currently designed to convert an ISO date/time string into the [Utc](https://github.com/roc-lang/basic-cli/blob/main/platform/Utc.roc) Roc type provided by the Roc Basic-CLI platform. One of the shortcomings of this implementation is that the Utc type is backed by an unsigned integer (U128), meaning that it has no means of representing dates/time prior to the UNIX epoch date.
@@ -34,3 +34,6 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 
 ## ISO 8601 Date/Time Format
 Description of ISO date/time [format](FORMAT.md) (WIP)
+
+[ci_status_badge]: https://img.shields.io/github/actions/workflow/status/imclerran/roc-isodate/ci.yml
+[last_commit_badge]: https://img.shields.io/github/last-commit/imclerran/roc-isodate
