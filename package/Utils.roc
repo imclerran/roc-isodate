@@ -70,16 +70,25 @@ numLeapYearsSinceEpoch = \year, inclusive ->
         IncludeCurrent if year != epochYear -> leapIncr + numLeapYearsSinceEpoch nextYear inclusive
         IncludeCurrent -> leapIncr
 
-numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> U64
+numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> I64
 numDaysSinceEpoch = \{year, month? 1, day? 1} ->
-    numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
-    daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
     isLeap = isLeapYear year
-    daysInMonths = List.sum (
-        List.map (List.range { start: At 1, end: Before month }) 
-        \mapMonth -> monthDays {month: mapMonth, isLeap}
-    )
-    daysInYears + daysInMonths + day - 1
+    numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
+    if year >= epochYear then
+        daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
+        daysInMonths = List.sum (
+            List.map (List.range { start: At 1, end: Before month }) 
+            \mapMonth -> monthDays {month: mapMonth, isLeap}
+        )
+        (daysInYears + daysInMonths + day - 1) |> Num.toI64
+    else
+        daysInYears = numLeapYears * 366 + (epochYear - year - numLeapYears - 1) * 365
+        daysInMonths = List.sum (
+            List.map (List.range { start: After month, end: At 12 }) 
+            \mapMonth -> monthDays {month: mapMonth, isLeap}
+        )
+        (daysInYears + daysInMonths + (monthDays {month, isLeap}) - day + 1)
+            |> Num.toI64 |> Num.mul -1
 
 numDaysSinceEpochToYear = \year ->
     numDaysSinceEpoch {year, month: 1, day: 1}
@@ -87,10 +96,11 @@ numDaysSinceEpochToYear = \year ->
 daysToNanos = \days ->
     days * secondsPerDay * nanosPerSecond |> Num.toI128
 
+calendarWeekToDaysInYear : U64, U64 -> U64
 calendarWeekToDaysInYear = \week, year->
     # Week 1 of a year is the first week with a majority of its days in that year
     # https://en.wikipedia.org/wiki/ISO_week_date#First_week
-    lengthOfMaybeFirstWeek = epochWeekOffset - (numDaysSinceEpochToYear year) % 7
+    lengthOfMaybeFirstWeek = epochWeekOffset - (numDaysSinceEpochToYear year |> Num.toU64) % 7
     if lengthOfMaybeFirstWeek >= 4 && week == 1 then
         0
     else
