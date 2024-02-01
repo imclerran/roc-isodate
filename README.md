@@ -22,8 +22,8 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Research adding custom encoding/decoding for json parsers.
 
 ## Known Issues
-- As mentioned above, no support yet for any strings containing time data, or for intervals.
-- Also mentioned above: Basic CLI platform's Utc type does not support dates before 1970-01-01.
+- Missing features mentioned above.
+- No other known issues.
 
 ## ISO 8601 Date/Time Format
 Description of ISO date/time [format][iso_8601_md] (WIP)
