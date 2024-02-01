@@ -2,6 +2,8 @@ interface IsoToUtc
     exposes [
         parseDateFromStr,
         parseDateFromU8,
+        parseDateTimeFromStr,
+        parseDateTimeFromU8,
         parseTimeFromStr,
         parseTimeFromU8,
     ]
@@ -15,11 +17,13 @@ interface IsoToUtc
         Utc.{
             Utc,
             fromNanosSinceEpoch,
+            toNanosSinceEpoch,
         },
         UtcTime.{
             UtcTime,
             addTimes,
             fromNanosSinceMidnight,
+            toNanosSinceMidnight,
         },
         Utils.{
             calendarWeekToDaysInYear,
@@ -342,4 +346,24 @@ stripTandZ = \bytes ->
         ['T', .. as tail] -> stripTandZ tail
         [.. as head, 'Z'] -> head
         _ -> bytes
+
+parseDateTimeFromStr : Str -> Result Utc [InvalidDateTimeFormat]
+parseDateTimeFromStr = \str ->
+    Str.toUtf8 str |> parseDateTimeFromU8
+
+parseDateTimeFromU8 : List U8 -> Result Utc [InvalidDateTimeFormat]
+parseDateTimeFromU8 = \bytes ->
+    when splitUtf8AndKeepDelimiters bytes ['T'] is
+        [dateBytes, ['T'], timeBytes] ->
+            when (parseDateFromU8 dateBytes, parseTimeFromU8 timeBytes) is
+                (Ok date, Ok time) -> 
+                    dateNanos = toNanosSinceEpoch date
+                    timeNanos = toNanosSinceMidnight time
+                    dateNanos + (Num.toI128 timeNanos) |> fromNanosSinceEpoch |> Ok
+                (_, _) -> Err InvalidDateTimeFormat
+        [dateBytes] -> 
+            when parseDateFromU8 dateBytes is
+                Ok date -> Ok date
+                Err InvalidDateFormat -> Err InvalidDateTimeFormat
+        _ -> Err InvalidDateTimeFormat
 

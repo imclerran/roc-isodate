@@ -9,6 +9,7 @@ interface Tests
         },
         IsoToUtc.{
             parseDateFromStr,
+            parseDateTimeFromStr,
             parseTimeFromStr,
         },
         Utc.{
@@ -196,6 +197,12 @@ expect parseTimeFromStr "12.50+0030" == (12 * nanosPerHour) |> Num.toI64 |> from
 expect parseTimeFromStr "0000+1400" == (-14 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T24-1200" == (36 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T24+1200Z" == Err InvalidTimeFormat
+
+# parseDateTime
+expect parseDateTimeFromStr "20240223T120000Z" == (19_776 * secondsPerDay * nanosPerSecond + 12 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateTimeFromStr "2024-02-23T12:00:00+00:00" == (19_776 * secondsPerDay * nanosPerSecond + 12 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateTimeFromStr "2024-02-23T00:00:00+14" == (19_776 * secondsPerDay * nanosPerSecond - 14 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateTimeFromStr "2024-02-23T23:59:59-12" == (19_776 * secondsPerDay * nanosPerSecond + (24 * nanosPerHour - 1 * nanosPerSecond) + 12 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 
 
 # <==== Utils.roc ====>
