@@ -215,6 +215,11 @@ expect
     when num is
         Err InvalidBytes -> Bool.true
         _ -> Bool.false
+expect
+    num = utf8ToFrac ['T', '2', '3']
+    when num is
+        Err InvalidBytes -> Bool.true
+        _ -> Bool.false
 
 # <---- numDaysSinceEpoch ---->
 # expect numDaysSinceEpoch {year: 2024} == 19723 # Removed due to compiler bug with optional record fields

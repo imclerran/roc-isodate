@@ -66,35 +66,25 @@ utf8ToFrac = \u8List ->
         Ok decimalIndexU8 ->
             decimalIndex = Num.toU64 decimalIndexU8
             when splitListAtIndices u8List [decimalIndex, (decimalIndex + 1)] is
-                [head, ['.'], tail] -> #if byte == ',' || byte == '.' ->
+                [head, [byte], tail] if byte == ',' || byte == '.' ->
                     when (utf8ToInt head, utf8ToInt tail) is
                         (Ok intPart, Ok fracPart) ->
                             decimalShift = List.len tail |> Num.toU8
                             Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
                         (_, _) -> Err InvalidBytes
-                [head, [','], tail] -> #if byte == ',' || byte == '.' ->
-                    when (utf8ToInt head, utf8ToInt tail) is
-                        (Ok intPart, Ok fracPart) ->
-                            decimalShift = List.len tail |> Num.toU8
-                            Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                        (_, _) -> Err InvalidBytes
-                [['.'], tail] -> #if byte == ',' || byte == '.' ->
+                [['.'], tail] -> #if byte == ',' || byte == '.' -> # crashes when using byte comparison
                     when utf8ToInt tail is
                         Ok fracPart ->
                             decimalShift = List.len tail |> Num.toU8
                             moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
                         Err InvalidBytes -> Err InvalidBytes
-                [[','], tail] -> #if byte == ',' || byte == '.' ->
+                [[','], tail] ->#if byte == ',' || byte == '.' -> # crashes when using byte comparison
                     when utf8ToInt tail is
                         Ok fracPart ->
                             decimalShift = List.len tail |> Num.toU8
                             moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
                         Err InvalidBytes -> Err InvalidBytes
-                [head, ['.']] -> #if byte == ',' || byte == '.' ->
-                    when utf8ToInt head is
-                        Ok intPart -> Num.toF64 intPart |> Ok
-                        Err InvalidBytes -> Err InvalidBytes
-                [head, [',']] -> #if byte == ',' || byte == '.' ->
+                [head, [byte]] if byte == ',' || byte == '.' ->
                     when utf8ToInt head is
                         Ok intPart -> Num.toF64 intPart |> Ok
                         Err InvalidBytes -> Err InvalidBytes
