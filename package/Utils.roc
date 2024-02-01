@@ -2,6 +2,7 @@ interface Utils
     exposes [
         calendarWeekToDaysInYear,
         daysToNanos,
+        findDecimalIndex,
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
         splitListAtIndices,
@@ -61,53 +62,58 @@ utf8ToInt = \u8List ->
 
 utf8ToFrac : List U8 -> Result F64 [InvalidBytes]
 utf8ToFrac = \u8List -> 
-    decimalIndex = Num.toU64 (findDecimalIndex u8List)
-    when splitListAtIndices u8List [decimalIndex, (decimalIndex + 1)] is
-        [head, ['.'], tail] -> #if byte == ',' || byte == '.' ->
-            when (utf8ToInt head, utf8ToInt tail) is
-                (Ok intPart, Ok fracPart) ->
-                    decimalShift = List.len tail |> Num.toU8
-                    Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                (_, _) -> Err InvalidBytes
-        [head, [','], tail] -> #if byte == ',' || byte == '.' ->
-            when (utf8ToInt head, utf8ToInt tail) is
-                (Ok intPart, Ok fracPart) ->
-                    decimalShift = List.len tail |> Num.toU8
-                    Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                (_, _) -> Err InvalidBytes
-        [['.'], tail] -> #if byte == ',' || byte == '.' ->
-            when utf8ToInt tail is
-                Ok fracPart ->
-                    decimalShift = List.len tail |> Num.toU8
-                    moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                Err InvalidBytes -> Err InvalidBytes
-        [[','], tail] -> #if byte == ',' || byte == '.' ->
-            when utf8ToInt tail is
-                Ok fracPart ->
-                    decimalShift = List.len tail |> Num.toU8
-                    moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                Err InvalidBytes -> Err InvalidBytes
-        [head, ['.']] -> #if byte == ',' || byte == '.' ->
-            when utf8ToInt head is
-                Ok intPart -> Num.toF64 intPart |> Ok
-                Err InvalidBytes -> Err InvalidBytes
-        [head, [',']] -> #if byte == ',' || byte == '.' ->
-            when utf8ToInt head is
-                Ok intPart -> Num.toF64 intPart |> Ok
-                Err InvalidBytes -> Err InvalidBytes
-        _ -> 
+    when findDecimalIndex u8List is
+        Ok decimalIndexU8 ->
+            decimalIndex = Num.toU64 decimalIndexU8
+            when splitListAtIndices u8List [decimalIndex, (decimalIndex + 1)] is
+                [head, ['.'], tail] -> #if byte == ',' || byte == '.' ->
+                    when (utf8ToInt head, utf8ToInt tail) is
+                        (Ok intPart, Ok fracPart) ->
+                            decimalShift = List.len tail |> Num.toU8
+                            Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
+                        (_, _) -> Err InvalidBytes
+                [head, [','], tail] -> #if byte == ',' || byte == '.' ->
+                    when (utf8ToInt head, utf8ToInt tail) is
+                        (Ok intPart, Ok fracPart) ->
+                            decimalShift = List.len tail |> Num.toU8
+                            Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
+                        (_, _) -> Err InvalidBytes
+                [['.'], tail] -> #if byte == ',' || byte == '.' ->
+                    when utf8ToInt tail is
+                        Ok fracPart ->
+                            decimalShift = List.len tail |> Num.toU8
+                            moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
+                        Err InvalidBytes -> Err InvalidBytes
+                [[','], tail] -> #if byte == ',' || byte == '.' ->
+                    when utf8ToInt tail is
+                        Ok fracPart ->
+                            decimalShift = List.len tail |> Num.toU8
+                            moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
+                        Err InvalidBytes -> Err InvalidBytes
+                [head, ['.']] -> #if byte == ',' || byte == '.' ->
+                    when utf8ToInt head is
+                        Ok intPart -> Num.toF64 intPart |> Ok
+                        Err InvalidBytes -> Err InvalidBytes
+                [head, [',']] -> #if byte == ',' || byte == '.' ->
+                    when utf8ToInt head is
+                        Ok intPart -> Num.toF64 intPart |> Ok
+                        Err InvalidBytes -> Err InvalidBytes
+                _ -> 
+                    when utf8ToInt u8List is
+                        Ok intPart -> intPart |> Num.toF64 |> Ok
+                        Err InvalidBytes -> Err InvalidBytes
+        Err NoDecimalPoint -> 
             when utf8ToInt u8List is
                 Ok intPart -> intPart |> Num.toF64 |> Ok
                 Err InvalidBytes -> Err InvalidBytes
 
-findDecimalIndex : List U8 -> U8
+findDecimalIndex : List U8 -> Result U8 [NoDecimalPoint]
 findDecimalIndex = \u8List ->
-    result = List.walkWithIndexUntil u8List 0 \_, byte, index ->
+    List.walkWithIndexUntil u8List (Err NoDecimalPoint) \_, byte, index ->
         if byte == '.' || byte == ',' then
-            Break index
+            Break (Ok (Num.toU8 index))
         else
-            Continue 0
-    Num.toU8 result
+            Continue (Err NoDecimalPoint)
 
 moveDecimalPoint : F64, U8 -> F64 
 moveDecimalPoint = \num, digits ->
