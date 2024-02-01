@@ -20,6 +20,7 @@ interface IsoToUtc
         Utils.{
             calendarWeekToDaysInYear,
             daysToNanos,
+            findDecimalIndex,
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             splitListAtIndices,
@@ -184,13 +185,16 @@ parseTimeFromU8 : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseTimeFromU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
         strippedBytes = stripTandZ bytes
-        when strippedBytes is
-            [_,_] -> parseLocalTimeHour strippedBytes # hh
-            [_,_,_,_] -> parseLocalTimeMinuteBasic strippedBytes # hhmm
-            [_,_,':',_,_] -> parseLocalTimeMinuteExtended strippedBytes # hh:mm
-            [_,_,_,_,_,_] -> parseLocalTimeBasic strippedBytes # hhmmss
-            [_,_,':',_,_,':',_,_] -> parseLocalTimeExtended strippedBytes # hh:mm:ss
-            _ -> Err InvalidTimeFormat
+        when findDecimalIndex strippedBytes is
+            Ok _index -> crash "TODO: parseTimeFromU8 - fractional time not implemented yet"
+            Err NoDecimalPoint -> 
+                when strippedBytes is
+                    [_,_] -> parseLocalTimeHour strippedBytes # hh
+                    [_,_,_,_] -> parseLocalTimeMinuteBasic strippedBytes # hhmm
+                    [_,_,':',_,_] -> parseLocalTimeMinuteExtended strippedBytes # hh:mm
+                    [_,_,_,_,_,_] -> parseLocalTimeBasic strippedBytes # hhmmss
+                    [_,_,':',_,_,':',_,_] -> parseLocalTimeExtended strippedBytes # hh:mm:ss
+                    _ -> Err InvalidTimeFormat
     else
         Err InvalidTimeFormat
 
