@@ -5,6 +5,7 @@ interface Utils
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
         splitListAtIndices,
+        timeToNanos,
         utf8ToInt,
         validateUtf8SingleBytes,
     ]
@@ -19,6 +20,8 @@ interface Utils
             monthDays,
             nanosPerSecond,
             secondsPerDay,
+            secondsPerHour,
+            secondsPerMinute,
         },
     ]
 
@@ -95,6 +98,10 @@ numDaysSinceEpochToYear = \year ->
 
 daysToNanos = \days ->
     days * secondsPerDay * nanosPerSecond |> Num.toI128
+
+timeToNanos : {hour: U64, minute: U64, second: U64} -> U64
+timeToNanos = \{hour, minute, second} ->
+    (hour * secondsPerHour + minute * secondsPerMinute + second) * nanosPerSecond
 
 calendarWeekToDaysInYear : U64, U64 -> U64
 calendarWeekToDaysInYear = \week, year->

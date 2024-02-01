@@ -7,7 +7,6 @@ interface IsoToUtc
     ]
     imports [
         Const.{
-            nanosPerSecond,
             weeksPerYear,
         },
         Utc.{
@@ -24,6 +23,7 @@ interface IsoToUtc
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             splitListAtIndices,
+            timeToNanos,
             utf8ToInt,
             validateUtf8SingleBytes,
         },
@@ -198,7 +198,7 @@ parseLocalTimeHour : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeHour = \bytes ->
     when utf8ToInt bytes is
         Ok hour if hour >= 0 && hour <= 24 ->
-            hour * 60 * 60 * nanosPerSecond
+            timeToNanos {hour, minute: 0, second: 0}
                 |> fromNanosSinceMidnight |> Ok
         Ok _ -> Err InvalidTimeFormat
         Err _ -> Err InvalidTimeFormat
@@ -209,11 +209,9 @@ parseLocalTimeMinuteBasic = \bytes ->
         [hourBytes, minuteBytes] -> 
             when (utf8ToInt hourBytes, utf8ToInt minuteBytes) is
             (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
-                hourNanos = (hour * 60 * 60 * nanosPerSecond) 
-                minuteNanos = (minute * 60 * nanosPerSecond)
-                hourNanos + minuteNanos |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour, minute, second: 0} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0) -> 
-                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour: 24, minute: 0, second: 0} |> fromNanosSinceMidnight |> Ok
             (_, _) -> Err InvalidTimeFormat
         _ -> Err InvalidTimeFormat
 
@@ -223,11 +221,9 @@ parseLocalTimeMinuteExtended = \bytes ->
         [hourBytes, _, minuteBytes] -> 
             when (utf8ToInt hourBytes, utf8ToInt minuteBytes) is
             (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
-                hourNanos = (hour * 60 * 60 * nanosPerSecond) 
-                minuteNanos = (minute * 60 * nanosPerSecond)
-                hourNanos + minuteNanos |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour, minute, second: 0} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0) ->
-                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour: 24, minute: 0, second: 0} |> fromNanosSinceMidnight |> Ok
             (_, _) -> Err InvalidTimeFormat
         _ -> Err InvalidTimeFormat
 
@@ -237,12 +233,9 @@ parseLocalTimeBasic = \bytes ->
         [hourBytes, minuteBytes, secondBytes] -> 
             when (utf8ToInt hourBytes, utf8ToInt minuteBytes, utf8ToInt secondBytes) is
             (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
-                hourNanos = (h * 60 * 60 * nanosPerSecond) 
-                minuteNanos = (m * 60 * nanosPerSecond)
-                secondNanos = (s * nanosPerSecond)
-                hourNanos + minuteNanos + secondNanos |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour: h, minute: m, second: s} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0, Ok 0) ->
-                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour: 24, minute: 0, second: 0} |> fromNanosSinceMidnight |> Ok
             (_, _, _) -> Err InvalidTimeFormat
         _ -> Err InvalidTimeFormat
 
@@ -252,12 +245,9 @@ parseLocalTimeExtended = \bytes ->
         [hourBytes, _, minuteBytes, _, secondBytes] -> 
             when (utf8ToInt hourBytes, utf8ToInt minuteBytes, utf8ToInt secondBytes) is
             (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
-                hourNanos = (h * 60 * 60 * nanosPerSecond) 
-                minuteNanos = (m * 60 * nanosPerSecond)
-                secondNanos = (s * nanosPerSecond)
-                hourNanos + minuteNanos + secondNanos |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour: h, minute: m, second: s} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0, Ok 0) ->
-                (24 * 60 * 60 * nanosPerSecond) |> fromNanosSinceMidnight |> Ok
+                timeToNanos {hour: 24, minute: 0, second: 0} |> fromNanosSinceMidnight |> Ok
             (_, _, _) -> Err InvalidTimeFormat
         _ -> Err InvalidTimeFormat
 
