@@ -8,6 +8,9 @@ interface IsoToUtc
     imports [
         Const.{
             weeksPerYear,
+            nanosPerHour,
+            nanosPerMinute,
+            nanosPerSecond,
         },
         Utc.{
             Utc,
@@ -15,6 +18,7 @@ interface IsoToUtc
         },
         UtcTime.{
             UtcTime,
+            addTimes,
             fromNanosSinceMidnight,
         },
         Utils.{
@@ -26,6 +30,7 @@ interface IsoToUtc
             splitListAtIndices,
             timeToNanos,
             utf8ToInt,
+            utf8ToFrac,
             validateUtf8SingleBytes,
         },
     ]
@@ -186,7 +191,10 @@ parseTimeFromU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
         strippedBytes = stripTandZ bytes
         when findDecimalIndex strippedBytes is
-            Ok _index -> crash "TODO: parseTimeFromU8 - fractional time not implemented yet"
+            Ok index ->
+                when splitListAtIndices strippedBytes [Num.toU64 index ] is
+                    [head, tail] -> parseFractionalTime head tail
+                    _ -> Err InvalidTimeFormat
             Err NoDecimalPoint -> 
                 when strippedBytes is
                     [_,_] -> parseLocalTimeHour strippedBytes # hh
@@ -197,6 +205,40 @@ parseTimeFromU8 = \bytes ->
                     _ -> Err InvalidTimeFormat
     else
         Err InvalidTimeFormat
+
+parseFractionalTime : List U8, List U8 -> Result UtcTime [InvalidTimeFormat]
+parseFractionalTime = \wholeBytes, fractionalBytes ->
+    when utf8ToFrac fractionalBytes is
+        Ok frac ->
+            when wholeBytes is
+                [_,_] -> # hh
+                    when parseLocalTimeHour wholeBytes is
+                        Ok time -> 
+                            frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Err InvalidTimeFormat -> Err InvalidTimeFormat
+                [_,_,_,_] -> # hhmm
+                    when parseLocalTimeMinuteBasic wholeBytes is
+                        Ok time -> 
+                            frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Err InvalidTimeFormat -> Err InvalidTimeFormat
+                [_,_,':',_,_] -> # hh:mm
+                    when parseLocalTimeMinuteExtended wholeBytes is
+                        Ok time -> 
+                            frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Err InvalidTimeFormat -> Err InvalidTimeFormat
+                [_,_,_,_,_,_] -> # hhmmss
+                    when parseLocalTimeBasic wholeBytes is
+                        Ok time -> 
+                            frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Err InvalidTimeFormat -> Err InvalidTimeFormat
+                [_,_,':',_,_,':',_,_] -> # hh:mm:ss
+                    when parseLocalTimeExtended wholeBytes is
+                        Ok time -> 
+                            frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Err InvalidTimeFormat -> Err InvalidTimeFormat
+                _ -> Err InvalidTimeFormat 
+        Err InvalidBytes -> Err InvalidTimeFormat
+
 
 parseLocalTimeHour : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeHour = \bytes ->

@@ -10,14 +10,11 @@ This implementation is currently designed to convert an ISO date/time string int
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
 ## Progress
-- Full support for parsing all date string types, as described [here][iso_8601_md].
-- Partial support for parsing time strings.
-  - local time representations, with the exception of fractional times are fully supported.
+- Full support for parsing all date string types.
+- Local time representations are fully supported.
 - can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
-
 ## Future Plans
-- Fractional time representations.
 - UTC timezone offset time representations.
 - Full support for combined date/time representations.
 - Time interval representations will be added once date/time support is complete.

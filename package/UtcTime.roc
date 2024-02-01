@@ -1,6 +1,7 @@
 interface UtcTime
     exposes [
         UtcTime,
+        addTimes,
         deltaAsMillis,
         deltaAsNanos,
         toMillisSinceMidnight,
@@ -44,3 +45,7 @@ deltaAsMillis = \@UtcTime first, @UtcTime second ->
 deltaAsNanos : UtcTime, UtcTime -> U64
 deltaAsNanos = \@UtcTime first, @UtcTime second ->
     Num.absDiff first second
+
+addTimes : UtcTime, UtcTime -> UtcTime
+addTimes = \@UtcTime first, @UtcTime second ->
+    @UtcTime (first + second)

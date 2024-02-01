@@ -11,7 +11,10 @@ interface Const
         leapInterval,
         leapNonException,
         monthDays,
-        nanosPerMilisecond,
+        nanosPerHour,
+        nanosPerMilli,
+        nanosPerMinute,
+        nanosPerSecond,
         nanosPerSecond,
         secondsPerDay,
         secondsPerHour,
@@ -25,8 +28,10 @@ epochMonth = 1
 epochDay = 1
 epochWeekOffset = 4
 
+nanosPerHour = 3_600_000_000_000
+nanosPerMinute = 60_000_000_000
 nanosPerSecond = 1_000_000_000
-nanosPerMilisecond = 1_000_000
+nanosPerMilli = 1_000_000
 
 secondsPerMinute = 60
 secondsPerHour = 3600
