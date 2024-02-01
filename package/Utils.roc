@@ -6,9 +6,11 @@ interface Utils
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
         splitListAtIndices,
+        splitUtf8AndKeepDelimiters,
         timeToNanos,
         utf8ToFrac,
         utf8ToInt,
+        utf8ToIntSigned,
         validateUtf8SingleBytes,
     ]
     imports [
@@ -42,6 +44,29 @@ splitListAtIndicesRecur = \list, indices ->
             splitListAtIndicesRecur list xs
         [] -> [list]
 
+splitUtf8AndKeepDelimiters : List U8, List U8 -> List (List U8)
+splitUtf8AndKeepDelimiters = \u8List, delimiters ->
+    result = List.walk u8List [] \lists, byte ->
+        when lists is 
+            [.. as xs, []] ->
+                if List.contains delimiters byte then
+                    xs |> List.append [byte] |> List.append []
+                else
+                    xs |> List.append [byte]
+            [.. as xs, x] ->
+                if List.contains delimiters byte then
+                    xs |> List.append x |> List.append [byte] |> List.append []
+                else
+                    xs |> List.append (x |> List.append byte)
+            [] ->
+                if List.contains delimiters byte then
+                    [[byte], []]
+                else
+                    [[byte]]
+    when result is
+        [.. as xs, []] -> xs
+        _ -> result
+
 validateUtf8SingleBytes : List U8 -> Bool
 validateUtf8SingleBytes = \u8List ->
     if List.all u8List \u8 -> Num.bitwiseAnd u8 0b10000000 == 0b00000000 then
@@ -59,6 +84,22 @@ utf8ToInt = \u8List ->
                 else
                     Err InvalidBytes
             Err InvalidBytes -> Err InvalidBytes
+
+utf8ToIntSigned : List U8 -> Result I64 [InvalidBytes]
+utf8ToIntSigned = \u8List ->
+    when u8List is
+        ['-', .. as xs] ->
+            when utf8ToInt xs is
+                Ok num -> Ok (-1 * Num.toI64 num)
+                Err InvalidBytes -> Err InvalidBytes
+        ['+', .. as xs] ->
+            when utf8ToInt xs is
+                Ok num -> Ok (Num.toI64 num)
+                Err InvalidBytes -> Err InvalidBytes
+        _ -> 
+            when utf8ToInt u8List is
+                Ok num -> Ok (Num.toI64 num)
+                Err InvalidBytes -> Err InvalidBytes
 
 utf8ToFrac : List U8 -> Result F64 [InvalidBytes]
 utf8ToFrac = \u8List -> 
@@ -152,7 +193,7 @@ numDaysSinceEpochToYear = \year ->
 daysToNanos = \days ->
     days * secondsPerDay * nanosPerSecond |> Num.toI128
 
-timeToNanos : {hour: U64, minute: U64, second: U64} -> U64
+timeToNanos : {hour: I64, minute: I64, second: I64} -> I64
 timeToNanos = \{hour, minute, second} ->
     (hour * secondsPerHour + minute * secondsPerMinute + second) * nanosPerSecond
 

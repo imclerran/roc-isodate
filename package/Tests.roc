@@ -24,8 +24,10 @@ interface Tests
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             splitListAtIndices,
+            splitUtf8AndKeepDelimiters,
             utf8ToFrac,
             utf8ToInt,
+            utf8ToIntSigned,
             validateUtf8SingleBytes,
         },
     ]
@@ -125,61 +127,75 @@ expect parseDateFromStr "2024-0a-01" == Err InvalidDateFormat
 
 # <---- parseTime ---->
 # parseLocalTimeHour
-expect parseTimeFromStr "11" == (11 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "00Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T00" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T00Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T23" == (23 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T24" == (24 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "11" == (11 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "00Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T00" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T00Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T23" == (23 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24" == (24 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T25" == Err InvalidTimeFormat
 expect parseTimeFromStr "T0Z" == Err InvalidTimeFormat
 
 # parseLocalTimeMinuteBasic
-expect parseTimeFromStr "1111" == (11 * nanosPerHour + 11 * nanosPerMinute) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "0000Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T0000" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T0000Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T2359" == (23 * nanosPerHour + 59 * nanosPerMinute) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T2400" == (24 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "1111" == (11 * nanosPerHour + 11 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "0000Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T0000" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T0000Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T2359" == (23 * nanosPerHour + 59 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T2400" == (24 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T2401" == Err InvalidTimeFormat
 expect parseTimeFromStr "T000Z" == Err InvalidTimeFormat
 
 # parseLocalTimeMinuteExtended
-expect parseTimeFromStr "11:11" == (11 * nanosPerHour + 11 * nanosPerMinute) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "00:00Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T00:00" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T00:00Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T23:59" == (23 * nanosPerHour + 59 * nanosPerMinute) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T24:00" == (24 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "11:11" == (11 * nanosPerHour + 11 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "00:00Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T00:00" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T00:00Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T23:59" == (23 * nanosPerHour + 59 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24:00" == (24 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T24:01" == Err InvalidTimeFormat
 expect parseTimeFromStr "T00:0Z" == Err InvalidTimeFormat
 
 # parseLocalTimeBasic
-expect parseTimeFromStr "111111" == (11 * nanosPerHour + 11 * nanosPerMinute + 11 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "000000Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T000000" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T000000Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T235959" == (23 * nanosPerHour + 59 * nanosPerMinute + 59 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T240000" == (24 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "111111" == (11 * nanosPerHour + 11 * nanosPerMinute + 11 * nanosPerSecond) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "000000Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T000000" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T000000Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T235959" == (23 * nanosPerHour + 59 * nanosPerMinute + 59 * nanosPerSecond) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T240000" == (24 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T240001" == Err InvalidTimeFormat
 expect parseTimeFromStr "T00000Z" == Err InvalidTimeFormat
 
 # parseLocalTimeExtended
-expect parseTimeFromStr "11:11:11" == (11 * nanosPerHour + 11 * nanosPerMinute + 11 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "00:00:00Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T00:00:00" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T00:00:00Z" == 0 |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T23:59:59" == (23 * nanosPerHour + 59 * nanosPerMinute + 59 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "T24:00:00" == (24 * nanosPerHour) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "11:11:11" == (11 * nanosPerHour + 11 * nanosPerMinute + 11 * nanosPerSecond) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "00:00:00Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T00:00:00" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T00:00:00Z" == 0 |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T23:59:59" == (23 * nanosPerHour + 59 * nanosPerMinute + 59 * nanosPerSecond) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24:00:00" == (24 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T24:00:01" == Err InvalidTimeFormat
 expect parseTimeFromStr "T00:00:0Z" == Err InvalidTimeFormat
 
 # parseFractionalTime
-expect parseTimeFromStr "12.500" == (12 * nanosPerHour + 30 * nanosPerMinute) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "12,500" == (12 * nanosPerHour + 30 * nanosPerMinute) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "1200.500" == (12 * nanosPerHour + 30 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "12:00,500" == (12 * nanosPerHour + 30 * nanosPerSecond) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
-expect parseTimeFromStr "12:00:00,123" == (12 * nanosPerHour + 123_000_000) |> Num.toU64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12.500" == (12 * nanosPerHour + 30 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12,500" == (12 * nanosPerHour + 30 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "1200.500" == (12 * nanosPerHour + 30 * nanosPerSecond) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00,500" == (12 * nanosPerHour + 30 * nanosPerSecond) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00,123" == (12 * nanosPerHour + 123_000_000) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+
+# parseTime w/ offset
+expect parseTimeFromStr "12:00:00+01" == (11 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00-01" == (13 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00+0100" == (11 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00-0100" == (13 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00+01:00" == (11 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00-01:00" == (13 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00+01:30" == (10 * nanosPerHour + 30 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12:00:00-01:30" == (13 * nanosPerHour + 30 * nanosPerMinute) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "12.50+0030" == (12 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "0000+1400" == (-14 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24-1200" == (36 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "T24+1200Z" == Err InvalidTimeFormat
 
 
 # <==== Utils.roc ====>
@@ -187,6 +203,15 @@ expect parseTimeFromStr "12:00:00,123" == (12 * nanosPerHour + 123_000_000) |> N
 expect splitListAtIndices [1,2] [0,1,2] == [[1], [2]]
 expect splitListAtIndices [1,2] [0] == [[1,2]]
 expect splitListAtIndices [1,2] [1] == [[1], [2]]
+
+# <---- splitUtf8AndKeepDelimiters ---->
+expect splitUtf8AndKeepDelimiters [] [] == []
+expect splitUtf8AndKeepDelimiters [] ['-', '+'] == []
+expect splitUtf8AndKeepDelimiters ['1', '2', '3'] [] == [['1', '2', '3']]
+expect splitUtf8AndKeepDelimiters ['1', '2', '3'] ['-', '+'] == [['1', '2', '3']]
+expect splitUtf8AndKeepDelimiters ['0', '1', '+', '2', '3'] ['-', '+'] == [['0', '1'], ['+'], ['2', '3']]
+expect splitUtf8AndKeepDelimiters ['+', '-', '0', '1', '2'] ['-', '+'] == [['+'], ['-'], ['0', '1', '2']]
+expect splitUtf8AndKeepDelimiters ['+', '-'] ['-', '+'] == [['+'], ['-']]
 
 # <---- validateUtf8SingleBytes ---->
 expect validateUtf8SingleBytes [0b01111111]
@@ -197,6 +222,12 @@ expect !("🔥" |> Str.toUtf8 |> validateUtf8SingleBytes)
 expect ['0','1','2','3','4','5','6','7','8','9'] |> utf8ToInt == Ok 123456789
 expect utf8ToInt ['@'] == Err InvalidBytes
 expect utf8ToInt ['/'] == Err InvalidBytes
+
+# <---- utf8ToIntSigned ---->
+expect ['-', '1'] |> utf8ToIntSigned == Ok -1
+expect ['+', '1'] |> utf8ToIntSigned == Ok 1
+expect ['1', '9'] |> utf8ToIntSigned == Ok 19
+
 
 # <---- utf8ToFrac ---->
 expect
@@ -258,4 +289,3 @@ expect calendarWeekToDaysInYear 1 1971 == 3
 expect calendarWeekToDaysInYear 1 1972 == 2
 expect calendarWeekToDaysInYear 1 1973 == 0
 expect calendarWeekToDaysInYear 2 2024 == 7
-

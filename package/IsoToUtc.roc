@@ -24,13 +24,14 @@ interface IsoToUtc
         Utils.{
             calendarWeekToDaysInYear,
             daysToNanos,
-            findDecimalIndex,
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             splitListAtIndices,
+            splitUtf8AndKeepDelimiters,
             timeToNanos,
-            utf8ToInt,
             utf8ToFrac,
+            utf8ToInt,
+            utf8ToIntSigned,
             validateUtf8SingleBytes,
         },
     ]
@@ -190,21 +191,41 @@ parseTimeFromU8 : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseTimeFromU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
         strippedBytes = stripTandZ bytes
-        when findDecimalIndex strippedBytes is
-            Ok index ->
-                when splitListAtIndices strippedBytes [Num.toU64 index ] is
-                    [head, tail] -> parseFractionalTime head tail
-                    _ -> Err InvalidTimeFormat
-            Err NoDecimalPoint -> 
-                when strippedBytes is
-                    [_,_] -> parseLocalTimeHour strippedBytes # hh
-                    [_,_,_,_] -> parseLocalTimeMinuteBasic strippedBytes # hhmm
-                    [_,_,':',_,_] -> parseLocalTimeMinuteExtended strippedBytes # hh:mm
-                    [_,_,_,_,_,_] -> parseLocalTimeBasic strippedBytes # hhmmss
-                    [_,_,':',_,_,':',_,_] -> parseLocalTimeExtended strippedBytes # hh:mm:ss
-                    _ -> Err InvalidTimeFormat
+        when splitUtf8AndKeepDelimiters strippedBytes ['.', ',', '+', '-'] is
+            [timeBytes, [byte1], fractionalBytes, [byte2], offsetBytes] -> 
+                when List.last bytes is 
+                    Ok 'Z' -> Err InvalidTimeFormat
+                    _ ->
+                        timeRes = parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
+                        offsetRes = parseTimeOffset (List.join [[byte2], offsetBytes])
+                        when (timeRes, offsetRes) is
+                            (Ok time, Ok offset) -> addTimes time offset |> Ok
+                            (_, _) -> Err InvalidTimeFormat
+            [timeBytes, [byte1], offsetBytes] if byte1 == '+' || byte1 == '-' -> 
+                when List.last bytes is
+                    Ok 'Z' -> Err InvalidTimeFormat
+                    _ ->
+                        timeRes = parseWholeTime timeBytes
+                        offsetRes = parseTimeOffset (List.join [[byte1], offsetBytes])
+                        when (timeRes, offsetRes) is
+                            (Ok time, Ok offset) -> addTimes time offset |> Ok
+                            (_, _) -> Err InvalidTimeFormat
+            [timeBytes, [byte1], fractionalBytes] if byte1 == ',' || byte1 == '.' -> 
+                parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
+            [timeBytes] -> parseWholeTime timeBytes
+            _ -> Err InvalidTimeFormat
     else
         Err InvalidTimeFormat
+
+parseWholeTime : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseWholeTime = \bytes ->
+    when bytes is
+        [_,_] -> parseLocalTimeHour bytes # hh
+        [_,_,_,_] -> parseLocalTimeMinuteBasic bytes # hhmm
+        [_,_,':',_,_] -> parseLocalTimeMinuteExtended bytes # hh:mm
+        [_,_,_,_,_,_] -> parseLocalTimeBasic bytes # hhmmss
+        [_,_,':',_,_,':',_,_] -> parseLocalTimeExtended bytes # hh:mm:ss
+        _ -> Err InvalidTimeFormat
 
 parseFractionalTime : List U8, List U8 -> Result UtcTime [InvalidTimeFormat]
 parseFractionalTime = \wholeBytes, fractionalBytes ->
@@ -234,10 +255,33 @@ parseFractionalTime = \wholeBytes, fractionalBytes ->
                 _ -> Err InvalidTimeFormat 
         Err InvalidBytes -> Err InvalidTimeFormat
 
+parseTimeOffset : List U8 -> Result UtcTime [InvalidTimeFormat]
+parseTimeOffset = \bytes ->
+    when bytes is
+        ['-',h1,h2] -> 
+            parseTimeOffsetHelp h1 h2 '0' '0' 1
+        ['+',h1,h2] -> 
+            parseTimeOffsetHelp h1 h2 '0' '0' -1
+        ['-',h1,h2,m1,m2] -> 
+            parseTimeOffsetHelp h1 h2 m1 m2 1
+        ['+',h1,h2,m1,m2] ->
+            parseTimeOffsetHelp h1 h2 m1 m2 -1
+        ['-',h1,h2,':',m1,m2] ->
+            parseTimeOffsetHelp h1 h2 m1 m2 1
+        ['+',h1,h2,':',m1,m2] ->
+            parseTimeOffsetHelp h1 h2 m1 m2 -1
+        _ -> Err InvalidTimeFormat
 
+parseTimeOffsetHelp : U8, U8, U8, U8, I64 -> Result UtcTime [InvalidTimeFormat]
+parseTimeOffsetHelp = \h1, h2, m1, m2, sign ->
+    when (utf8ToIntSigned [h1,h2], utf8ToIntSigned [m1,m2]) is
+        (Ok hour, Ok minute) if hour >= 0 && hour <= 14 && minute >= 0 && minute <= 59 ->
+            sign * (hour * nanosPerHour + minute * nanosPerMinute) |> fromNanosSinceMidnight |> Ok
+        (_, _) -> Err InvalidTimeFormat
+    
 parseLocalTimeHour : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeHour = \bytes ->
-    when utf8ToInt bytes is
+    when utf8ToIntSigned bytes is
         Ok hour if hour >= 0 && hour <= 24 ->
             timeToNanos {hour, minute: 0, second: 0}
                 |> fromNanosSinceMidnight |> Ok
@@ -248,7 +292,7 @@ parseLocalTimeMinuteBasic : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeMinuteBasic = \bytes ->
     when splitListAtIndices bytes [2] is
         [hourBytes, minuteBytes] -> 
-            when (utf8ToInt hourBytes, utf8ToInt minuteBytes) is
+            when (utf8ToIntSigned hourBytes, utf8ToIntSigned minuteBytes) is
             (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
                 timeToNanos {hour, minute, second: 0} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0) -> 
@@ -260,7 +304,7 @@ parseLocalTimeMinuteExtended : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeMinuteExtended = \bytes ->
     when splitListAtIndices bytes [2,3] is
         [hourBytes, _, minuteBytes] -> 
-            when (utf8ToInt hourBytes, utf8ToInt minuteBytes) is
+            when (utf8ToIntSigned hourBytes, utf8ToIntSigned minuteBytes) is
             (Ok hour, Ok minute) if hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 ->
                 timeToNanos {hour, minute, second: 0} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0) ->
@@ -272,7 +316,7 @@ parseLocalTimeBasic : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeBasic = \bytes ->
     when splitListAtIndices bytes [2,4] is
         [hourBytes, minuteBytes, secondBytes] -> 
-            when (utf8ToInt hourBytes, utf8ToInt minuteBytes, utf8ToInt secondBytes) is
+            when (utf8ToIntSigned hourBytes, utf8ToIntSigned minuteBytes, utf8ToIntSigned secondBytes) is
             (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
                 timeToNanos {hour: h, minute: m, second: s} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0, Ok 0) ->
@@ -284,7 +328,7 @@ parseLocalTimeExtended : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeExtended = \bytes ->
     when splitListAtIndices bytes [2,3,5,6] is
         [hourBytes, _, minuteBytes, _, secondBytes] -> 
-            when (utf8ToInt hourBytes, utf8ToInt minuteBytes, utf8ToInt secondBytes) is
+            when (utf8ToIntSigned hourBytes, utf8ToIntSigned minuteBytes, utf8ToIntSigned secondBytes) is
             (Ok h, Ok m, Ok s) if h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 ->
                 timeToNanos {hour: h, minute: m, second: s} |> fromNanosSinceMidnight |> Ok
             (Ok 24, Ok 0, Ok 0) ->
