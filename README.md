@@ -1,6 +1,7 @@
 # Roc IsoDate
 A Roc package for parsing ISO 8601 Date/Time Strings 
 
+[![Static Badge][roc_badge]][roc_link]
 ![GitHub last commit][last_commit_badge]
 ![CI status][ci_status_badge]
 
@@ -27,6 +28,10 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 
 ## ISO 8601 Date/Time Format
 Description of ISO date/time [format][iso_8601_md] (WIP)
+
+
+[roc_badge]: https://img.shields.io/badge/Roc%20Lang-6B3ADC
+[roc_link]: https://github.com/roc-lang/roc
 
 [ci_status_badge]: https://img.shields.io/github/actions/workflow/status/imclerran/roc-isodate/ci.yml
 [last_commit_badge]: https://img.shields.io/github/last-commit/imclerran/roc-isodate
