@@ -22,6 +22,7 @@ interface Tests
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             splitListAtIndices,
+            utf8ToFrac,
             utf8ToInt,
             validateUtf8SingleBytes,
         },
@@ -187,6 +188,33 @@ expect !("🔥" |> Str.toUtf8 |> validateUtf8SingleBytes)
 expect ['0','1','2','3','4','5','6','7','8','9'] |> utf8ToInt == Ok 123456789
 expect utf8ToInt ['@'] == Err InvalidBytes
 expect utf8ToInt ['/'] == Err InvalidBytes
+
+# <---- utf8ToFrac ---->
+expect
+    when utf8ToFrac ['1', '2', '.', '3', '4', '5'] is
+        Ok n -> n > 12.34499 && n < 12.34501
+        _ -> Bool.false
+expect
+    when utf8ToFrac ['1', '2', ',', '3', '4', '5'] is
+        Ok n -> n > 12.34499 && n < 12.34501
+        _ -> Bool.false
+expect
+    when utf8ToFrac ['.', '1', '2', '3'] is
+        Ok n -> n > 0.12299 && n < 0.12301
+        _ -> Bool.false
+expect
+    when utf8ToFrac ['1', '2', '3'] is
+        Ok n -> n > 122.99 && n < 123.01
+        _ -> Bool.false
+expect
+    when utf8ToFrac ['1', '2', '3', '.'] is
+        Ok n -> n > 122.99 && n < 123.01
+        _ -> Bool.false
+expect
+    num = utf8ToFrac ['1', '2', 'Z']
+    when num is
+        Err InvalidBytes -> Bool.true
+        _ -> Bool.false
 
 # <---- numDaysSinceEpoch ---->
 # expect numDaysSinceEpoch {year: 2024} == 19723 # Removed due to compiler bug with optional record fields
