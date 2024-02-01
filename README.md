@@ -5,7 +5,7 @@ A Roc package for parsing ISO 8601 Date/Time Strings
 ![CI status][ci_status_badge]
 
 ## Implementation
-This implementation is currently designed to convert an ISO date/time string into the [Utc][utc_roc] type provided by the Basic CLI and Basic Webserver platforms. The `Utc` type in these platforms are currently based on an unsigned integer which will not support pre-epoch dates. However, pull requests are currently in progress on both platfomrs to convert Utc to use signed integers. With this change in motion, this library has pre-emptively moved its own `Utc` type to a signed integer type.
+This implementation is currently designed to convert an ISO date/time string into the [Utc][utc_roc] type provided by the Basic CLI and Basic Webserver platforms. The `Utc` type in these platforms is currently based on an unsigned integer which will not support pre-epoch dates. However, pull requests are currently in progress on both platfomrs to convert Utc to use signed integers. With this change in motion, this library has pre-emptively moved its own `Utc` type to a signed integer type.
 
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
