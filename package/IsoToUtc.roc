@@ -213,28 +213,23 @@ parseFractionalTime = \wholeBytes, fractionalBytes ->
             when wholeBytes is
                 [_,_] -> # hh
                     when parseLocalTimeHour wholeBytes is
-                        Ok time -> 
-                            frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Ok time -> frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
                         Err InvalidTimeFormat -> Err InvalidTimeFormat
                 [_,_,_,_] -> # hhmm
                     when parseLocalTimeMinuteBasic wholeBytes is
-                        Ok time -> 
-                            frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
                         Err InvalidTimeFormat -> Err InvalidTimeFormat
                 [_,_,':',_,_] -> # hh:mm
                     when parseLocalTimeMinuteExtended wholeBytes is
-                        Ok time -> 
-                            frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
                         Err InvalidTimeFormat -> Err InvalidTimeFormat
                 [_,_,_,_,_,_] -> # hhmmss
                     when parseLocalTimeBasic wholeBytes is
-                        Ok time -> 
-                            frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
                         Err InvalidTimeFormat -> Err InvalidTimeFormat
                 [_,_,':',_,_,':',_,_] -> # hh:mm:ss
                     when parseLocalTimeExtended wholeBytes is
-                        Ok time -> 
-                            frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                        Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
                         Err InvalidTimeFormat -> Err InvalidTimeFormat
                 _ -> Err InvalidTimeFormat 
         Err InvalidBytes -> Err InvalidTimeFormat
