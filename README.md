@@ -12,7 +12,7 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 ## Progress
 - Full support for parsing all date representations.
 - Full support for parseing local time representations.
-- can Parse from `Str` or from a `List U8` of Utf-8 bytes.
+- Can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
 ## Future Plans
 - UTC timezone offset time representations.
