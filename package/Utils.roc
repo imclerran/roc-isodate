@@ -29,14 +29,14 @@ interface Utils
         },
     ]
 
-splitListAtIndices : List a, List U64 -> List (List a)
+splitListAtIndices : List a, List U8 -> List (List a)
 splitListAtIndices = \list, indices ->
     splitListAtIndicesRecur list (List.sortDesc indices)
 
-splitListAtIndicesRecur : List a, List U64 -> List (List a)
+splitListAtIndicesRecur : List a, List U8 -> List (List a)
 splitListAtIndicesRecur = \list, indices ->
     when indices is
-        [x, .. as xs] if x != 0 && x != List.len list |> Num.toU64-> 
+        [x, .. as xs] if x != 0 && x != List.len list |> Num.toU8-> 
             when List.split list (Num.toNat x) is
                 {before: head, others: tail} -> 
                     splitListAtIndicesRecur head xs |> List.append tail
@@ -104,8 +104,7 @@ utf8ToIntSigned = \u8List ->
 utf8ToFrac : List U8 -> Result F64 [InvalidBytes]
 utf8ToFrac = \u8List -> 
     when findDecimalIndex u8List is
-        Ok decimalIndexU8 ->
-            decimalIndex = Num.toU64 decimalIndexU8
+        Ok decimalIndex ->
             when splitListAtIndices u8List [decimalIndex, (decimalIndex + 1)] is
                 [head, [byte], tail] if byte == ',' || byte == '.' ->
                     when (utf8ToInt head, utf8ToInt tail) is
