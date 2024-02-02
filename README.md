@@ -24,7 +24,8 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 
 ## Known Issues
 - Missing features mentioned above.
-- No other known issues.
+- ISO Requirement for combined date-time strings to have only non-reduced accuracy dates is not enforced
+- ISO Requirement for combined date-time strings to be in completely basic or completely extended format are not enforced.
 
 ## ISO 8601 Date/Time Format
 Description of ISO date/time [format][iso_8601_md] (WIP)
