@@ -142,22 +142,22 @@ parseOrdinalDateExtended = \bytes ->
 parseWeekDateBasic : List U8 -> Result Utc [InvalidDateFormat]
 parseWeekDateBasic = \bytes -> 
     when splitListAtIndices bytes [4,5,7] is
-        [yearBytes, _, weekBytes, dayBytes] -> 
-            when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
-                calendarWeekToUtc {year: y, week: w, day: d}
-            (_, _, _) -> Err InvalidDateFormat
-        _ -> Err InvalidDateFormat
+    [yearBytes, _, weekBytes, dayBytes] -> 
+        when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
+        (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+            calendarWeekToUtc {year: y, week: w, day: d}
+        (_, _, _) -> Err InvalidDateFormat
+    _ -> Err InvalidDateFormat
 
 parseWeekDateExtended : List U8 -> Result Utc [InvalidDateFormat]
 parseWeekDateExtended = \bytes -> 
     when splitListAtIndices bytes [4,6,8,9] is
-        [yearBytes, _, weekBytes, _, dayBytes] -> 
-            when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
-                calendarWeekToUtc {year: y, week: w, day: d}
-            (_, _, _) -> Err InvalidDateFormat
-        _ -> Err InvalidDateFormat
+    [yearBytes, _, weekBytes, _, dayBytes] -> 
+        when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
+        (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+            calendarWeekToUtc {year: y, week: w, day: d}
+        (_, _, _) -> Err InvalidDateFormat
+    _ -> Err InvalidDateFormat
 
 parseWeekDateReducedBasic : List U8 -> Result Utc [InvalidDateFormat]
 parseWeekDateReducedBasic = \bytes -> 
@@ -233,31 +233,28 @@ parseWholeTime = \bytes ->
 
 parseFractionalTime : List U8, List U8 -> Result UtcTime [InvalidTimeFormat]
 parseFractionalTime = \wholeBytes, fractionalBytes ->
-    when utf8ToFrac fractionalBytes is
-        Ok frac ->
-            when wholeBytes is
-                [_,_] -> # hh
-                    when parseLocalTimeHour wholeBytes is
-                        Ok time -> frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                        Err InvalidTimeFormat -> Err InvalidTimeFormat
-                [_,_,_,_] -> # hhmm
-                    when parseLocalTimeMinuteBasic wholeBytes is
-                        Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                        Err InvalidTimeFormat -> Err InvalidTimeFormat
-                [_,_,':',_,_] -> # hh:mm
-                    when parseLocalTimeMinuteExtended wholeBytes is
-                        Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                        Err InvalidTimeFormat -> Err InvalidTimeFormat
-                [_,_,_,_,_,_] -> # hhmmss
-                    when parseLocalTimeBasic wholeBytes is
-                        Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                        Err InvalidTimeFormat -> Err InvalidTimeFormat
-                [_,_,':',_,_,':',_,_] -> # hh:mm:ss
-                    when parseLocalTimeExtended wholeBytes is
-                        Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                        Err InvalidTimeFormat -> Err InvalidTimeFormat
-                _ -> Err InvalidTimeFormat 
-        Err InvalidBytes -> Err InvalidTimeFormat
+    when (wholeBytes, utf8ToFrac fractionalBytes) is
+        ([_,_], Ok frac) -> # hh
+            when parseLocalTimeHour wholeBytes is
+                Ok time -> frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                Err InvalidTimeFormat -> Err InvalidTimeFormat
+        ([_,_,_,_], Ok frac) -> # hhmm
+            when parseLocalTimeMinuteBasic wholeBytes is
+                Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                Err InvalidTimeFormat -> Err InvalidTimeFormat
+        ([_,_,':',_,_], Ok frac) -> # hh:mm
+            when parseLocalTimeMinuteExtended wholeBytes is
+                Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                Err InvalidTimeFormat -> Err InvalidTimeFormat
+        ([_,_,_,_,_,_], Ok frac) -> # hhmmss
+            when parseLocalTimeBasic wholeBytes is
+                Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                Err InvalidTimeFormat -> Err InvalidTimeFormat
+        ([_,_,':',_,_,':',_,_], Ok frac) -> # hh:mm:ss
+            when parseLocalTimeExtended wholeBytes is
+                Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
+                Err InvalidTimeFormat -> Err InvalidTimeFormat
+        _ -> Err InvalidTimeFormat
 
 parseTimeOffset : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseTimeOffset = \bytes ->
