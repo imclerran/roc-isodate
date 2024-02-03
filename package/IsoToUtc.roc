@@ -224,25 +224,20 @@ parseFractionalTime : List U8, List U8 -> Result UtcTime [InvalidTimeFormat]
 parseFractionalTime = \wholeBytes, fractionalBytes ->
     when (wholeBytes, utf8ToFrac fractionalBytes) is
         ([_,_], Ok frac) -> # hh
-            when parseLocalTimeHour wholeBytes is
-                Ok time -> frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                Err InvalidTimeFormat -> Err InvalidTimeFormat
+            time <- parseLocalTimeHour wholeBytes |> Result.map
+            frac * nanosPerHour |> Num.round |> fromNanosSinceMidnight |> addTimes time
         ([_,_,_,_], Ok frac) -> # hhmm
-            when parseLocalTimeMinuteBasic wholeBytes is
-                Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                Err InvalidTimeFormat -> Err InvalidTimeFormat
+            time <- parseLocalTimeMinuteBasic wholeBytes |> Result.map
+            frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time
         ([_,_,':',_,_], Ok frac) -> # hh:mm
-            when parseLocalTimeMinuteExtended wholeBytes is
-                Ok time -> frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                Err InvalidTimeFormat -> Err InvalidTimeFormat
+            time <- parseLocalTimeMinuteExtended wholeBytes |> Result.map
+            frac * nanosPerMinute |> Num.round |> fromNanosSinceMidnight |> addTimes time
         ([_,_,_,_,_,_], Ok frac) -> # hhmmss
-            when parseLocalTimeBasic wholeBytes is
-                Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                Err InvalidTimeFormat -> Err InvalidTimeFormat
+            time <- parseLocalTimeBasic wholeBytes |> Result.map
+            frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time
         ([_,_,':',_,_,':',_,_], Ok frac) -> # hh:mm:ss
-            when parseLocalTimeExtended wholeBytes is
-                Ok time -> frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time |> Ok
-                Err InvalidTimeFormat -> Err InvalidTimeFormat
+            time <- parseLocalTimeExtended wholeBytes |> Result.map
+            frac * nanosPerSecond |> Num.round |> fromNanosSinceMidnight |> addTimes time
         _ -> Err InvalidTimeFormat
 
 parseTimeOffset : List U8 -> Result UtcTime [InvalidTimeFormat]
