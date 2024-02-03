@@ -164,20 +164,15 @@ numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> I64
 numDaysSinceEpoch = \{year, month? 1, day? 1} ->
     isLeap = isLeapYear year
     numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
+    getMonthDays = \m -> monthDays {month: m, isLeap}
     if year >= epochYear then
         daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
-        daysInMonths = List.sum (
-            List.map (List.range { start: At 1, end: Before month }) 
-            \mapMonth -> monthDays {month: mapMonth, isLeap}
-        )
-        (daysInYears + daysInMonths + day - 1) |> Num.toI64
+        List.map (List.range { start: At 1, end: Before month }) getMonthDays
+            |> List.sum |> Num.add (daysInYears + day - 1) |> Num.toI64
     else
         daysInYears = numLeapYears * 366 + (epochYear - year - numLeapYears - 1) * 365
-        daysInMonths = List.sum (
-            List.map (List.range { start: After month, end: At 12 }) 
-            \mapMonth -> monthDays {month: mapMonth, isLeap}
-        )
-        (daysInYears + daysInMonths + (monthDays {month, isLeap}) - day + 1)
+        List.map (List.range { start: After month, end: At 12 }) getMonthDays
+            |> List.sum |> Num.add (daysInYears + (getMonthDays month) - day + 1) 
             |> Num.toI64 |> Num.mul -1
 
 numDaysSinceEpochToYear = \year ->
