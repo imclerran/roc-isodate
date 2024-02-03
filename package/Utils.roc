@@ -162,9 +162,8 @@ numLeapYearsSinceEpoch = \year, inclusive ->
 
 numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> I64
 numDaysSinceEpoch = \{year, month? 1, day? 1} ->
-    isLeap = isLeapYear year
     numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
-    getMonthDays = \m -> monthDays {month: m, isLeap}
+    getMonthDays = \m -> monthDays {month: m, isLeap: isLeapYear year}
     if year >= epochYear then
         daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
         List.map (List.range { start: At 1, end: Before month }) getMonthDays
