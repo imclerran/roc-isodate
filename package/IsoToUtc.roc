@@ -70,8 +70,7 @@ parseCalendarDateBasic = \bytes ->
         [yearBytes, monthBytes, dayBytes] ->
             when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
             (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
-                numDaysSinceEpoch {year: y, month: m, day: d} 
-                    |> daysToNanos |> fromNanosSinceEpoch |> Ok
+                numDaysSinceEpoch {year: y, month: m, day: d} |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -81,8 +80,7 @@ parseCalendarDateExtended = \bytes ->
         [yearBytes, _, monthBytes, _, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
             (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
-                numDaysSinceEpoch {year: y, month: m, day: d} 
-                    |> daysToNanos |> fromNanosSinceEpoch |> Ok
+                numDaysSinceEpoch {year: y, month: m, day: d} |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -90,20 +88,14 @@ parseCalendarDateCentury : List U8 -> Result Utc [InvalidDateFormat]
 parseCalendarDateCentury = \bytes ->
     when utf8ToInt bytes is
         Ok century ->
-            nanos = century * 100
-                |> numDaysSinceEpochToYear
-                |> daysToNanos
-            nanos |> fromNanosSinceEpoch |> Ok
+            century * 100 |> numDaysSinceEpochToYear |> daysToNanos |> fromNanosSinceEpoch |> Ok
         Err _ -> Err InvalidDateFormat
 
 parseCalendarDateYear : List U8 -> Result Utc [InvalidDateFormat]
 parseCalendarDateYear = \bytes ->
     when utf8ToInt bytes is
         Ok year ->
-            nanos = year
-                |> numDaysSinceEpochToYear
-                |> daysToNanos
-            nanos |> fromNanosSinceEpoch |> Ok
+            year |> numDaysSinceEpochToYear |> daysToNanos |> fromNanosSinceEpoch |> Ok
         Err _ -> Err InvalidDateFormat
 
 parseCalendarDateMonth : List U8 -> Result Utc [InvalidDateFormat]
@@ -112,8 +104,7 @@ parseCalendarDateMonth = \bytes ->
         [yearBytes, _, monthBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt monthBytes) is
             (Ok year, Ok month) if month >= 1 && month <= 12 ->
-                numDaysSinceEpoch { year, month, day: 1} 
-                    |> daysToNanos |> fromNanosSinceEpoch |> Ok
+                numDaysSinceEpoch { year, month, day: 1} |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -123,8 +114,7 @@ parseOrdinalDateBasic = \bytes ->
         [yearBytes, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt dayBytes) is
             (Ok year, Ok day) if day >= 1 && day <= 366 ->
-                numDaysSinceEpoch {year, month: 1, day} 
-                    |> daysToNanos |> fromNanosSinceEpoch |> Ok
+                numDaysSinceEpoch {year, month: 1, day} |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -134,8 +124,7 @@ parseOrdinalDateExtended = \bytes ->
         [yearBytes, _, dayBytes] -> 
             when (utf8ToInt yearBytes, utf8ToInt dayBytes) is
             (Ok year, Ok day) if day >= 1 && day <= 366 ->
-                numDaysSinceEpoch {year, month: 1, day} 
-                    |> daysToNanos |> fromNanosSinceEpoch |> Ok
+                numDaysSinceEpoch {year, month: 1, day} |> daysToNanos |> fromNanosSinceEpoch |> Ok
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
@@ -284,8 +273,7 @@ parseLocalTimeHour : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseLocalTimeHour = \bytes ->
     when utf8ToIntSigned bytes is
         Ok hour if hour >= 0 && hour <= 24 ->
-            timeToNanos {hour, minute: 0, second: 0}
-                |> fromNanosSinceMidnight |> Ok
+            timeToNanos {hour, minute: 0, second: 0} |> fromNanosSinceMidnight |> Ok
         Ok _ -> Err InvalidTimeFormat
         Err _ -> Err InvalidTimeFormat
 

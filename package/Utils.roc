@@ -77,29 +77,24 @@ validateUtf8SingleBytes = \u8List ->
 utf8ToInt : List U8 -> Result U64 [InvalidBytes]
 utf8ToInt = \u8List ->
     u8List |> List.reverse |> List.walkWithIndex (Ok 0) \numResult, byte, index ->
-        when numResult is
-            Ok num ->
-                if 0x30 <= byte && byte <= 0x39 then
-                    Ok (num + (Num.toU64 byte - 0x30) * (Num.toU64 (Num.powInt 10 (Num.toNat index))))
-                else
-                    Err InvalidBytes
-            Err InvalidBytes -> Err InvalidBytes
+        Result.try numResult \num ->
+            if 0x30 <= byte && byte <= 0x39 then
+                Ok (num + (Num.toU64 byte - 0x30) * (Num.toU64 (Num.powInt 10 (Num.toNat index))))
+            else
+                Err InvalidBytes
 
 utf8ToIntSigned : List U8 -> Result I64 [InvalidBytes]
 utf8ToIntSigned = \u8List ->
     when u8List is
         ['-', .. as xs] ->
-            when utf8ToInt xs is
-                Ok num -> Ok (-1 * Num.toI64 num)
-                Err InvalidBytes -> Err InvalidBytes
+            num <- utf8ToInt xs |> Result.map
+            -1 * Num.toI64 num
         ['+', .. as xs] ->
-            when utf8ToInt xs is
-                Ok num -> Ok (Num.toI64 num)
-                Err InvalidBytes -> Err InvalidBytes
+            num <- utf8ToInt xs |> Result.map
+            Num.toI64 num
         _ -> 
-            when utf8ToInt u8List is
-                Ok num -> Ok (Num.toI64 num)
-                Err InvalidBytes -> Err InvalidBytes
+            num <- utf8ToInt u8List |> Result.map
+            Num.toI64 num
 
 utf8ToFrac : List U8 -> Result F64 [InvalidBytes]
 utf8ToFrac = \u8List -> 
