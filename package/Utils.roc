@@ -7,6 +7,7 @@ interface Utils
         numDaysSinceEpochToYear,
         splitListAtIndices,
         splitUtf8AndKeepDelimiters,
+        stripTandZ,
         timeToNanos,
         utf8ToFrac,
         utf8ToInt,
@@ -138,6 +139,13 @@ moveDecimalPoint = \num, digits ->
     when digits is
         0 -> num
         _ -> (moveDecimalPoint num (digits - 1)) / 10
+
+stripTandZ : List U8 -> List U8
+stripTandZ = \bytes ->
+    when bytes is
+        ['T', .. as tail] -> stripTandZ tail
+        [.. as head, 'Z'] -> head
+        _ -> bytes
 
 isLeapYear = \year ->
     (year % leapInterval == 0 &&

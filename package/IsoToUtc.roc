@@ -32,6 +32,7 @@ interface IsoToUtc
             numDaysSinceEpochToYear,
             splitListAtIndices,
             splitUtf8AndKeepDelimiters,
+            stripTandZ,
             timeToNanos,
             utf8ToFrac,
             utf8ToInt,
@@ -313,13 +314,6 @@ parseLocalTimeExtended = \bytes ->
                 timeToNanos {hour: 24, minute: 0, second: 0} |> fromNanosSinceMidnight |> Ok
             (_, _, _) -> Err InvalidTimeFormat
         _ -> Err InvalidTimeFormat
-
-stripTandZ : List U8 -> List U8
-stripTandZ = \bytes ->
-    when bytes is
-        ['T', .. as tail] -> stripTandZ tail
-        [.. as head, 'Z'] -> head
-        _ -> bytes
 
 parseDateTimeFromStr : Str -> Result Utc [InvalidDateTimeFormat]
 parseDateTimeFromStr = \str ->
