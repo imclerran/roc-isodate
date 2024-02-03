@@ -106,11 +106,11 @@ utf8ToFrac = \u8List ->
                             decimalShift = List.len tail |> Num.toU8
                             Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
                         (_, _) -> Err InvalidBytes
-                [['.'], tail] -> #if byte == ',' || byte == '.' -> # crashes when using byte comparison
+                [['.'], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
                     fracPart <- utf8ToInt tail |> Result.map
                     decimalShift = List.len tail |> Num.toU8
                     moveDecimalPoint (Num.toF64 fracPart) decimalShift
-                [[','], tail] ->#if byte == ',' || byte == '.' -> # crashes when using byte comparison
+                [[','], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
                     fracPart <- utf8ToInt tail |> Result.map
                     decimalShift = List.len tail |> Num.toU8
                     moveDecimalPoint (Num.toF64 fracPart) decimalShift
