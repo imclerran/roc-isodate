@@ -6,7 +6,7 @@ A Roc package for parsing ISO 8601 Date/Time Strings
 [![CI status][ci_status_badge]][ci_status_link]
 
 ## Implementation
-Roc IsoDate is a rock package which which can convert an ISO date/time string into the [Utc][utc_roc] type provided by the Basic CLI and Basic Webserver platforms. The `Utc` type in these platforms is currently based on an unsigned integer which will not support pre-epoch dates. However, pull requests are currently in progress on both platfomrs to convert Utc to use signed integers. With this change in motion, this library has pre-emptively moved its own `Utc` type to a signed integer type.
+Roc IsoDate is a rock package which which can convert an ISO date/time string into the [Utc][utc_link] type provided by the Basic CLI and Basic Webserver platforms, which stores the nanoseconds since the UNIX epoch date. When parsing time-only strings, the package returns a [UtcTime][utctime_link], which is similar to the `Utc` type, but stores the nanoseconds since midnight.
 
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
@@ -39,5 +39,6 @@ Description of ISO date/time [format][iso_8601_md] (WIP)
 [last_commit_link]: https://github.com/imclerran/Roc-IsoDate/commits/main/
 
 [iso_8601_doc]: https://www.loc.gov/standards/datetime/iso-tc154-wg5_n0038_iso_wd_8601-1_2016-02-16.pdf
-[utc_roc]: https://github.com/roc-lang/basic-cli/blob/main/platform/Utc.roc
+[utc_link]: https://github.com/roc-lang/basic-cli/blob/main/platform/Utc.roc
+[utctime_link]: https://github.com/imlerran/roc-isodate/blob/main/platform/UtcTime.roc
 [iso_8601_md]: ISO_8601.md
