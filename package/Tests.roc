@@ -250,6 +250,10 @@ expect
         Ok n -> n > 0.12299 && n < 0.12301
         _ -> Bool.false
 expect
+    when utf8ToFrac [',', '1', '2', '3'] is
+        Ok n -> n > 0.12299 && n < 0.12301
+        _ -> Bool.false
+expect
     when utf8ToFrac ['1', '2', '3'] is
         Ok n -> n > 122.99 && n < 123.01
         _ -> Bool.false

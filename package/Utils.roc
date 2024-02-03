@@ -113,29 +113,22 @@ utf8ToFrac = \u8List ->
                             Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
                         (_, _) -> Err InvalidBytes
                 [['.'], tail] -> #if byte == ',' || byte == '.' -> # crashes when using byte comparison
-                    when utf8ToInt tail is
-                        Ok fracPart ->
-                            decimalShift = List.len tail |> Num.toU8
-                            moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                        Err InvalidBytes -> Err InvalidBytes
+                    fracPart <- utf8ToInt tail |> Result.map
+                    decimalShift = List.len tail |> Num.toU8
+                    moveDecimalPoint (Num.toF64 fracPart) decimalShift
                 [[','], tail] ->#if byte == ',' || byte == '.' -> # crashes when using byte comparison
-                    when utf8ToInt tail is
-                        Ok fracPart ->
-                            decimalShift = List.len tail |> Num.toU8
-                            moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
-                        Err InvalidBytes -> Err InvalidBytes
+                    fracPart <- utf8ToInt tail |> Result.map
+                    decimalShift = List.len tail |> Num.toU8
+                    moveDecimalPoint (Num.toF64 fracPart) decimalShift
                 [head, [byte]] if byte == ',' || byte == '.' ->
-                    when utf8ToInt head is
-                        Ok intPart -> Num.toF64 intPart |> Ok
-                        Err InvalidBytes -> Err InvalidBytes
+                    intPart <- utf8ToInt head |> Result.map
+                    Num.toF64 intPart
                 _ -> 
-                    when utf8ToInt u8List is
-                        Ok intPart -> intPart |> Num.toF64 |> Ok
-                        Err InvalidBytes -> Err InvalidBytes
+                    intPart <- utf8ToInt u8List |> Result.map
+                    Num.toF64 intPart
         Err NoDecimalPoint -> 
-            when utf8ToInt u8List is
-                Ok intPart -> intPart |> Num.toF64 |> Ok
-                Err InvalidBytes -> Err InvalidBytes
+            intPart <- utf8ToInt u8List |> Result.map
+            Num.toF64 intPart
 
 findDecimalIndex : List U8 -> Result U8 [NoDecimalPoint]
 findDecimalIndex = \u8List ->
