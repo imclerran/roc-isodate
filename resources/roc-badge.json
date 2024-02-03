@@ -2,6 +2,6 @@
     "schemaVersion": 1,
     "label": "",
     "message": "Roc Lang",
-    "color": "darkgrey",
+    "color": "292136",
     "logoSvg": "<svg aria-labelledby=\"logo-svg-title logo-svg-desc\" width=\"400\" height=\"400\" viewBox=\"0 0 51 53\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M23.675 22.709 17.655 53l9.798-7.787-.986-5.87-2.792-16.634Z\" style=\"fill:#7c38f5\"/><path d=\"m37.244 19.01 6.788 7.359L45 22l.967-5.368-8.723 2.378ZM23.883 3.21 0 0l23.675 22.709.208-19.498Zm20.149 23.159-20.357-3.66 2.792 16.633L44.032 26.37Z\" style=\"fill:#9c7cea\"/><path d=\"m50.5 22-4.533-5.368L45 22h5.5Zm-26.825.709 20.357 3.66-6.788-7.359-13.36-15.8-.209 19.499Z\" style=\"fill:#7c38f5\"/></svg>"
 }
