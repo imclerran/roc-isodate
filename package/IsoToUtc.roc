@@ -347,8 +347,6 @@ parseDateTimeFromU8 = \bytes ->
                     dateNanos + (Num.toI128 timeNanos) |> fromNanosSinceEpoch |> Ok
                 (_, _) -> Err InvalidDateTimeFormat
         [dateBytes] -> 
-            when parseDateFromU8 dateBytes is
-                Ok date -> Ok date
-                Err InvalidDateFormat -> Err InvalidDateTimeFormat
+            parseDateFromU8 dateBytes |> Result.mapErr \_ -> InvalidDateTimeFormat
         _ -> Err InvalidDateTimeFormat
 
