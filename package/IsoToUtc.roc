@@ -184,28 +184,22 @@ parseTimeFromU8 : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseTimeFromU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
         strippedBytes = stripTandZ bytes
-        when splitUtf8AndKeepDelimiters strippedBytes ['.', ',', '+', '-'] is
-            [timeBytes, [byte1], fractionalBytes, [byte2], offsetBytes] -> 
-                when List.last bytes is 
-                    Ok 'Z' -> Err InvalidTimeFormat
-                    _ ->
-                        timeRes = parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
-                        offsetRes = parseTimeOffset (List.join [[byte2], offsetBytes])
-                        when (timeRes, offsetRes) is
-                            (Ok time, Ok offset) -> addTimes time offset |> Ok
-                            (_, _) -> Err InvalidTimeFormat
-            [timeBytes, [byte1], offsetBytes] if byte1 == '+' || byte1 == '-' -> 
-                when List.last bytes is
-                    Ok 'Z' -> Err InvalidTimeFormat
-                    _ ->
-                        timeRes = parseWholeTime timeBytes
-                        offsetRes = parseTimeOffset (List.join [[byte1], offsetBytes])
-                        when (timeRes, offsetRes) is
-                            (Ok time, Ok offset) -> addTimes time offset |> Ok
-                            (_, _) -> Err InvalidTimeFormat
-            [timeBytes, [byte1], fractionalBytes] if byte1 == ',' || byte1 == '.' -> 
+        when (splitUtf8AndKeepDelimiters strippedBytes ['.', ',', '+', '-'], List.last bytes) is
+            ([timeBytes, [byte1], fractionalBytes, [byte2], offsetBytes], Ok lastByte) if lastByte != 'Z' -> 
+                timeRes = parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
+                offsetRes = parseTimeOffset (List.join [[byte2], offsetBytes])
+                when (timeRes, offsetRes) is
+                    (Ok time, Ok offset) -> addTimes time offset |> Ok
+                    (_, _) -> Err InvalidTimeFormat
+            ([timeBytes, [byte1], offsetBytes], Ok lastByte) if (byte1 == '+' || byte1 == '-') && lastByte != 'Z' -> 
+                timeRes = parseWholeTime timeBytes
+                offsetRes = parseTimeOffset (List.join [[byte1], offsetBytes])
+                when (timeRes, offsetRes) is
+                    (Ok time, Ok offset) -> addTimes time offset |> Ok
+                    (_, _) -> Err InvalidTimeFormat
+            ([timeBytes, [byte1], fractionalBytes], _) if byte1 == ',' || byte1 == '.' -> 
                 parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
-            [timeBytes] -> parseWholeTime timeBytes
+            ([timeBytes], _) -> parseWholeTime timeBytes
             _ -> Err InvalidTimeFormat
     else
         Err InvalidTimeFormat
