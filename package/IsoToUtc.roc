@@ -187,21 +187,22 @@ parseTimeFromU8 = \bytes ->
             ([timeBytes, [byte1], fractionalBytes, [byte2], offsetBytes], Ok lastByte) if lastByte != 'Z' -> 
                 timeRes = parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
                 offsetRes = parseTimeOffset (List.join [[byte2], offsetBytes])
-                when (timeRes, offsetRes) is
-                    (Ok time, Ok offset) -> addTimes time offset |> Ok
-                    (_, _) -> Err InvalidTimeFormat
+                combineTimeAndOffsetResults timeRes offsetRes
             ([timeBytes, [byte1], offsetBytes], Ok lastByte) if (byte1 == '+' || byte1 == '-') && lastByte != 'Z' -> 
                 timeRes = parseWholeTime timeBytes
                 offsetRes = parseTimeOffset (List.join [[byte1], offsetBytes])
-                when (timeRes, offsetRes) is
-                    (Ok time, Ok offset) -> addTimes time offset |> Ok
-                    (_, _) -> Err InvalidTimeFormat
+                combineTimeAndOffsetResults timeRes offsetRes
             ([timeBytes, [byte1], fractionalBytes], _) if byte1 == ',' || byte1 == '.' -> 
                 parseFractionalTime timeBytes (List.join [[byte1], fractionalBytes])
             ([timeBytes], _) -> parseWholeTime timeBytes
             _ -> Err InvalidTimeFormat
     else
         Err InvalidTimeFormat
+
+combineTimeAndOffsetResults = \timeRes, offsetRes ->
+    when (timeRes, offsetRes) is
+        (Ok time, Ok offset) -> addTimes time offset |> Ok
+        (_, _) -> Err InvalidTimeFormat
 
 parseWholeTime : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseWholeTime = \bytes ->
