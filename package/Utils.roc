@@ -37,10 +37,9 @@ splitListAtIndices = \list, indices ->
 splitListAtIndicesRecur : List a, List U8 -> List (List a)
 splitListAtIndicesRecur = \list, indices ->
     when indices is
-        [x, .. as xs] if x != 0 && x != List.len list |> Num.toU8-> 
-            when List.split list (Num.toNat x) is
-                {before: head, others: tail} -> 
-                    splitListAtIndicesRecur head xs |> List.append tail
+        [x, .. as xs] if x != 0 && x != List.len list |> Num.toU8 -> 
+            {before, others} = List.split list (Num.toNat x)
+            splitListAtIndicesRecur before xs |> List.append others
         [_, .. as xs] -> 
             splitListAtIndicesRecur list xs
         [] -> [list]
