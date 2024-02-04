@@ -47,7 +47,7 @@ splitListAtIndicesRecur = \list, indices ->
 
 splitUtf8AndKeepDelimiters : List U8, List U8 -> List (List U8)
 splitUtf8AndKeepDelimiters = \u8List, delimiters ->
-    compareToDelimiters = \b -> List.contains delimiters b |> \isFound -> if isFound then Found else NotFound
+    compareToDelimiters = \byte -> List.contains delimiters byte |> \isFound -> if isFound then Found else NotFound
     result = List.walk u8List [] \lists, byte ->
         when lists is 
             [.. as xs, []] ->
