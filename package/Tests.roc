@@ -196,6 +196,8 @@ expect parseTimeFromStr "12:00:00-01:30" == (13 * nanosPerHour + 30 * nanosPerMi
 expect parseTimeFromStr "12.50+0030" == (12 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "0000+1400" == (-14 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect parseTimeFromStr "T24-1200" == (36 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
+expect parseTimeFromStr "1200+1401" == Err InvalidTimeFormat
+expect parseTimeFromStr "1200-1201" == Err InvalidTimeFormat
 expect parseTimeFromStr "T24+1200Z" == Err InvalidTimeFormat
 
 # parseDateTime

@@ -254,9 +254,13 @@ parseTimeOffset = \bytes ->
 
 parseTimeOffsetHelp : U8, U8, U8, U8, I64 -> Result UtcTime [InvalidTimeFormat]
 parseTimeOffsetHelp = \h1, h2, m1, m2, sign ->
+    isValidOffset = \offset -> if offset >= -14 * nanosPerHour && offset <= 12 * nanosPerHour then Valid else Invalid
     when (utf8ToIntSigned [h1,h2], utf8ToIntSigned [m1,m2]) is
-        (Ok hour, Ok minute) if hour >= 0 && hour <= 14 && minute >= 0 && minute <= 59 ->
-            sign * (hour * nanosPerHour + minute * nanosPerMinute) |> fromNanosSinceMidnight |> Ok
+        (Ok hour, Ok minute) ->
+            offsetNanos = sign * (hour * nanosPerHour + minute * nanosPerMinute)
+            when isValidOffset offsetNanos is
+                Valid -> offsetNanos |> fromNanosSinceMidnight |> Ok
+                Invalid -> Err InvalidTimeFormat
         (_, _) -> Err InvalidTimeFormat
     
 parseLocalTimeHour : List U8 -> Result UtcTime [InvalidTimeFormat]
