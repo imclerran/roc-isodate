@@ -85,15 +85,9 @@ utf8ToInt = \u8List ->
 utf8ToIntSigned : List U8 -> Result I64 [InvalidBytes]
 utf8ToIntSigned = \u8List ->
     when u8List is
-        ['-', .. as xs] ->
-            num <- utf8ToInt xs |> Result.map
-            -1 * Num.toI64 num
-        ['+', .. as xs] ->
-            num <- utf8ToInt xs |> Result.map
-            Num.toI64 num
-        _ -> 
-            num <- utf8ToInt u8List |> Result.map
-            Num.toI64 num
+        ['-', .. as xs] -> utf8ToInt xs |> Result.map \num -> -1 * Num.toI64 num
+        ['+', .. as xs] -> utf8ToInt xs |> Result.map \num -> Num.toI64 num
+        _ -> utf8ToInt u8List |> Result.map \num -> Num.toI64 num
 
 utf8ToFrac : List U8 -> Result F64 [InvalidBytes]
 utf8ToFrac = \u8List -> 
