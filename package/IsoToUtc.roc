@@ -320,8 +320,7 @@ parseLocalTimeExtended = \bytes ->
         _ -> Err InvalidTimeFormat
 
 parseDateTimeFromStr : Str -> Result Utc [InvalidDateTimeFormat]
-parseDateTimeFromStr = \str ->
-    Str.toUtf8 str |> parseDateTimeFromU8
+parseDateTimeFromStr = \str -> Str.toUtf8 str |> parseDateTimeFromU8
 
 parseDateTimeFromU8 : List U8 -> Result Utc [InvalidDateTimeFormat]
 parseDateTimeFromU8 = \bytes ->
