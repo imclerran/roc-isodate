@@ -42,8 +42,7 @@ interface IsoToUtc
     ]
 
 parseDateFromStr: Str -> Result Utc [InvalidDateFormat]
-parseDateFromStr = \str ->
-    Str.toUtf8 str |> parseDateFromU8
+parseDateFromStr = \str -> Str.toUtf8 str |> parseDateFromU8
 
 # TODO: More efficient parsing method?
 parseDateFromU8 : List U8 -> Result Utc [InvalidDateFormat]
@@ -176,8 +175,7 @@ calendarWeekToUtc = \{week, year, day? 1} ->
         Err InvalidDateFormat
 
 parseTimeFromStr: Str -> Result UtcTime [InvalidTimeFormat]
-parseTimeFromStr = \str ->
-    Str.toUtf8 str |> parseTimeFromU8
+parseTimeFromStr = \str -> Str.toUtf8 str |> parseTimeFromU8
         
 parseTimeFromU8 : List U8 -> Result UtcTime [InvalidTimeFormat]
 parseTimeFromU8 = \bytes ->
