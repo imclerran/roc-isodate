@@ -18,8 +18,8 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
 ## Future Plans
-- Time interval representations will be added once date/time support is complete.
-- Once Parsing from iso is complete, add formatting dates and times to ISO strings.
+- Time interval representations are the next planned feature.
+- Once Parsing is complete, add formatting dates and times to ISO strings.
 - Research adding custom encoding/decoding for json parsers.
 
 ## Known Issues
