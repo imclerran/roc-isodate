@@ -6,7 +6,7 @@ A Roc package for parsing ISO 8601 Date/Time Strings
 [![CI status][ci_status_badge]][ci_status_link]
 
 ## Implementation
-Roc IsoDate is a rock package which which can convert an ISO date/time string into the [Utc][utc_link] type provided by the Basic CLI and Basic Webserver platforms, which stores the nanoseconds since the UNIX epoch date. When parsing time-only strings, the package returns a [UtcTime][utctime_link], which is similar to the `Utc` type, but stores the nanoseconds since midnight.
+Roc IsoDate is a Roc package which which can convert an ISO date/time string into the [Utc][utc_link] type provided by the Basic CLI and Basic Webserver platforms, which stores the nanoseconds since the UNIX epoch date. When parsing time-only strings, the package returns a [UtcTime][utctime_link], which is similar to the `Utc` type, but stores the nanoseconds since midnight.
 
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
