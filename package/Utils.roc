@@ -38,7 +38,7 @@ splitListAtIndicesRecur : List a, List U8 -> List (List a)
 splitListAtIndicesRecur = \list, indices ->
     when indices is
         [x, .. as xs] if x != 0 && x != List.len list |> Num.toU8 -> 
-            {before, others} = List.split list (Num.toNat x)
+            {before, others} = List.split list (Num.toU64 x)
             splitListAtIndicesRecur before xs |> List.append others
         [_, .. as xs] -> 
             splitListAtIndicesRecur list xs
@@ -77,7 +77,7 @@ utf8ToInt = \u8List ->
     u8List |> List.reverse |> List.walkWithIndex (Ok 0) \numResult, byte, index ->
         Result.try numResult \num ->
             if 0x30 <= byte && byte <= 0x39 then
-                Ok (num + (Num.toU64 byte - 0x30) * (Num.toU64 (Num.powInt 10 (Num.toNat index))))
+                Ok (num + (Num.toU64 byte - 0x30) * (Num.toU64 (Num.powInt 10 index)))
             else
                 Err InvalidBytes
 
