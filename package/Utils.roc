@@ -169,6 +169,7 @@ numDaysSinceEpoch = \{year, month? 1, day? 1} ->
             |> List.sum |> Num.add (daysInYears + (getMonthDays month) - day + 1) 
             |> Num.toI64 |> Num.mul -1
 
+# TODO: rename to numDaysSinceEpochUntilYear
 numDaysSinceEpochToYear = \year ->
     numDaysSinceEpoch {year, month: 1, day: 1}
 

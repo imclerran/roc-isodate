@@ -7,6 +7,7 @@ interface Date
         unixEpoch,
     ]
     imports [
+        Utc,
         Utils.{
             isLeapYear,
             ymdToDaysInYear,
@@ -43,5 +44,10 @@ fromYw = \year, week ->
     fromYwd year week 1
 
 expect fromYw 1970 1 == { year: 1970, dayOfYear: 1 }
+
+fromUtc : Utc -> Date
+
+toUtc : Date -> Utc
+        
 
 
