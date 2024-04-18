@@ -81,6 +81,8 @@ expect parseDateFromStr "2024-Ww1" == Err InvalidDateFormat
 # parseWeekDateBasic
 expect parseDateFromStr "2024W042" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 expect parseDateFromStr "1970W011" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateFromStr "1970W524" == 364 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateFromStr "1970W525" == parseDateFromStr "19710101"
 expect parseDateFromStr "1968W011" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 expect parseDateFromStr "2024W001" == Err InvalidDateFormat
 expect parseDateFromStr "2024W531" == Err InvalidDateFormat
