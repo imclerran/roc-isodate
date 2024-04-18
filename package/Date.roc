@@ -66,6 +66,14 @@ fromUtcHelper =\days, year ->
         else
             { year: year, dayOfYear: days + 1 |> Num.toU16 }
 
+toUtc : Date -> Utc.Utc
+toUtc =\date ->
+    days = numDaysSinceEpoch {year: date.year |> Num.toU64, month: 1, day: 1} + (date.dayOfYear - 1 |> Num.toI64)
+    Utc.fromNanosSinceEpoch (days |> Num.toI128 |> Num.mul (Const.nanosPerHour * 24))
+
+
+# <==== TESTS ====>
+# <---- fromUtc ---->
 expect
     utc = Utc.fromNanosSinceEpoch 0
     fromUtc utc == { year: 1970, dayOfYear: 1 }
@@ -94,11 +102,7 @@ expect
     utc = Utc.fromNanosSinceEpoch -1
     fromUtc utc == { year: 1969, dayOfYear: 365 }
 
-toUtc : Date -> Utc.Utc
-toUtc =\date ->
-    days = numDaysSinceEpoch {year: date.year |> Num.toU64, month: 1, day: 1} + (date.dayOfYear - 1 |> Num.toI64)
-    Utc.fromNanosSinceEpoch (days |> Num.toI128 |> Num.mul (Const.nanosPerHour * 24))
-
+# <---- toUtc ---->
 expect 
     utc = toUtc { year: 1970, dayOfYear: 1 } 
     utc == Utc.fromNanosSinceEpoch 0

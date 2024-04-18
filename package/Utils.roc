@@ -203,6 +203,3 @@ ymdToDaysInYear = \year, month, day ->
     |> List.sum
     |> Num.add (Num.toU64 day)
     |> Num.toU16
-
-expect ymdToDaysInYear 1970 1 1 == 1
-expect ymdToDaysInYear 1970 12 31 == 365

@@ -37,8 +37,8 @@ toUtcTime = \time ->
     fromNanosSinceMidnight (hNanos + mNanos + sNanos + nanos)
 
 expect
-    utc = toUtcTime (fromHms 12 34 56)
-    fromUtcTime utc == fromHms 12 34 56
+    utc = toUtcTime (fromHmsn 12 34 56 5)
+    utc == fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5)
 
 fromUtcTime : UtcTime -> Time
 fromUtcTime = \utcTime ->
@@ -50,3 +50,7 @@ fromUtcTime = \utcTime ->
     second = nanos3 // Const.nanosPerSecond |> Num.toU8
     nanosecond = nanos3 % Const.nanosPerSecond |> Num.toU32
     { hour, minute, second, nanosecond }
+
+expect
+    utcTime = toUtcTime { hour: 12, minute: 34, second: 56, nanosecond: 5 }
+    utcTime == fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5 )

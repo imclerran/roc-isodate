@@ -30,6 +30,7 @@ interface Tests
             utf8ToInt,
             utf8ToIntSigned,
             validateUtf8SingleBytes,
+            ymdToDaysInYear,
         },
     ]
 
@@ -304,3 +305,8 @@ expect calendarWeekToDaysInYear 1 1971 == 3
 expect calendarWeekToDaysInYear 1 1972 == 2
 expect calendarWeekToDaysInYear 1 1973 == 0
 expect calendarWeekToDaysInYear 2 2024 == 7
+
+# <---- ymdToDaysInYear ---->
+expect ymdToDaysInYear 1970 1 1 == 1
+expect ymdToDaysInYear 1970 12 31 == 365
+expect ymdToDaysInYear 1972 3 1 == 61
