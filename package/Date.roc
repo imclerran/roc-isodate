@@ -2,6 +2,7 @@ interface Date
     exposes [
         Date,
         fromUtc,
+        fromYd,
         fromYmd,
         fromYw,
         fromYwd,
@@ -24,12 +25,12 @@ Date : { year: I64, dayOfYear: U16 }
 unixEpoch : Date
 unixEpoch = { year: 1970, dayOfYear: 1 }
 
+fromYd : Int *, Int * -> Date
+fromYd = \year, dayOfYear -> { year: Num.toI64 year, dayOfYear: Num.toU16 dayOfYear }
+
 fromYmd : Int *, Int *, Int * -> Date
 fromYmd =\year, month, day -> 
     { year: Num.toI64 year, dayOfYear: ymdToDaysInYear year month day }
-
-expect 
-    fromYmd 1970 1 1 == { year: 1970, dayOfYear: 1 }
 
 fromYwd : Int *, Int *, Int * -> Date
 fromYwd = \year, week, day ->
@@ -40,14 +41,9 @@ fromYwd = \year, week, day ->
     else
         { year: Num.toI64 year, dayOfYear: Num.toU16 d }
 
-expect fromYwd 1970 1 1 == { year: 1970, dayOfYear: 1 }
-expect fromYwd 1970 52 5 == { year: 1971, dayOfYear: 1 }
-
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
     fromYwd year week 1
-
-expect fromYw 1970 1 == { year: 1970, dayOfYear: 1 }
 
 fromUtc : Utc.Utc -> Date
 fromUtc =\utc ->
@@ -73,6 +69,19 @@ toUtc =\date ->
 
 
 # <==== TESTS ====>
+# <---- fromYmd ---->
+expect fromYmd 1970 1 1 == { year: 1970, dayOfYear: 1 }
+expect fromYmd 1970 12 31 == { year: 1970, dayOfYear: 365 }
+expect fromYmd 1972 3 1 == { year: 1972, dayOfYear: 61 }
+
+# <---- fromYwd ---->
+expect fromYwd 1970 1 1 == { year: 1970, dayOfYear: 1 }
+expect fromYwd 1970 52 5 == { year: 1971, dayOfYear: 1 }
+
+# <---- fromYw ---->
+expect fromYw 1970 1 == { year: 1970, dayOfYear: 1 }
+expect fromYw 1971 1 == { year: 1971, dayOfYear: 4 }
+
 # <---- fromUtc ---->
 expect
     utc = Utc.fromNanosSinceEpoch 0
