@@ -13,4 +13,4 @@ for roc_file in $package_dir*.roc; do
 done
 
 $roc test ./package/Tests.roc
-$roc test ./package/Utc.roc
+$roc test ./package/main.roc

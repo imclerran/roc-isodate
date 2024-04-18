@@ -30,6 +30,7 @@ interface Tests
             utf8ToInt,
             utf8ToIntSigned,
             validateUtf8SingleBytes,
+            ymdToDaysInYear,
         },
     ]
 
@@ -81,6 +82,8 @@ expect parseDateFromStr "2024-Ww1" == Err InvalidDateFormat
 # parseWeekDateBasic
 expect parseDateFromStr "2024W042" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 expect parseDateFromStr "1970W011" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateFromStr "1970W524" == 364 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect parseDateFromStr "1970W525" == parseDateFromStr "19710101"
 expect parseDateFromStr "1968W011" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 expect parseDateFromStr "2024W001" == Err InvalidDateFormat
 expect parseDateFromStr "2024W531" == Err InvalidDateFormat
@@ -302,3 +305,8 @@ expect calendarWeekToDaysInYear 1 1971 == 3
 expect calendarWeekToDaysInYear 1 1972 == 2
 expect calendarWeekToDaysInYear 1 1973 == 0
 expect calendarWeekToDaysInYear 2 2024 == 7
+
+# <---- ymdToDaysInYear ---->
+expect ymdToDaysInYear 1970 1 1 == 1
+expect ymdToDaysInYear 1970 12 31 == 365
+expect ymdToDaysInYear 1972 3 1 == 61

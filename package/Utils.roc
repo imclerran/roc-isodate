@@ -3,6 +3,7 @@ interface Utils
         calendarWeekToDaysInYear,
         daysToNanos,
         findDecimalIndex,
+        isLeapYear,
         numDaysSinceEpoch,
         numDaysSinceEpochToYear,
         splitListAtIndices,
@@ -13,6 +14,7 @@ interface Utils
         utf8ToInt,
         utf8ToIntSigned,
         validateUtf8SingleBytes,
+        ymdToDaysInYear,
     ]
     imports [
         Const.{
@@ -167,6 +169,7 @@ numDaysSinceEpoch = \{year, month? 1, day? 1} ->
             |> List.sum |> Num.add (daysInYears + (getMonthDays month) - day + 1) 
             |> Num.toI64 |> Num.mul -1
 
+# TODO: rename to numDaysSinceEpochUntilYear
 numDaysSinceEpochToYear = \year ->
     numDaysSinceEpoch {year, month: 1, day: 1}
 
@@ -177,16 +180,26 @@ timeToNanos : {hour: I64, minute: I64, second: I64} -> I64
 timeToNanos = \{hour, minute, second} ->
     (hour * secondsPerHour + minute * secondsPerMinute + second) * nanosPerSecond
 
-calendarWeekToDaysInYear : U64, U64 -> U64
+calendarWeekToDaysInYear : Int *, Int * -> U64
 calendarWeekToDaysInYear = \week, year->
     # Week 1 of a year is the first week with a majority of its days in that year
     # https://en.wikipedia.org/wiki/ISO_week_date#First_week
+    y = year |> Num.toU64
+    w = week |> Num.toU64
     lengthOfMaybeFirstWeek = 
-        if year >= epochYear then 
-            epochWeekOffset - (numDaysSinceEpochToYear year |> Num.toU64) % 7
+        if y >= epochYear then 
+            epochWeekOffset - (numDaysSinceEpochToYear y |> Num.toU64) % 7
         else
-            (epochWeekOffset + (numDaysSinceEpochToYear year |> Num.abs |> Num.toU64)) % 7
-    if lengthOfMaybeFirstWeek >= 4 && week == 1 then
+            (epochWeekOffset + (numDaysSinceEpochToYear y |> Num.abs |> Num.toU64)) % 7
+    if lengthOfMaybeFirstWeek >= 4 && w == 1 then
         0
     else
-        (week - 1) * daysPerWeek + lengthOfMaybeFirstWeek
+        (w - 1) * daysPerWeek + lengthOfMaybeFirstWeek
+
+ymdToDaysInYear : Int *, Int *, Int * -> U16
+ymdToDaysInYear = \year, month, day ->
+    List.range { start: At 0, end: Before month }
+    |> List.map \m -> monthDays {month: Num.toU64 m, isLeap: isLeapYear year}
+    |> List.sum
+    |> Num.add (Num.toU64 day)
+    |> Num.toU16
