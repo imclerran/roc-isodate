@@ -1,4 +1,4 @@
-interface Conversion
+interface DateTimes.Conversion
     exposes [
         daysInAWeek,
         daysToSeconds,

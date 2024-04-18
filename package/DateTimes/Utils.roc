@@ -1,4 +1,4 @@
-interface Utils
+interface DateTimes.Utils
     exposes [
         flooredIntegerDivisionAndModulus,
         nDaysInMonthOfYear,

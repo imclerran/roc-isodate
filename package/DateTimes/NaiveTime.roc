@@ -1,4 +1,4 @@
-interface NaiveTime
+interface DateTimes.NaiveTime
     exposes [
         NaiveTime,
         fromHms,
@@ -7,8 +7,8 @@ interface NaiveTime
         midnight,
     ]
     imports [
-        Utils.{ flooredIntegerDivisionAndModulus },
-        Conversion,
+        DateTimes.Utils.{ flooredIntegerDivisionAndModulus },
+        DateTimes.Conversion,
     ]
 
 ## A time of day, without a timezone.
@@ -64,9 +64,9 @@ expect
 ## Convert a number of seconds after midnight into a NaiveTime.
 fromSecondsAfterMidnight : U32, U32 -> Result NaiveTime [InvalidNumberOfSeconds, InvalidNanosecond]
 fromSecondsAfterMidnight = \seconds, nanoseconds ->
-    if (seconds >= (Conversion.daysToSeconds 1)) then
+    if (seconds >= (DateTimes.Conversion.daysToSeconds 1)) then
         Err InvalidNumberOfSeconds
-    else if (nanoseconds >= (Conversion.secondsToNanoseconds 1)) then
+    else if (nanoseconds >= (DateTimes.Conversion.secondsToNanoseconds 1)) then
         Err InvalidNanosecond
     else
         (hour, remainingSeconds) = flooredIntegerDivisionAndModulus seconds 24
@@ -198,14 +198,14 @@ expect
 ## withMicrosecond
 withMicrosecond : NaiveTime, U32 -> Result NaiveTime [InvalidNumberOfMicroseconds]
 withMicrosecond = \naiveTime, microsecond ->
-    if (microsecond >= (Conversion.secondsToMicroseconds 1)) then
+    if (microsecond >= (DateTimes.Conversion.secondsToMicroseconds 1)) then
         Err InvalidNumberOfMicroseconds
     else
         Ok {
             hour: naiveTime.hour,
             minute: naiveTime.minute,
             second: naiveTime.second,
-            nanosecond: Conversion.microsecondsToNanoseconds microsecond,
+            nanosecond: DateTimes.Conversion.microsecondsToNanoseconds microsecond,
         }
 
 expect
@@ -260,9 +260,9 @@ expect
 toIsoStr : NaiveTime -> Str
 toIsoStr = \naiveTime ->
     { hour, minute, second } = naiveTime
-    hourStr = hour |> Utils.padIntegerToLength 2
-    minuteStr = minute |> Utils.padIntegerToLength 2
-    secondStr = second |> Utils.padIntegerToLength 2
+    hourStr = hour |> DateTimes.Utils.padIntegerToLength 2
+    minuteStr = minute |> DateTimes.Utils.padIntegerToLength 2
+    secondStr = second |> DateTimes.Utils.padIntegerToLength 2
     "\(hourStr):\(minuteStr):\(secondStr)"
 
 expect

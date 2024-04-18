@@ -1,4 +1,4 @@
-interface NaiveDate
+interface DateTimes.NaiveDate
     exposes [
         NaiveDate,
         fromYmd,
@@ -14,8 +14,8 @@ interface NaiveDate
         getMonth,
     ]
     imports [
-        Utils,
-        NaiveTime.{ NaiveTime, midnight },
+        DateTimes.Utils,
+        DateTimes.NaiveTime.{ NaiveTime, midnight },
     ]
 
 ## A date in the Gregorian calendar without a timezone.

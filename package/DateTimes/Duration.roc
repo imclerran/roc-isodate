@@ -1,4 +1,4 @@
-interface Duration
+interface DateTimes.Duration
     exposes [
         add,
         Duration,
@@ -21,8 +21,8 @@ interface Duration
         zero,
     ]
     imports [
-        Utils,
-        Conversion,
+        DateTimes.Utils,
+        DateTimes.Conversion,
     ]
 
 ## An amount of time measured to the nanosecond.

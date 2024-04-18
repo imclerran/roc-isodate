@@ -1,4 +1,4 @@
-interface NaiveDateTime
+interface DateTimes.NaiveDateTime
     exposes [
         NaiveDateTime,
         unixEpoch,
@@ -6,31 +6,31 @@ interface NaiveDateTime
         fromYmdhms,
     ]
     imports [
-        NaiveDate,
-        NaiveDate.{ NaiveDate },
-        NaiveTime,
-        NaiveTime.{ NaiveTime },
-        Utils,
+        DateTimes.NaiveDate,
+        DateTimes.NaiveDate.{ NaiveDate },
+        DateTimes.NaiveTime,
+        DateTimes.NaiveTime.{ NaiveTime },
+        DateTimes.Utils,
     ]
 
 ## A date and time without a timezone.
-NaiveDateTime : { naiveDate : NaiveDate.NaiveDate, naiveTime : NaiveTime.NaiveTime }
+NaiveDateTime : { naiveDate : NaiveDate, naiveTime : NaiveTime }
 
 ## The Unix epoch, 1970-01-01T00:00:00.
 unixEpoch : NaiveDateTime
-unixEpoch = { naiveDate: NaiveDate.unixEpoch, naiveTime: NaiveTime.midnight }
+unixEpoch = { naiveDate: DateTimes.NaiveDate.unixEpoch, naiveTime: DateTimes.NaiveTime.midnight }
 
 # Constructors
 
 ## Convert a year, month, day, hour, minute, second, and nanosecond to a NaiveDateTime.
 fromYmdhmsn : I64, U8, U8, U8, U8, U8, U32 -> Result NaiveDateTime [InvalidDateTime]
 fromYmdhmsn = \year, month, day, hour, minute, second, nanosecond ->
-    naiveTime = NaiveTime.fromHmsn hour minute second nanosecond
-    naiveDate = NaiveDate.fromYmd year month day
+    naiveTime = DateTimes.NaiveTime.fromHmsn hour minute second nanosecond
+    naiveDate = DateTimes.NaiveDate.fromYmd year month day
     if (Result.isOk naiveTime) && (Result.isOk naiveDate) then
         Ok {
-            naiveDate: naiveDate |> Result.withDefault NaiveDate.unixEpoch,
-            naiveTime: naiveTime |> Result.withDefault NaiveTime.midnight,
+            naiveDate: naiveDate |> Result.withDefault DateTimes.NaiveDate.unixEpoch,
+            naiveTime: naiveTime |> Result.withDefault DateTimes.NaiveTime.midnight,
         }
     else
         Err InvalidDateTime
@@ -46,8 +46,8 @@ expect
     out = fromYmdhmsn year month day hour minute second nanosecond
     out
     == Ok {
-        naiveDate: NaiveDate.fromYmd year month day |> Utils.unwrap "This should never happen because the date was hardcoded.",
-        naiveTime: NaiveTime.fromHmsn hour minute second nanosecond |> Utils.unwrap "This should never happen because the date was hardcoded.",
+        naiveDate: DateTimes.NaiveDate.fromYmd year month day |> DateTimes.Utils.unwrap "This should never happen because the date was hardcoded.",
+        naiveTime: DateTimes.NaiveTime.fromHmsn hour minute second nanosecond |> DateTimes.Utils.unwrap "This should never happen because the date was hardcoded.",
     }
 
 ## Convert a year, month, day, hour, minute, and second to a NaiveDateTime.
@@ -65,10 +65,10 @@ expect
     out = fromYmdhms year month day hour minute second
     out
     == Ok {
-        naiveDate: NaiveDate.fromYmd year month day
-        |> Utils.unwrap "This should never happen because the date was hardcoded.",
-        naiveTime: NaiveTime.fromHms hour minute second
-        |> Utils.unwrap "This should never happen because the date was hardcoded.",
+        naiveDate: DateTimes.NaiveDate.fromYmd year month day
+        |> DateTimes.Utils.unwrap "This should never happen because the date was hardcoded.",
+        naiveTime: DateTimes.NaiveTime.fromHms hour minute second
+        |> DateTimes.Utils.unwrap "This should never happen because the date was hardcoded.",
     }
 
 # Methods
