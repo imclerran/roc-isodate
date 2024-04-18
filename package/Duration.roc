@@ -1,5 +1,6 @@
 interface Duration
     exposes [
+        Duration,
     ]
     imports [
     ]
