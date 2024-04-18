@@ -1,12 +1,14 @@
 interface Date
     exposes [
         Date,
+        fromUtc,
         fromYmd,
         fromYw,
         fromYwd,
         unixEpoch,
     ]
     imports [
+        Const,
         Utc,
         Utils.{
             isLeapYear,
@@ -45,9 +47,50 @@ fromYw = \year, week ->
 
 expect fromYw 1970 1 == { year: 1970, dayOfYear: 1 }
 
-fromUtc : Utc -> Date
+fromUtc : Utc.Utc -> Date
+fromUtc =\utc ->
+    days = Utc.toNanosSinceEpoch utc |> Num.divTrunc (Const.nanosPerHour * 24) |> \d -> 
+        if Utc.toNanosSinceEpoch utc |> Num.rem (Const.nanosPerHour * 24) < 0 then d - 1 else d
+    fromUtcHelper days 1970
 
-toUtc : Date -> Utc
-        
+fromUtcHelper : I128, I64 -> Date
+fromUtcHelper =\days, year ->
+    if days < 0 then
+        fromUtcHelper (days + if Utils.isLeapYear (year - 1) then 366 else 365) (year - 1)
+    else
+        daysInYear = if Utils.isLeapYear year then 366 else 365
+        if days >= daysInYear then
+            fromUtcHelper (days - daysInYear) (year + 1)
+        else
+            { year: year, dayOfYear: days + 1 |> Num.toU16 }
 
+expect
+    utc = Utc.fromNanosSinceEpoch 0
+    fromUtc utc == { year: 1970, dayOfYear: 1 }
+
+expect
+    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * 365)
+    fromUtc utc == { year: 1971, dayOfYear: 1 }
+
+expect
+    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * 365 * 2 + Const.nanosPerHour * 24 * 366)
+    fromUtc utc == { year: 1973, dayOfYear: 1 }
+
+expect
+    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -1)
+    fromUtc utc == { year: 1969, dayOfYear: 365 }
+
+expect
+    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365)
+    fromUtc utc == { year: 1969, dayOfYear: 1 }
+
+expect
+    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366)
+    fromUtc utc == { year: 1968, dayOfYear: 1 }
+
+expect
+    utc = Utc.fromNanosSinceEpoch -1
+    fromUtc utc == { year: 1969, dayOfYear: 365 }
+
+toUtc : Date -> Utc.Utc
 
