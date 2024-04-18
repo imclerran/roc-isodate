@@ -1,5 +1,5 @@
 # Roc IsoDate
-A Roc package for parsing ISO 8601 Date/Time Strings 
+A Roc package for parsing ISO 8601 Date/Time Strings. Soon to be a _universal_ date & time package for Roc! 📆⏰📦
 
 [![Roc-Lang][roc_badge]][roc_link]
 [![GitHub last commit][last_commit_badge]][last_commit_link]
@@ -18,6 +18,10 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 
 ## Future Plans
+- Add support for parsing to both Utc and DateTime.
+  - With this comes a slew of features: Times, Dates, DateTimes, and Durations.
+  - Functionality to convert between the above DateTime types, and Utc types.
+  - __This means the Library is expanding to be more of a universal DateTime library, and not just for ISO parsing!__ 🚀
 - Time interval representations are the next planned feature.
 - Once Parsing is complete, add formatting dates and times to ISO strings.
 - Research adding custom encoding/decoding for json parsers.
