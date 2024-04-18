@@ -22,11 +22,13 @@ Time : { hour : U8, minute : U8, second : U8, nanosecond : U32 }
 midnight : Time
 midnight = { hour: 0, minute: 0, second: 0, nanosecond: 0 }
 
-fromHms : U8, U8, U8 -> Time
-fromHms = \hour, minute, second -> { hour, minute, second, nanosecond: 0 }
+fromHms : Int *, Int *, Int * -> Time
+fromHms = \hour, minute, second -> { hour: Num.toU8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: 0u32 }
 
-fromHmsn : U8, U8, U8, U32 -> Time
-fromHmsn = \hour, minute, second, nanosecond -> { hour, minute, second, nanosecond }
+fromHmsn : Int *, Int *, Int *, Int * -> Time
+fromHmsn = \hour, minute, second, nanosecond -> 
+    { hour: Num.toU8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
+    #{ hour, minute, second, nanosecond }
 
 toUtcTime : Time -> UtcTime
 toUtcTime = \time ->
