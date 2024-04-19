@@ -53,10 +53,8 @@ fromYwd = \year, week, day ->
     d = calendarWeekToDaysInYear week year |> Num.add (Num.toU64 day)
     if d > daysInYear then
         ydToYmdd (year + 1) (d - daysInYear)
-        #{ year: Num.toI64 (year + 1), dayOfYear: Num.toU16 (d - daysInYear) }
     else
         ydToYmdd year d
-        #{ year: Num.toI64 year, dayOfYear: Num.toU16 d }
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
@@ -78,7 +76,6 @@ fromUtcHelper =\days, year ->
             fromUtcHelper (days - daysInYear) (year + 1)
         else
             ydToYmdd year (days + 1)
-            #{ year: year, dayOfYear: days + 1 |> Num.toU16 }
 
 toUtc : Date -> Utc.Utc
 toUtc =\date ->
