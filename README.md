@@ -1,7 +1,7 @@
 # Roc IsoDate
 A Roc package for parsing ISO 8601 Date/Time Strings. 
 
-Soon to be a _universal_ date & time package for Roc! 📆⏰📦
+Soon to be a _universal_ date & time package for Roc! 📆 ⏰ 📦
 
 [![Roc-Lang][roc_badge]][roc_link]
 [![GitHub last commit][last_commit_badge]][last_commit_link]
