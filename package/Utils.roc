@@ -174,7 +174,7 @@ numDaysSinceEpochToYear = \year ->
     numDaysSinceEpoch {year, month: 1, day: 1}
 
 daysToNanos = \days ->
-    days * secondsPerDay * nanosPerSecond |> Num.toI128
+    days * secondsPerDay * nanosPerSecond |> Num.toI128    
 
 timeToNanos : {hour: I64, minute: I64, second: I64} -> I64
 timeToNanos = \{hour, minute, second} ->
