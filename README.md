@@ -24,7 +24,7 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
   - With this comes a slew of features: Times, Dates, DateTimes, and Durations.
   - Functionality to convert between the above DateTime types, and Utc types.
   - __This means the Library is expanding to be more of a universal DateTime library, and not just for ISO parsing!__ 🚀
-- Time interval representations are the next planned feature.
+- Time interval representations will be added once the parsing to Date/Time/DateTime is complete.
 - Once Parsing is complete, add formatting dates and times to ISO strings.
 - Research adding custom encoding/decoding for json parsers.
 
