@@ -41,7 +41,6 @@ App "MyDateApp"
     imports [
         dt.DateTime,
         pf.Utc,
-        dt.DateTime.{ DateTime },
         pf.Stdout,
         pf.Task,
     ]
