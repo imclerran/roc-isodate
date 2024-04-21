@@ -62,7 +62,13 @@ fromUtc = \utc ->
     dateNanos = nanos - timeNanos |> Num.toI128
     date = dateNanos |> Num.toI128 |> Utc.fromNanosSinceEpoch |> Date.fromUtc
     time = timeNanos |> Num.toI64 |> UtcTime.fromNanosSinceMidnight |> Time.fromUtcTime
-    { date, time }    
+    { date, time }
+
+toNanosSinceEpoch : DateTime -> I128
+toNanosSinceEpoch = \dateTime -> toUtc dateTime |> Utc.toNanosSinceEpoch
+
+fromNanosSinceEpoch : Int * -> DateTime
+fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch nanos |> fromUtc
 
 expect
     dateTime = fromUtc (Utc.fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5))

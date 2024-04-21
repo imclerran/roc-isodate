@@ -82,6 +82,12 @@ toUtc =\date ->
     days = numDaysSinceEpoch {year: date.year |> Num.toU64, month: 1, day: 1} + (date.dayOfYear - 1 |> Num.toI64)
     Utc.fromNanosSinceEpoch (days |> Num.toI128 |> Num.mul (Const.nanosPerHour * 24))
 
+toNanosSinceEpoch : Date -> I128
+toNanosSinceEpoch = \date -> Date.toUtc date |> Utc.toNanosSinceEpoch
+
+fromNanosSinceEpoch : Int * -> Date
+fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch nanos |> fromUtc
+
 
 # <==== TESTS ====>
 # <---- ydToYmdd ---->

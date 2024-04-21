@@ -26,7 +26,6 @@ fromHms = \hour, minute, second -> { hour: Num.toU8 hour, minute: Num.toU8 minut
 fromHmsn : Int *, Int *, Int *, Int * -> Time
 fromHmsn = \hour, minute, second, nanosecond -> 
     { hour: Num.toU8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
-    #{ hour, minute, second, nanosecond }
 
 toUtcTime : Time -> UtcTime
 toUtcTime = \time ->
