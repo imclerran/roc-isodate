@@ -2,19 +2,17 @@ interface Time
     exposes [
         fromHms,
         fromHmsn,
+        fromNanosSinceMidnight,
         fromUtcTime,
         midnight,
         Time,
+        toNanosSinceMidnight,
         toUtcTime,
     ]
     imports [
         Const,
         UtcTime,
-        UtcTime.{
-            UtcTime,
-            fromNanosSinceMidnight,
-            toNanosSinceMidnight,
-        }
+        UtcTime.{ UtcTime },
     ]
 
 Time : { hour : U8, minute : U8, second : U8, nanosecond : U32 }
@@ -36,15 +34,15 @@ toUtcTime = \time ->
     mNanos = time.minute |> Num.toI64 |> Num.mul Const.nanosPerMinute |> Num.toI64
     sNanos = time.second |> Num.toI64 |> Num.mul Const.nanosPerSecond |> Num.toI64
     nanos = time.nanosecond |> Num.toI64
-    fromNanosSinceMidnight (hNanos + mNanos + sNanos + nanos)
+    UtcTime.fromNanosSinceMidnight (hNanos + mNanos + sNanos + nanos)
 
 expect
     utc = toUtcTime (fromHmsn 12 34 56 5)
-    utc == fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5)
+    utc == UtcTime.fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5)
 
 fromUtcTime : UtcTime -> Time
 fromUtcTime = \utcTime ->
-    nanos1 = toNanosSinceMidnight utcTime |> Num.toU64
+    nanos1 = UtcTime.toNanosSinceMidnight utcTime |> Num.toU64
     hour = nanos1 // Const.nanosPerHour |> Num.toU8
     nanos2 = nanos1 % Const.nanosPerHour
     minute = nanos2 // Const.nanosPerMinute |> Num.toU8
@@ -55,4 +53,11 @@ fromUtcTime = \utcTime ->
 
 expect
     utcTime = toUtcTime { hour: 12, minute: 34, second: 56, nanosecond: 5 }
-    utcTime == fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5 )
+    utcTime == UtcTime.fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5 )
+
+
+toNanosSinceMidnight : Time -> I64
+toNanosSinceMidnight = \time -> UtcTime.toNanosSinceMidnight (toUtcTime time)
+
+fromNanosSinceMidnight : Int * -> Time
+fromNanosSinceMidnight = \nanos -> fromUtcTime (UtcTime.fromNanosSinceMidnight (Num.toI64 nanos))
