@@ -17,7 +17,7 @@ interface Duration
     ]
     imports [
         Const,
-        # Date, # TODO: add date functions
+        Date,
         # DateTime, # TODO: add datetime functions
         Time,
         Time.{ Time },
@@ -149,10 +149,9 @@ addDurationAndTime = \duration, time -> addTimeAndDuration time duration
 
 addTimeAndDuration : Time, Duration -> Time
 addTimeAndDuration = \time, duration -> 
-    t1nanos = toNanoseconds duration
-    dNanos = Time.toNanosSinceMidnight time |> Num.toI128
-    t2Nanos = (dNanos + t1nanos) % Const.nanosPerDay
-    Time.fromNanosSinceMidnight t2Nanos
+    durationNanos = toNanoseconds duration
+    timeNanos = Time.toNanosSinceMidnight time |> Num.toI128
+    (durationNanos + timeNanos) % Const.nanosPerDay |> Time.fromNanosSinceMidnight
 
 expect
     time = Time.fromHms 0 0 0
@@ -163,3 +162,21 @@ expect
     time = Time.fromHmsn 23 59 59 999_999_999
     duration = fromNanoseconds 2 |> unwrap "will not overflow"
     addTimeAndDuration time duration == Time.fromHmsn 0 0 0 1
+
+addDurationAndDate : Duration, Date -> Date
+addDurationAndDate = \duration, date -> addDateAndDuration date duration
+
+addDateAndDuration : Date, Duration -> Date
+addDateAndDuration = \date, duration -> 
+    durationNanos = toNanoseconds duration
+    dateNanos = Date.toNanosSinceEpoch date |> Num.toI128
+    durationNanos + durationNanos |> Date.fromNanosSinceEpoch
+
+addDurationAndDateTime : Duration, DateTime -> DateTime
+
+addDateTimeAndDuration : DateTime, Duration -> DateTime
+addDateTimeAndDuration = \dateTime, duration ->
+    durationNanos = toNanoseconds duration
+    dateNanos = Date.toNanosSinceEpoch dateTime.date |> Num.toI128
+    timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
+    durationNanos + dateNanos + timeNanos |> DateTime.fromNanosSinceEpoch
