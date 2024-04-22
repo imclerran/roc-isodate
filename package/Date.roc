@@ -1,11 +1,16 @@
 interface Date
     exposes [
+        addDays,
+        addMonths,
+        addYears,
         Date,
+        fromNanosSinceEpoch,
         fromUtc,
         fromYd,
         fromYmd,
         fromYw,
         fromYwd,
+        toNanosSinceEpoch,
         toUtc,
         unixEpoch,
     ]
@@ -29,7 +34,7 @@ fromYd : Int *, Int * -> Date
 fromYd = \year, dayOfYear -> 
     ydToYmdd year dayOfYear
 
-ydToYmdd : Int *, Int * -> { year: I64, month: U8, dayOfMonth: U8, dayOfYear: U16 }
+ydToYmdd : Int *, Int * -> Date
 ydToYmdd = \year, dayOfYear ->
     List.range { start: At 1, end: At 12 }
     |> List.map \m -> Const.monthDays { month: Num.toU64 m, isLeap: isLeapYear year }
@@ -86,7 +91,38 @@ toNanosSinceEpoch : Date -> I128
 toNanosSinceEpoch = \date -> Date.toUtc date |> Utc.toNanosSinceEpoch
 
 fromNanosSinceEpoch : Int * -> Date
-fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch nanos |> fromUtc
+fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch (Num.toI128 nanos) |> fromUtc
+
+# TODO: allow for negative years
+addYears : Date, Int * -> Date
+addYears = \date, years -> fromYmd (date.year + Num.toI64 years) date.month date.dayOfMonth
+
+# TODO: allow for negative months
+addMonths : Date, Int * -> Date
+addMonths = \date, months -> 
+    newMonthWithOverflow = date.month + Num.toU8 months
+    newYear = date.year + Num.toI64 (newMonthWithOverflow // 12)
+    newMonth = newMonthWithOverflow % 12
+    newDay = if date.dayOfMonth > Num.toU8 (Const.monthDays { month: newMonth, isLeap: isLeapYear newYear } )
+        then Num.toU8 (Const.monthDays { month: newMonth, isLeap: isLeapYear newYear } )
+        else date.dayOfMonth
+    fromYmd newYear newMonth newDay
+
+addDays : Date, Int * -> Date
+addDays = \date, days -> 
+    addDaysHelper date (Num.toI16 days)
+
+addDaysHelper : Date, I16 -> Date
+addDaysHelper = \date, days ->
+    daysInYear = if isLeapYear date.year then 366 else 365
+    newDayOfYear = (Num.toI16 date.dayOfYear) + days
+    if newDayOfYear > daysInYear then
+        addDaysHelper { year: date.year + 1, month: 1, dayOfMonth: 1, dayOfYear: 0 } (newDayOfYear - daysInYear)
+    else if newDayOfYear < 1 then
+        daysInPrevYear = if isLeapYear (date.year - 1) then 366 else 365
+        addDaysHelper { year: date.year - 1, month: 12, dayOfMonth: 31, dayOfYear: 0 } (newDayOfYear + Num.toI16 daysInPrevYear)
+    else
+        fromYd date.year newDayOfYear
 
 
 # <==== TESTS ====>
@@ -163,3 +199,17 @@ expect
 expect
     utc = toUtc { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 }
     utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366)
+
+# <---- addMonths ---->
+expect addMonths unixEpoch 12 == fromYmd 1971 1 1
+expect addMonths (fromYmd 1970 1 31) 1 == fromYmd 1970 2 28
+expect addMonths (fromYmd 1972 2 29) 12 == fromYmd 1973 2 28
+
+# <---- addDays ---->
+expect addDays unixEpoch 365 == fromYmd 1971 1 1
+expect addDays unixEpoch (365 * 2) == fromYmd 1972 1 1
+expect addDays unixEpoch (365 * 2 + 366) == fromYmd 1973 1 1
+expect addDays unixEpoch (-1) == fromYmd 1969 12 31
+expect addDays unixEpoch (-365) == fromYmd 1969 1 1
+expect addDays unixEpoch (-365 - 1) == fromYmd 1968 12 31
+expect addDays unixEpoch (-365 - 366) == fromYmd 1968 1 1
