@@ -1,5 +1,6 @@
 interface DateTime
     exposes [
+        fromNanosSinceEpoch,
         fromUtc,
         fromYd,
         fromYmd,
@@ -7,6 +8,7 @@ interface DateTime
         fromYwd,
         fromYmdhms,
         fromYmdhmsn,
+        toNanosSinceEpoch,
         toUtc,
         unixEpoch,
     ]
@@ -68,7 +70,7 @@ toNanosSinceEpoch : DateTime -> I128
 toNanosSinceEpoch = \dateTime -> toUtc dateTime |> Utc.toNanosSinceEpoch
 
 fromNanosSinceEpoch : Int * -> DateTime
-fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch nanos |> fromUtc
+fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch (Num.toI128 nanos) |> fromUtc
 
 expect
     dateTime = fromUtc (Utc.fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5))
