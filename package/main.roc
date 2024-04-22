@@ -2,7 +2,7 @@ package "RocISODate"
     exposes [
         Date,
         DateTime,
-        IsoToUtc,
+        Parser,
         Time,
         Utc,
         UtcTime,

@@ -1,4 +1,4 @@
-interface IsoToDateTime
+interface Parser
     exposes [
         parseDateFromStr,
         parseDateFromU8,
@@ -28,6 +28,7 @@ interface IsoToDateTime
         DateTime.{ DateTime },
         Duration,
         Duration.{ Duration },
+        #DateTimeInterval,
         Time,
         Time.{ Time },
         Unsafe.{ unwrap }, # for unit testing only 
@@ -330,3 +331,19 @@ parseDateTimeFromU8 = \bytes ->
                 Err _ -> Err InvalidDateTimeFormat
         _ -> Err InvalidDateTimeFormat
 
+# parseDateTimeIntervalFromStr : Str -> Result DateTimeInterval [InvalidIntervalFormat]
+# parseDateTimeIntervalFromStr = \str -> Str.toUtf8 str |> parseDateTimeIntervalFromU8
+
+# parseDateTimeIntervalFromU8 : List U8 -> Result DateTimeInterval [InvalidIntervalFormat]
+# parsePateTimeIntervalFromU8 = \bytes -> 
+#     when splitUtf8AndKeepDelimiters bytes ['/','P'] is
+#         [dateBytes, ['/'], ['P'], durationBytes] ->
+#             when (parseDateFromU8 dateBytes, parseDuration durationBytes) is
+#                 (Ok date, Ok duration) -> 
+#                     { start: date, end: Duration.addDateAndDuration date duration } |> Ok
+#                 (_, _) -> Err InvalidIntervalFormat
+#         [['P'], durationBytes, ['/'], dateBytes] ->
+#             crash "Not implemented yet"
+#         [date1Bytes, ['/'], date2Bytes] -> 
+#             crash "Not implemented yet"
+#         _ -> Err InvalidIntervalFormat
