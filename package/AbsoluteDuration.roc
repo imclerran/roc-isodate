@@ -1,8 +1,12 @@
-interface Duration
+interface AbsoluteDuration
     exposes [
-        addDurations,
+        addDateAndDuration,
+        addDateTimeAndDuration,
+        addDurationAndDate,
+        addDurationAndDateTime,
         addDurationAndTime,
         addTimeAndDuration,
+        addDurations,
         Duration,
         fromDays,
         fromHours,
@@ -18,13 +22,15 @@ interface Duration
     imports [
         Const,
         Date,
-        # DateTime, # TODO: add datetime functions
+        Date.{ Date },
+        DateTime,
+        DateTime.{ DateTime },
         Time,
         Time.{ Time },
         Unsafe.{ unwrap }, # for unit tests only
     ]
 
-Duration : { days: I64, hours: I8, minutes: I8, seconds : I8, nanoseconds : I32 }
+AbsoluteDuration : { days: I64, hours: I8, minutes: I8, seconds : I8, nanoseconds : I32 }
 
 fromNanoseconds : Int * -> Result Duration [DurationOverflow]
 fromNanoseconds = \nanos -> 
@@ -170,7 +176,7 @@ addDateAndDuration : Date, Duration -> Date
 addDateAndDuration = \date, duration -> 
     durationNanos = toNanoseconds duration
     dateNanos = Date.toNanosSinceEpoch date |> Num.toI128
-    durationNanos + durationNanos |> Date.fromNanosSinceEpoch
+    durationNanos + dateNanos |> Date.fromNanosSinceEpoch
 
 addDurationAndDateTime : Duration, DateTime -> DateTime
 
