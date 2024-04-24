@@ -7,6 +7,7 @@ interface Const
         epochMonth,
         epochWeekOffset,
         epochYear,
+        hoursPerDay,
         leapException,
         leapInterval,
         leapNonException,
@@ -31,8 +32,10 @@ epochMonth = 1
 epochDay = 1
 epochWeekOffset = 4
 
+hoursPerDay = 24
+
 minutesPerHour = 60
-minutesPerDay = 24 * minutesPerHour
+minutesPerDay = hoursPerDay * minutesPerHour
 
 nanosPerMilli = 1_000_000
 nanosPerSecond = 1_000_000_000

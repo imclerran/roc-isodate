@@ -1,6 +1,8 @@
 interface Date
     exposes [
+        addDateAndDuration,
         addDays,
+        addDurationAndDate,
         addMonths,
         addYears,
         Date,
@@ -16,13 +18,16 @@ interface Date
     ]
     imports [
         Const,
+        Duration,
+        Duration.{ Duration },
         Utc,
         Utils.{
             isLeapYear,
             numDaysSinceEpoch,
             ymdToDaysInYear,
             calendarWeekToDaysInYear,
-        }
+        },
+        Unsafe.{ unwrap }, # for unit testing only
     ]
 
 Date : { year: I64, month: U8, dayOfMonth: U8, dayOfYear: U16 }
@@ -124,6 +129,15 @@ addDaysHelper = \date, days ->
     else
         fromYd date.year newDayOfYear
 
+addDurationAndDate : Duration, Date -> Date
+addDurationAndDate = \duration, date -> 
+    durationNanos = Duration.toNanoseconds duration
+    dateNanos = toNanosSinceEpoch date |> Num.toI128
+    durationNanos + dateNanos |> fromNanosSinceEpoch
+
+addDateAndDuration : Date, Duration -> Date
+addDateAndDuration = \date, duration -> addDurationAndDate duration date
+
 
 # <==== TESTS ====>
 # <---- ydToYmdd ---->
@@ -213,3 +227,6 @@ expect addDays unixEpoch (-1) == fromYmd 1969 12 31
 expect addDays unixEpoch (-365) == fromYmd 1969 1 1
 expect addDays unixEpoch (-365 - 1) == fromYmd 1968 12 31
 expect addDays unixEpoch (-365 - 366) == fromYmd 1968 1 1
+
+# <---- addDateAndDuration ---->
+expect addDateAndDuration unixEpoch (Duration.fromDays 1 |> unwrap "will not overflow") == fromYmd 1970 1 2

@@ -1,5 +1,14 @@
 interface DateTime
     exposes [
+        addDateTimeAndDuration,
+        addDays,
+        addDurationAndDateTime,
+        addHours,
+        addMinutes,
+        addMonths,
+        addNanoseconds,
+        addSeconds,
+        addYears,
         fromNanosSinceEpoch,
         fromUtc,
         fromYd,
@@ -15,10 +24,13 @@ interface DateTime
     imports [
         Const,
         Date,
+        Duration,
+        Duration.{ Duration },
         Time,
         Utc,
         Utc.{ Utc },
         UtcTime,
+        Unsafe.{ unwrap }, # for unit testing only
     ]
 
 DateTime : { date : Date.Date, time : Time.Time }
@@ -79,3 +91,52 @@ expect
 expect
     dateTime = fromUtc (Utc.fromNanosSinceEpoch (-1))
     dateTime == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+
+addNanoseconds : DateTime, Int * -> DateTime
+addNanoseconds = \dateTime, nanos ->
+    timeNanos = Time.toNanosSinceMidnight dateTime.time + Num.toI64 nanos
+    days = if timeNanos >= 0 
+        then timeNanos // Const.nanosPerDay |> Num.toI64
+        else timeNanos // Const.nanosPerDay |> Num.add (if timeNanos % Const.nanosPerDay < 0 then -1 else 0) |> Num.toI64
+    { date:  Date.addDays dateTime.date days, time: Time.fromNanosSinceMidnight timeNanos }
+
+addSeconds : DateTime, Int * -> DateTime
+addSeconds = \dateTime, seconds -> addNanoseconds dateTime (seconds * Const.nanosPerSecond)
+
+addMinutes : DateTime, Int * -> DateTime
+addMinutes = \dateTime, minutes -> addNanoseconds dateTime (minutes * Const.nanosPerMinute)
+
+addHours : DateTime, Int * -> DateTime
+addHours = \dateTime, hours -> addNanoseconds dateTime (hours * Const.nanosPerHour)
+
+addDays : DateTime, Int * -> DateTime
+addDays = \dateTime, days -> { date: Date.addDays dateTime.date days, time: dateTime.time }
+
+addMonths : DateTime, Int * -> DateTime
+addMonths = \dateTime, months -> { date: Date.addMonths dateTime.date months, time: dateTime.time }
+
+addYears : DateTime, Int * -> DateTime
+addYears = \dateTime, years -> { date: Date.addYears dateTime.date years, time: dateTime.time }
+
+addDurationAndDateTime : Duration, DateTime -> DateTime
+addDurationAndDateTime = \duration, dateTime ->
+    durationNanos = Duration.toNanoseconds duration
+    dateNanos = Date.toNanosSinceEpoch dateTime.date |> Num.toI128
+    timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
+    durationNanos + dateNanos + timeNanos |> fromNanosSinceEpoch
+
+addDateTimeAndDuration : DateTime, Duration -> DateTime
+addDateTimeAndDuration = \dateTime, duration -> addDurationAndDateTime duration dateTime
+    
+
+
+expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) 1 == fromYmdhmsn 1970 1 1 0 0 0 1
+expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerSecond == fromYmdhmsn 1970 1 1 0 0 1 0
+expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerDay == fromYmdhmsn 1970 1 2 0 0 0 0
+expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -1 == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -Const.nanosPerDay == fromYmdhmsn 1969 12 31 0 0 0 0
+expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) (-Const.nanosPerDay - 1) == fromYmdhmsn 1969 12 30 23 59 59 (Const.nanosPerSecond - 1)
+
+
+expect addDateTimeAndDuration unixEpoch (Duration.fromNanoseconds -1 |> unwrap "will not overflow") == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+expect addDateTimeAndDuration unixEpoch (Duration.fromDays 365 |> unwrap "will not overflow") == fromYmdhmsn 1971 1 1 0 0 0 0

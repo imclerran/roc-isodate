@@ -1,11 +1,5 @@
-interface AbsoluteDuration
+interface Duration
     exposes [
-        addDateAndDuration,
-        addDateTimeAndDuration,
-        addDurationAndDate,
-        addDurationAndDateTime,
-        addDurationAndTime,
-        addTimeAndDuration,
         addDurations,
         Duration,
         fromDays,
@@ -21,16 +15,10 @@ interface AbsoluteDuration
     ]
     imports [
         Const,
-        Date,
-        Date.{ Date },
-        DateTime,
-        DateTime.{ DateTime },
-        Time,
-        Time.{ Time },
         Unsafe.{ unwrap }, # for unit tests only
     ]
 
-AbsoluteDuration : { days: I64, hours: I8, minutes: I8, seconds : I8, nanoseconds : I32 }
+Duration : { days: I64, hours: I8, minutes: I8, seconds : I8, nanoseconds : I32 }
 
 fromNanoseconds : Int * -> Result Duration [DurationOverflow]
 fromNanoseconds = \nanos -> 
@@ -52,7 +40,6 @@ toNanoseconds = \duration ->
     (Num.toI128 duration.hours) * Const.nanosPerHour + 
     (Num.toI128 duration.days) * (Const.nanosPerHour * 24)
 
-# TODO convert all from functions to use Result
 fromSeconds: Int * -> Result Duration [DurationOverflow]
 fromSeconds = \seconds -> 
     if (seconds // Const.secondsPerDay |> Num.toI128) > (Num.maxI64 |> Num.toI128)
@@ -140,7 +127,6 @@ expect
     addDurations d1 d2 == Ok d3
 
 expect 
-    
     d1 = fromDays Num.minI64 |> unwrap "will not overflow"
     d2 = fromDays Num.maxI64 |> unwrap "will not overflow"
     d3 = fromDays -1 |> unwrap "will not overflow"
@@ -150,39 +136,3 @@ expect
     duration = fromDays Num.maxI64 |> unwrap "will not overflow"
     addDurations duration duration == Err DurationOverflow
 
-addDurationAndTime : Duration, Time -> Time
-addDurationAndTime = \duration, time -> addTimeAndDuration time duration
-
-addTimeAndDuration : Time, Duration -> Time
-addTimeAndDuration = \time, duration -> 
-    durationNanos = toNanoseconds duration
-    timeNanos = Time.toNanosSinceMidnight time |> Num.toI128
-    (durationNanos + timeNanos) % Const.nanosPerDay |> Time.fromNanosSinceMidnight
-
-expect
-    time = Time.fromHms 0 0 0
-    duration = fromHours 1 |> unwrap "will not overflow"
-    addTimeAndDuration time duration == Time.fromHms 1 0 0
-
-expect
-    time = Time.fromHmsn 23 59 59 999_999_999
-    duration = fromNanoseconds 2 |> unwrap "will not overflow"
-    addTimeAndDuration time duration == Time.fromHmsn 0 0 0 1
-
-addDurationAndDate : Duration, Date -> Date
-addDurationAndDate = \duration, date -> addDateAndDuration date duration
-
-addDateAndDuration : Date, Duration -> Date
-addDateAndDuration = \date, duration -> 
-    durationNanos = toNanoseconds duration
-    dateNanos = Date.toNanosSinceEpoch date |> Num.toI128
-    durationNanos + dateNanos |> Date.fromNanosSinceEpoch
-
-addDurationAndDateTime : Duration, DateTime -> DateTime
-
-addDateTimeAndDuration : DateTime, Duration -> DateTime
-addDateTimeAndDuration = \dateTime, duration ->
-    durationNanos = toNanoseconds duration
-    dateNanos = Date.toNanosSinceEpoch dateTime.date |> Num.toI128
-    timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
-    durationNanos + dateNanos + timeNanos |> DateTime.fromNanosSinceEpoch
