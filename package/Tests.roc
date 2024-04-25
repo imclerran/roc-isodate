@@ -7,6 +7,8 @@ interface Tests
             nanosPerSecond,
             secondsPerDay,
         },
+        Date,
+        Date.{ Date },
         IsoToUtc.{
             parseDateFromStr,
             parseDateTimeFromStr,
@@ -32,102 +34,280 @@ interface Tests
             validateUtf8SingleBytes,
             ymdToDaysInYear,
         },
+        Unsafe.{ unwrap },
     ]
 
 # <==== IsoToUtc.roc ====>
 # <---- parseDate ---->
 # parseCalendarDateCentury
-expect parseDateFromStr "20" == (10_957) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+# 1
+expect parseDateFromStr "20" == (10_957) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "20" == Date.fromYmd 2000 1 1 |> Ok
+expect Date.fromIsoStr "20" |> unwrap "Date.fromIsoStr '20'" |> Date.toUtc == (10_957) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 2
 expect parseDateFromStr "19" == -25_567 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "19" == Date.fromYmd 1900 1 1 |> Ok
+expect Date.fromIsoStr "19" |> unwrap "Date.fromIsoStr '19'" |> Date.toUtc == -25_567 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 3
 expect parseDateFromStr "ab" == Err InvalidDateFormat
+expect Date.fromIsoStr "ab" == Err InvalidDateFormat
 
 # parseCalendarDateYear
-expect parseDateFromStr "2024" == (19_723) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+# 4
+expect parseDateFromStr "2024" == (19_723) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024" == Date.fromYmd 2024 1 1 |> Ok
+expect Date.fromIsoStr "2024" |> unwrap "Date.fromIsoStr '2024'" |> Date.toUtc == (19_723) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 5
 expect parseDateFromStr "1970" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970" |> unwrap "Date.fromIsoStr '1970'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 6
 expect parseDateFromStr "1968" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968" |> unwrap "Date.fromIsoStr '1968'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 7
 expect parseDateFromStr "202f" == Err InvalidDateFormat
+expect Date.fromIsoStr "202f" == Err InvalidDateFormat
 
 # parseWeekDateReducedBasic
+# 8
 expect parseDateFromStr "2024W04" == (19_723 + 21) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024W04" == Date.fromYmd 2024 1 22 |> Ok
+expect Date.fromIsoStr "2024W04" |> unwrap "Date.fromIsoStr '2024W04'" |> Date.toUtc == (19_723 + 21) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 9
 expect parseDateFromStr "1970W01" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970W01" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970W01" |> unwrap "Date.fromIsoStr '1970W01'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 10
 expect parseDateFromStr "1968W01" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968W01" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968W01" |> unwrap "Date.fromIsoStr '1968W01'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 11
 expect parseDateFromStr "2024W53" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W53" == Err InvalidDateFormat
+# 12
 expect parseDateFromStr "2024W00" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W00" == Err InvalidDateFormat
+# 13
 expect parseDateFromStr "2024Www" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024Www" == Err InvalidDateFormat
 
 # parseCalendarDateMonth
+# 14
 expect parseDateFromStr "2024-02" == (19_723 + 31) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024-02" == Date.fromYmd 2024 2 1 |> Ok
+expect Date.fromIsoStr "2024-02" |> unwrap "Date.fromIsoStr '2024-02'" |> Date.toUtc == (19_723 + 31) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 15
 expect parseDateFromStr "1970-01" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970-01" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970-01" |> unwrap "Date.fromIsoStr '1970-01'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 16
 expect parseDateFromStr "1968-01" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968-01" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968-01" |> unwrap "Date.fromIsoStr '1968-01'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 17
 expect parseDateFromStr "2024-13" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-13" == Err InvalidDateFormat
+# 18
 expect parseDateFromStr "2024-00" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-00" == Err InvalidDateFormat
+# 19
 expect parseDateFromStr "2024-0a" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-0a" == Err InvalidDateFormat
+
 
 # parseOrdinalDateBasic
+# 20
 expect parseDateFromStr "2024023" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024023" == Date.fromYmd 2024 1 23 |> Ok
+expect Date.fromIsoStr "2024023" |> unwrap "Date.fromIsoStr '2024023'" |> Date.toUtc == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 21
 expect parseDateFromStr "1970001" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970001" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970001" |> unwrap "Date.fromIsoStr '1970001'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 22
 expect parseDateFromStr "1968001" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968001" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968001" |> unwrap "Date.fromIsoStr '1968001'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 23
 expect parseDateFromStr "2024000" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024000" == Err InvalidDateFormat
+# 24
 expect parseDateFromStr "2024367" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024367" == Err InvalidDateFormat
+# 25
 expect parseDateFromStr "2024a23" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024a23" == Err InvalidDateFormat
 
 # parseWeekDateReducedExtended
+# 26
 expect parseDateFromStr "2024-W04" == (19_723 + 21) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024-W04" == Date.fromYmd 2024 1 22 |> Ok
+expect Date.fromIsoStr "2024-W04" |> unwrap "Date.fromIsoStr '2024-W04'" |> Date.toUtc == (19_723 + 21) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 27
 expect parseDateFromStr "1970-W01" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970-W01" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970-W01" |> unwrap "Date.fromIsoStr '1970-W01'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 28
 expect parseDateFromStr "1968-W01" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968-W01" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968-W01" |> unwrap "Date.fromIsoStr '1968-W01'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 29
 expect parseDateFromStr "2024-W53" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-W53" == Err InvalidDateFormat
+# 30
 expect parseDateFromStr "2024-W00" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-W00" == Err InvalidDateFormat
+# 31
 expect parseDateFromStr "2024-Ww1" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-Ww1" == Err InvalidDateFormat
 
 # parseWeekDateBasic
+# 32
 expect parseDateFromStr "2024W042" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024W042" == Date.fromYmd 2024 1 23 |> Ok
+expect Date.fromIsoStr "2024W042" |> unwrap "Date.fromIsoStr '2024W042'" |> Date.toUtc == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 33
 expect parseDateFromStr "1970W011" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970W011" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970W011" |> unwrap "Date.fromIsoStr '1970W011'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 34
 expect parseDateFromStr "1970W524" == 364 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970W524" == Date.fromYmd 1970 12 31 |> Ok
+expect Date.fromIsoStr "1970W524" |> unwrap "Date.fromIsoStr '1970W524'" |> Date.toUtc == 364 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 35
 expect parseDateFromStr "1970W525" == parseDateFromStr "19710101"
+expect Date.fromIsoStr "1970W525" == Date.fromYmd 1971 1 1 |> Ok
+expect Date.fromIsoStr "1970W525" |> unwrap "Date.fromIsoStr '1970W525'" |> Date.toUtc == 365 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 36
 expect parseDateFromStr "1968W011" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968W011" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968W011" |> unwrap "Date.fromIsoStr '1968W011'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 37
 expect parseDateFromStr "2024W001" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W001" == Err InvalidDateFormat
+# 38
 expect parseDateFromStr "2024W531" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W531" == Err InvalidDateFormat
+# 39
 expect parseDateFromStr "2024W010" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W010" == Err InvalidDateFormat
+# 40
 expect parseDateFromStr "2024W018" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W018" == Err InvalidDateFormat
+# 41
 expect parseDateFromStr "2024W0a2" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024W0a2" == Err InvalidDateFormat
 
 # parseOrdinalDateExtended
+# 42
 expect parseDateFromStr "2024-023" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024-023" == Date.fromYmd 2024 1 23 |> Ok
+expect Date.fromIsoStr "2024-023" |> unwrap "Date.fromIsoStr '2024-023'" |> Date.toUtc == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 43
 expect parseDateFromStr "1970-001" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970-001" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970-001" |> unwrap "Date.fromIsoStr '1970-001'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 44
 expect parseDateFromStr "1968-001" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968-001" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968-001" |> unwrap "Date.fromIsoStr '1968-001'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 45
 expect parseDateFromStr "2024-000" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-000" == Err InvalidDateFormat
+# 46
 expect parseDateFromStr "2024-367" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-367" == Err InvalidDateFormat
+# 47
 expect parseDateFromStr "2024-0a3" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-0a3" == Err InvalidDateFormat
 
 # parseCalendarDateBasic
+# 48
 expect parseDateFromStr "20240123" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "20240123" == Date.fromYmd 2024 1 23 |> Ok
+expect Date.fromIsoStr "20240123" |> unwrap "Date.fromIsoStr '20240123'" |> Date.toUtc == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 49
 expect parseDateFromStr "19700101" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "19700101" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "19700101" |> unwrap "Date.fromIsoStr '19700101'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 50
 expect parseDateFromStr "19680101" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "19680101" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "19680101" |> unwrap "Date.fromIsoStr '19680101'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 51
 expect parseDateFromStr "20240100" == Err InvalidDateFormat
+expect Date.fromIsoStr "20240100" == Err InvalidDateFormat
+# 52
 expect parseDateFromStr "20240132" == Err InvalidDateFormat
+expect Date.fromIsoStr "20240132" == Err InvalidDateFormat
+# 53
 expect parseDateFromStr "20240001" == Err InvalidDateFormat
+expect Date.fromIsoStr "20240001" == Err InvalidDateFormat
+# 54
 expect parseDateFromStr "20241301" == Err InvalidDateFormat
+expect Date.fromIsoStr "20241301" == Err InvalidDateFormat
+# 55
 expect parseDateFromStr "2024a123" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024a123" == Err InvalidDateFormat
 
 # parseWeekDateExtended
+# 56
 expect parseDateFromStr "2024-W04-2" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024-W04-2" == Date.fromYmd 2024 1 23 |> Ok
+expect Date.fromIsoStr "2024-W04-2" |> unwrap "Date.fromIsoStr '2024-W04-2'" |> Date.toUtc == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 57
 expect parseDateFromStr "1970-W01-1" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970-W01-1" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970-W01-1" |> unwrap "Date.fromIsoStr '1970-W01-1'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 58
 expect parseDateFromStr "1968-W01-1" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968-W01-1" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968-W01-1" |> unwrap "Date.fromIsoStr '1968-W01-1'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 59
 expect parseDateFromStr "2024-W53-1" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-W53-1" == Err InvalidDateFormat
+# 60
 expect parseDateFromStr "2024-W00-1" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-W00-1" == Err InvalidDateFormat
+# 61
 expect parseDateFromStr "2024-W01-0" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-W01-0" == Err InvalidDateFormat
+# 62
 expect parseDateFromStr "2024-W01-8" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-W01-8" == Err InvalidDateFormat
+# 63
 expect parseDateFromStr "2024-Ww1-1" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-Ww1-1" == Err InvalidDateFormat
 
 # parseCalendarDateExtended
+# 64
 expect parseDateFromStr "2024-01-23" == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "2024-01-23" == Date.fromYmd 2024 1 23 |> Ok
+expect Date.fromIsoStr "2024-01-23" |> unwrap "Date.fromIsoStr '2024-01-23'" |> Date.toUtc == (19_723 + 22) * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 65
 expect parseDateFromStr "1970-01-01" == 0 |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1970-01-01" == Date.fromYmd 1970 1 1 |> Ok
+expect Date.fromIsoStr "1970-01-01" |> unwrap "Date.fromIsoStr '1970-01-01'" |> Date.toUtc == 0 |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 66
 expect parseDateFromStr "1968-01-01" == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect Date.fromIsoStr "1968-01-01" == Date.fromYmd 1968 1 1 |> Ok
+expect Date.fromIsoStr "1968-01-01" |> unwrap "Date.fromIsoStr '1968-01-01'" |> Date.toUtc == -731 * secondsPerDay * nanosPerSecond |> Num.toI128 |> Utc.fromNanosSinceEpoch
+# 67
 expect parseDateFromStr "2024-01-00" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-01-00" == Err InvalidDateFormat
+# 68
 expect parseDateFromStr "2024-01-32" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-01-32" == Err InvalidDateFormat
+# 69
 expect parseDateFromStr "2024-00-01" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-00-01" == Err InvalidDateFormat
+# 70
 expect parseDateFromStr "2024-13-01" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-13-01" == Err InvalidDateFormat
+# 71
 expect parseDateFromStr "2024-0a-01" == Err InvalidDateFormat
+expect Date.fromIsoStr "2024-0a-01" == Err InvalidDateFormat
 
 # <---- parseTime ---->
 # parseLocalTimeHour

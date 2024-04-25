@@ -6,6 +6,8 @@ interface Date
         addMonths,
         addYears,
         Date,
+        fromIsoStr,
+        fromIsoU8,
         fromNanosSinceEpoch,
         fromUtc,
         fromYd,
@@ -22,10 +24,14 @@ interface Date
         Duration.{ Duration },
         Utc,
         Utils.{
+            calendarWeekToDaysInYear,
             isLeapYear,
             numDaysSinceEpoch,
+            splitListAtIndices,
+            utf8ToInt,
+            utf8ToIntSigned,
+            validateUtf8SingleBytes,
             ymdToDaysInYear,
-            calendarWeekToDaysInYear,
         },
         Unsafe.{ unwrap }, # for unit testing only
     ]
@@ -137,6 +143,132 @@ addDurationAndDate = \duration, date ->
 
 addDateAndDuration : Date, Duration -> Date
 addDateAndDuration = \date, duration -> addDurationAndDate duration date
+
+fromIsoStr: Str -> Result Date [InvalidDateFormat]
+fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
+
+# TODO: More efficient parsing method?
+fromIsoU8 : List U8 -> Result Date [InvalidDateFormat]
+fromIsoU8 = \bytes ->
+    if validateUtf8SingleBytes bytes then
+        when bytes is
+            [_,_] -> parseCalendarDateCentury bytes # YY
+            [_,_,_,_] -> parseCalendarDateYear bytes # YYYY
+            [_,_,_,_,'W',_,_] -> parseWeekDateReducedBasic bytes # YYYYWww
+            [_,_,_,_,'-',_,_] -> parseCalendarDateMonth bytes # YYYY-MM
+            [_,_,_,_,_,_,_] -> parseOrdinalDateBasic bytes # YYYYDDD
+            [_,_,_,_,'-','W',_,_] -> parseWeekDateReducedExtended bytes # YYYY-Www
+            [_,_,_,_,'W',_,_,_] -> parseWeekDateBasic bytes # YYYYWwwD
+            [_,_,_,_,'-',_,_,_] -> parseOrdinalDateExtended bytes # YYYY-DDD
+            [_,_,_,_,_,_,_,_] -> parseCalendarDateBasic bytes # YYYYMMDD
+            [_,_,_,_,'-','W',_,_,'-',_] -> parseWeekDateExtended bytes # YYYY-Www-D
+            [_,_,_,_,'-',_,_,'-',_,_] -> parseCalendarDateExtended bytes # YYYY-MM-DD
+            _ -> Err InvalidDateFormat
+    else
+        Err InvalidDateFormat
+
+parseCalendarDateBasic : List U8 -> Result Date [InvalidDateFormat]
+parseCalendarDateBasic = \bytes ->
+    when splitListAtIndices bytes [4, 6] is
+        [yearBytes, monthBytes, dayBytes] ->
+            when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
+            (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
+                Date.fromYmd y m d |> Ok
+            (_, _, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
+parseCalendarDateExtended  : List U8 -> Result Date [InvalidDateFormat]
+parseCalendarDateExtended = \bytes -> 
+    when splitListAtIndices bytes [4,5,7,8] is
+        [yearBytes, _, monthBytes, _, dayBytes] -> 
+            when (utf8ToIntSigned yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
+            (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
+                Date.fromYmd y m d |> Ok
+            (_, _, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
+parseCalendarDateCentury : List U8 -> Result Date [InvalidDateFormat]
+parseCalendarDateCentury = \bytes ->
+    when utf8ToIntSigned bytes is
+        Ok century -> Date.fromYmd (century * 100) 1 1 |> Ok
+        Err _ -> Err InvalidDateFormat
+
+parseCalendarDateYear : List U8 -> Result Date [InvalidDateFormat]
+parseCalendarDateYear = \bytes ->
+    when utf8ToIntSigned bytes is
+        Ok year -> Date.fromYmd year 1 1 |> Ok
+        Err _ -> Err InvalidDateFormat
+
+parseCalendarDateMonth : List U8 -> Result Date [InvalidDateFormat]
+parseCalendarDateMonth = \bytes -> 
+    when splitListAtIndices bytes [4,5] is
+        [yearBytes, _, monthBytes] -> 
+            when (utf8ToIntSigned yearBytes, utf8ToInt monthBytes) is
+            (Ok year, Ok month) if month >= 1 && month <= 12 ->
+                Date.fromYmd year month 1 |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
+parseOrdinalDateBasic : List U8 -> Result Date [InvalidDateFormat]
+parseOrdinalDateBasic = \bytes -> 
+    when splitListAtIndices bytes [4] is
+        [yearBytes, dayBytes] -> 
+            when (utf8ToIntSigned yearBytes, utf8ToInt dayBytes) is
+            (Ok year, Ok day) if day >= 1 && day <= 366 ->
+                Date.fromYd year day |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
+parseOrdinalDateExtended : List U8 -> Result Date [InvalidDateFormat]
+parseOrdinalDateExtended = \bytes -> 
+    when splitListAtIndices bytes [4,5] is
+        [yearBytes, _, dayBytes] -> 
+            when (utf8ToIntSigned yearBytes, utf8ToInt dayBytes) is
+            (Ok year, Ok day) if day >= 1 && day <= 366 ->
+                Date.fromYd year day |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
+parseWeekDateBasic : List U8 -> Result Date [InvalidDateFormat]
+parseWeekDateBasic = \bytes -> 
+    when splitListAtIndices bytes [4,5,7] is
+    [yearBytes, _, weekBytes, dayBytes] -> 
+        when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
+        (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+            Date.fromYwd y w d |> Ok
+        (_, _, _) -> Err InvalidDateFormat
+    _ -> Err InvalidDateFormat
+
+parseWeekDateExtended : List U8 -> Result Date [InvalidDateFormat]
+parseWeekDateExtended = \bytes -> 
+    when splitListAtIndices bytes [4,6,8,9] is
+    [yearBytes, _, weekBytes, _, dayBytes] -> 
+        when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
+        (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+            Date.fromYwd y w d |> Ok
+        (_, _, _) -> Err InvalidDateFormat
+    _ -> Err InvalidDateFormat
+
+parseWeekDateReducedBasic : List U8 -> Result Date [InvalidDateFormat]
+parseWeekDateReducedBasic = \bytes -> 
+    when splitListAtIndices bytes [4,5] is
+        [yearBytes, _, weekBytes] -> 
+            when (utf8ToInt yearBytes, utf8ToInt weekBytes) is
+            (Ok year, Ok week) if week >= 1 && week <= 52 ->
+                Date.fromYw year week |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
+parseWeekDateReducedExtended : List U8 -> Result Date [InvalidDateFormat]
+parseWeekDateReducedExtended = \bytes -> 
+    when splitListAtIndices bytes [4,6] is
+        [yearBytes, _, weekBytes] -> 
+            when (utf8ToInt yearBytes, utf8ToInt weekBytes) is
+            (Ok year, Ok week) if week >= 1 && week <= 52  ->
+                Date.fromYw year week |> Ok
+            (_, _) -> Err InvalidDateFormat
+        _ -> Err InvalidDateFormat
+
 
 
 # <==== TESTS ====>

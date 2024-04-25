@@ -163,6 +163,8 @@ parseWeekDateReducedExtended = \bytes ->
             (_, _) -> Err InvalidDateFormat
         _ -> Err InvalidDateFormat
 
+# ALL ABOVE HERE TRANSITIONED TO DATE MODULE
+
 parseTimeFromStr: Str -> Result Time [InvalidTimeFormat]
 parseTimeFromStr = \str -> Str.toUtf8 str |> parseTimeFromU8
         
@@ -193,7 +195,7 @@ parseTimeFromU8 = \bytes ->
 combineTimeAndOffsetResults = \timeRes, offsetRes ->
     when (timeRes, offsetRes) is
         (Ok time, Ok offset) -> 
-            Duration.addTimeAndDuration time offset |> Ok
+            Time.addTimeAndDuration time offset |> Ok
         (_, _) -> Err InvalidTimeFormat
 
 parseWholeTime : List U8 -> Result Time [InvalidTimeFormat]
@@ -210,7 +212,7 @@ parseFractionalTime : List U8, List U8 -> Result Time [InvalidTimeFormat]
 parseFractionalTime = \wholeBytes, fractionalBytes ->
     combineDurationResAndTime = \durationRes, time ->
         when durationRes is
-            Ok duration -> Duration.addTimeAndDuration time duration |> Ok
+            Ok duration -> Time.addTimeAndDuration time duration |> Ok
             Err _ -> Err InvalidTimeFormat
     when (wholeBytes, utf8ToFrac fractionalBytes) is
         ([_,_], Ok frac) -> # hh
