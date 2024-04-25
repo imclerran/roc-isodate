@@ -13,12 +13,18 @@ interface Time
         fromNanosSinceMidnight,
         fromUtcTime,
         midnight,
+        normalize,
         Time,
         toNanosSinceMidnight,
         toUtcTime,
     ]
     imports [
         Const,
+        Const.{
+            nanosPerHour,
+            nanosPerMinute,
+            nanosPerSecond,
+        },
         Duration,
         Duration.{ Duration },
         UtcTime,
@@ -34,17 +40,28 @@ interface Time
         Unsafe.{ unwrap }, # for unit testing only
     ]
 
-Time : { hour : U8, minute : U8, second : U8, nanosecond : U32 }
+# TODO: update Time constructors and functions to allow negative times
+
+Time : { hour : I8, minute : U8, second : U8, nanosecond : U32 }
 
 midnight : Time
 midnight = { hour: 0, minute: 0, second: 0, nanosecond: 0 }
 
+normalize : Time -> Time
+normalize = \time -> 
+    hNormalized = time.hour |> Num.rem Const.hoursPerDay |> Num.add Const.hoursPerDay |> Num.rem Const.hoursPerDay
+    fromHmsn hNormalized time.minute time.second time.nanosecond
+
+expect Time.normalize (fromHms -1 0 0) == fromHms 23 0 0
+expect Time.normalize (fromHms 24 0 0) == fromHms 0 0 0
+expect Time.normalize (fromHms 25 0 0) == fromHms 1 0 0
+
 fromHms : Int *, Int *, Int * -> Time
-fromHms = \hour, minute, second -> { hour: Num.toU8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: 0u32 }
+fromHms = \hour, minute, second -> { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: 0u32 }
 
 fromHmsn : Int *, Int *, Int *, Int * -> Time
 fromHmsn = \hour, minute, second, nanosecond -> 
-    { hour: Num.toU8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
+    { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
 
 toUtcTime : Time -> UtcTime
 toUtcTime = \time ->
@@ -58,27 +75,29 @@ expect
     utc = toUtcTime (fromHmsn 12 34 56 5)
     utc == UtcTime.fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5)
 
+expect
+    utc = toUtcTime (fromHmsn -1 0 0 0)
+    utc == UtcTime.fromNanosSinceMidnight (-1 * Const.nanosPerHour) &&
+    UtcTime.toNanosSinceMidnight utc == -1 * Const.nanosPerHour
+
+# TODO: update fromUtcTime to handle negative times correctly
 fromUtcTime : UtcTime -> Time
 fromUtcTime = \utcTime ->
-    nanos1 = UtcTime.toNanosSinceMidnight utcTime |> Num.rem Const.nanosPerDay |> Num.add Const.nanosPerDay |> Num.rem Const.nanosPerDay |> Num.toU64
-    hour = (nanos1 // Const.nanosPerHour) % Const.hoursPerDay |> Num.toU8
-    nanos2 = nanos1 % Const.nanosPerHour
-    minute = nanos2 // Const.nanosPerMinute |> Num.toU8
-    nanos3 = nanos2 % Const.nanosPerMinute
-    second = nanos3 // Const.nanosPerSecond |> Num.toU8
-    nanosecond = nanos3 % Const.nanosPerSecond |> Num.toU32
-    { hour, minute, second, nanosecond }
-
-expect
-    utcTime = toUtcTime { hour: 12, minute: 34, second: 56, nanosecond: 5 }
-    utcTime == UtcTime.fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5 )
-
+    fromNanosSinceMidnight (UtcTime.toNanosSinceMidnight utcTime)
 
 toNanosSinceMidnight : Time -> I64
 toNanosSinceMidnight = \time -> UtcTime.toNanosSinceMidnight (toUtcTime time)
 
 fromNanosSinceMidnight : Int * -> Time
-fromNanosSinceMidnight = \nanos -> fromUtcTime (UtcTime.fromNanosSinceMidnight (Num.toI64 nanos))
+fromNanosSinceMidnight = \nanos -> 
+    nanos1 = nanos |> Num.rem Const.nanosPerDay |> Num.add Const.nanosPerDay |> Num.rem Const.nanosPerDay |> Num.toU64
+    nanos2 = nanos1 % nanosPerHour
+    minute = nanos2 // nanosPerMinute |> Num.toU8
+    nanos3 = nanos2 % nanosPerMinute
+    second = nanos3 // nanosPerSecond |> Num.toU8
+    nanosecond = nanos3 % nanosPerSecond |> Num.toU32
+    hour = (nanos - Num.intCast (Num.toI64 minute * nanosPerMinute + Num.toI64 second * nanosPerSecond + Num.toI64 nanosecond)) // nanosPerHour|> Num.toI8 #% Const.hoursPerDay |> Num.toI8
+    { hour, minute, second, nanosecond }
 
 addNanoseconds : Time, Int * -> Time
 addNanoseconds = \time, nanos ->
@@ -97,7 +116,7 @@ addDurationAndTime : Duration, Time -> Time
 addDurationAndTime = \duration, time -> 
     durationNanos = Duration.toNanoseconds duration
     timeNanos = toNanosSinceMidnight time |> Num.toI128
-    (durationNanos + timeNanos) % Const.nanosPerDay |> fromNanosSinceMidnight
+    (durationNanos + timeNanos) |> fromNanosSinceMidnight
 
 addTimeAndDuration : Time, Duration -> Time
 addTimeAndDuration = \time, duration -> addDurationAndTime duration time
@@ -270,10 +289,21 @@ expect addMinutes (fromHms 12 34 56) -59 == fromHms 11 35 56
 # <---- addHours ---->
 expect addHours (fromHms 12 34 56) 1 == fromHms 13 34 56
 expect addHours (fromHms 12 34 56) -1 == fromHms 11 34 56
-expect addHours (fromHms 12 34 56) 12 == fromHms 0 34 56
+expect addHours (fromHms 12 34 56) 12 == fromHms 24 34 56
 
 # <---- addTimeAndDuration ---->
 expect addTimeAndDuration (fromHms 0 0 0) (Duration.fromHours 1 |> unwrap "will not overflow") == fromHms 1 0 0
 
 # <---- fromNanosSinceMidnight ---->
-expect fromNanosSinceMidnight -123 == fromHmsn 23 59 59 999_999_877
+expect fromNanosSinceMidnight -123 == fromHmsn -1 59 59 999_999_877
+expect fromNanosSinceMidnight 0 == midnight
+expect fromNanosSinceMidnight (24 * Const.nanosPerHour) == fromHms 24 0 0
+expect fromNanosSinceMidnight (25 * nanosPerHour) == fromHms 25 0 0
+expect fromNanosSinceMidnight (12 * nanosPerHour + 34 * nanosPerMinute + 56 * nanosPerSecond + 5) == fromHmsn 12 34 56 5
+
+# <---- fromUtcTime ---->
+expect fromUtcTime (UtcTime.fromNanosSinceMidnight -123) == fromHmsn -1 59 59 999_999_877
+expect fromUtcTime (UtcTime.fromNanosSinceMidnight 0) == midnight
+expect fromUtcTime (UtcTime.fromNanosSinceMidnight (24 * Const.nanosPerHour)) == fromHms 24 0 0
+expect fromUtcTime (UtcTime.fromNanosSinceMidnight (25 * Const.nanosPerHour)) == fromHms 25 0 0
+expect toUtcTime { hour: 12, minute: 34, second: 56, nanosecond: 5 } == UtcTime.fromNanosSinceMidnight (12 * nanosPerHour + 34 * nanosPerMinute + 56 * nanosPerSecond + 5 )

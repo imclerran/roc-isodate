@@ -26,22 +26,55 @@ interface DateTime
     imports [
         Const,
         Date,
+        Date.{ Date },
         Duration,
         Duration.{ Duration },
         Time,
+        Time.{ Time },
+        Unsafe.{ unwrap }, # for unit testing only
         Utc,
         Utils.{
             splitUtf8AndKeepDelimiters,
         },
         Utc.{ Utc },
-        UtcTime,
-        Unsafe.{ unwrap }, # for unit testing only
+        UtcTime,    
     ]
 
-DateTime : { date : Date.Date, time : Time.Time }
+DateTime : { date : Date, time : Time }
 
 unixEpoch : DateTime
 unixEpoch = { date: Date.unixEpoch, time: Time.midnight }
+
+normalize : DateTime -> DateTime
+normalize = \dateTime ->
+    #>>> VARIATION (roc crash)
+    addHours { 
+        date: dateTime.date, 
+        time: (Time.fromHmsn 0 dateTime.time.minute dateTime.time.second dateTime.time.nanosecond),
+    } dateTime.time.hour
+    
+    #>>> VARIATION (rust panic)
+    # unNormedDate = Date.fromYd dateTime.date.year dateTime.date.dayOfYear # dateTime.date
+    # unNormedTime = Time.midnight
+    # { date: unNormedDate, time: unNormedTime } 
+    # |> addHours dateTime.time.hour 
+    # |> addMinutes dateTime.time.minute 
+    # |> addSeconds dateTime.time.second 
+    # |> addNanoseconds dateTime.time.nanosecond
+    #>>> VARIATION (rust panic)
+    # fromYd dateTime.date.year dateTime.date.dayOfYear
+    # |> addHours dateTime.time.hour 
+    # |> addMinutes dateTime.time.minute 
+    # |> addSeconds dateTime.time.second 
+    # |> addNanoseconds dateTime.time.nanosecond
+    #>>> VARIATION (rust panic)
+    # { date: (Date.fromYd dateTime.date.year dateTime.date.dayOfYear), time: Time.midnight } 
+    # |> addHours dateTime.time.hour 
+    # |> addMinutes dateTime.time.minute 
+    # |> addSeconds dateTime.time.second 
+    # |> addNanoseconds dateTime.time.nanosecond
+
+expect normalize (fromYmdhms 1970 1 2 -12 0 0) == fromYmdhms 1970 1 1 12 0 0
 
 fromYd : Int *, Int * -> DateTime
 fromYd = \year, day -> { date: Date.fromYd year day, time: Time.midnight }
@@ -103,7 +136,7 @@ addNanoseconds = \dateTime, nanos ->
     days = if timeNanos >= 0 
         then timeNanos // Const.nanosPerDay |> Num.toI64
         else timeNanos // Const.nanosPerDay |> Num.add (if timeNanos % Const.nanosPerDay < 0 then -1 else 0) |> Num.toI64
-    { date:  Date.addDays dateTime.date days, time: Time.fromNanosSinceMidnight timeNanos }
+    { date:  Date.addDays dateTime.date days, time: Time.fromNanosSinceMidnight timeNanos |> Time.normalize }
 
 addSeconds : DateTime, Int * -> DateTime
 addSeconds = \dateTime, seconds -> addNanoseconds dateTime (seconds * Const.nanosPerSecond)
@@ -143,7 +176,7 @@ fromIsoU8 = \bytes ->
             # TODO: currently cannot support timezone offsets which exceed or precede the current day
             when (Date.fromIsoU8 dateBytes, Time.fromIsoU8 timeBytes) is
                 (Ok date, Ok time) -> 
-                    { date, time } |> Ok
+                    { date, time } |> normalize |> Ok
                 (_, _) -> Err InvalidDateTimeFormat
         [dateBytes] -> 
             when (Date.fromIsoU8 dateBytes) is
@@ -154,7 +187,9 @@ fromIsoU8 = \bytes ->
 
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) 1 == fromYmdhmsn 1970 1 1 0 0 0 1
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerSecond == fromYmdhmsn 1970 1 1 0 0 1 0
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerDay == fromYmdhmsn 1970 1 2 0 0 0 0
+expect 
+    dt = addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerDay
+    dt == fromYmdhmsn 1970 1 2 0 0 0 0
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -1 == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -Const.nanosPerDay == fromYmdhmsn 1969 12 31 0 0 0 0
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) (-Const.nanosPerDay - 1) == fromYmdhmsn 1969 12 30 23 59 59 (Const.nanosPerSecond - 1)

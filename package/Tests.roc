@@ -2,6 +2,7 @@ interface Tests
     exposes []
     imports [
         Const.{
+            nanosPerDay,
             nanosPerHour,
             nanosPerMinute,
             nanosPerSecond,
@@ -533,14 +534,14 @@ expect Time.fromIsoStr "12:00:00-01:30" |> unwrap "Time.fromIsoStr '12:00:00-01:
 expect parseTimeFromStr "12.50+0030" == (12 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
 expect Time.fromIsoStr "12.50+0030" == Time.fromHms 12 0 0 |> Ok
 expect Time.fromIsoStr "12.50+0030" |> unwrap "Time.fromIsoStr '12.50+0030'" |> Time.toUtcTime == (12 * nanosPerHour) |> Num.toI64 |> UtcTime.fromNanosSinceMidnight
-# 126 *** Behavior diverges between parseTimeFromStr and Time.fromIsoStr (no times less than 00:00 in Time.fromIsoStr)
+# 126
 expect parseTimeFromStr "0000+1400" == (-14 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
-expect Time.fromIsoStr "0000+1400" == Time.fromHms 10 0 0 |> Ok
-expect Time.fromIsoStr "0000+1400" |> unwrap "Time.fromIsoStr '0000+1400'" |> Time.toUtcTime == (10 * nanosPerHour) |> Num.toI64 |> UtcTime.fromNanosSinceMidnight
-# 127 *** Behavior diverges between parseTimeFromStr and Time.fromIsoStr (no times over 24:00 in Time.fromIsoStr)
+expect Time.fromIsoStr "0000+1400" == Time.fromHms -14 0 0 |> Ok
+expect Time.fromIsoStr "0000+1400" |> unwrap "Time.fromIsoStr '0000+1400'" |> Time.toUtcTime == (-14 * nanosPerHour) |> Num.toI64 |> UtcTime.fromNanosSinceMidnight
+# 127
 expect parseTimeFromStr "T24-1200" == (36 * nanosPerHour) |> Num.toI64 |> fromNanosSinceMidnight |> Ok
-expect Time.fromIsoStr "T24-1200" == Time.fromHms 12 0 0 |> Ok
-expect Time.fromIsoStr "T24-1200" |> unwrap "Time.fromIsoStr 'T24-1200'" |> Time.toUtcTime == (12 * nanosPerHour) |> Num.toI64 |> UtcTime.fromNanosSinceMidnight
+expect Time.fromIsoStr "T24-1200" == Time.fromHms 36 0 0 |> Ok
+expect Time.fromIsoStr "T24-1200" |> unwrap "Time.fromIsoStr 'T24-1200'" |> Time.toUtcTime == (36 * nanosPerHour) |> Num.toI64 |> UtcTime.fromNanosSinceMidnight
 # 128
 expect parseTimeFromStr "1200+1401" == Err InvalidTimeFormat
 expect Time.fromIsoStr "1200+1401" == Err InvalidTimeFormat
@@ -561,9 +562,11 @@ expect parseDateTimeFromStr "2024-02-23T12:00:00+00:00" == (19_776 * Const.nanos
 expect DateTime.fromIsoStr "2024-02-23T12:00:00+00:00" == DateTime.fromYmdhms 2024 2 23 12 0 0 |> Ok
 expect DateTime.fromIsoStr "2024-02-23T12:00:00+00:00" |> unwrap "DateTime.fromIsoStr '2024-02-23T12:00:00+00:00'" |> DateTime.toUtc == Utc.fromNanosSinceEpoch (19_776 * secondsPerDay * nanosPerSecond + 12 * nanosPerHour)
 # 133
-expect parseDateTimeFromStr "2024-02-23T00:00:00+14" == (19_776 * secondsPerDay * nanosPerSecond - 14 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
-expect DateTime.fromIsoStr "2024-02-23T00:00:00+14" == DateTime.fromYmdhms 2024 2 22 10 0 0 |> Ok
-expect DateTime.fromIsoStr "2024-02-23T00:00:00+14" |> unwrap "DateTime.fromIsoStr '2024-02-23T00:00:00+14'" |> DateTime.toUtc == Utc.fromNanosSinceEpoch (19_776 * secondsPerDay * nanosPerSecond - 14 * nanosPerHour)
+expect parseDateTimeFromStr "2024-02-23T00:00:00+14" == (19_776 * nanosPerDay - 14 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect 
+    dt = DateTime.fromIsoStr "2024-02-23T00:00:00+14" 
+    dt == DateTime.fromYmdhms 2024 2 22 10 0 0 |> Ok
+expect DateTime.fromIsoStr "2024-02-23T00:00:00+14" |> unwrap "DateTime.fromIsoStr '2024-02-23T00:00:00+14'" |> DateTime.toUtc == Utc.fromNanosSinceEpoch (19_776 * nanosPerDay - 14 * nanosPerHour)
 # 134
 expect parseDateTimeFromStr "2024-02-23T23:59:59-12" == (19_776 * secondsPerDay * nanosPerSecond + (Const.nanosPerDay - 1 * nanosPerSecond) + 12 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 expect DateTime.fromIsoStr "2024-02-23T23:59:59-12" == DateTime.fromYmdhms 2024 2 23 23 59 59 |> Ok
