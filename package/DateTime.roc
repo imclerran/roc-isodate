@@ -9,6 +9,8 @@ interface DateTime
         addNanoseconds,
         addSeconds,
         addYears,
+        fromIsoStr,
+        fromIsoU8,
         fromNanosSinceEpoch,
         fromUtc,
         fromYd,
@@ -28,6 +30,9 @@ interface DateTime
         Duration.{ Duration },
         Time,
         Utc,
+        Utils.{
+            splitUtf8AndKeepDelimiters,
+        },
         Utc.{ Utc },
         UtcTime,
         Unsafe.{ unwrap }, # for unit testing only
@@ -127,7 +132,24 @@ addDurationAndDateTime = \duration, dateTime ->
 
 addDateTimeAndDuration : DateTime, Duration -> DateTime
 addDateTimeAndDuration = \dateTime, duration -> addDurationAndDateTime duration dateTime
-    
+
+fromIsoStr : Str -> Result DateTime [InvalidDateTimeFormat]
+fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
+
+fromIsoU8 : List U8 -> Result DateTime [InvalidDateTimeFormat]
+fromIsoU8 = \bytes ->
+    when splitUtf8AndKeepDelimiters bytes ['T'] is
+        [dateBytes, ['T'], timeBytes] ->
+            # TODO: currently cannot support timezone offsets which exceed or precede the current day
+            when (Date.fromIsoU8 dateBytes, Time.fromIsoU8 timeBytes) is
+                (Ok date, Ok time) -> 
+                    { date, time } |> Ok
+                (_, _) -> Err InvalidDateTimeFormat
+        [dateBytes] -> 
+            when (Date.fromIsoU8 dateBytes) is
+                Ok date -> { date, time: Time.fromHms 0 0 0 } |> Ok
+                Err _ -> Err InvalidDateTimeFormat
+        _ -> Err InvalidDateTimeFormat
 
 
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) 1 == fromYmdhmsn 1970 1 1 0 0 0 1
