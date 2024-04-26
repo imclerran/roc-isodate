@@ -31,7 +31,6 @@ interface Date
             utf8ToInt,
             utf8ToIntSigned,
             validateUtf8SingleBytes,
-            ymdToDaysInYear,
         },
         Unsafe.{ unwrap }, # for unit testing only
     ]
@@ -62,6 +61,14 @@ walkUntilMonthFunc = \state, currMonthDays ->
 fromYmd : Int *, Int *, Int * -> Date
 fromYmd =\year, month, day -> 
     { year: Num.toI64 year, month: Num.toU8 month, dayOfMonth: Num.toU8 day, dayOfYear: ymdToDaysInYear year month day }
+
+ymdToDaysInYear : Int *, Int *, Int * -> U16
+ymdToDaysInYear = \year, month, day ->
+    List.range { start: At 0, end: Before month }
+    |> List.map \m -> Const.monthDays {month: Num.toU64 m, isLeap: isLeapYear year}
+    |> List.sum
+    |> Num.add (Num.toU64 day)
+    |> Num.toU16
 
 fromYwd : Int *, Int *, Int * -> Date
 fromYwd = \year, week, day ->
@@ -362,3 +369,8 @@ expect addDays unixEpoch (-365 - 366) == fromYmd 1968 1 1
 
 # <---- addDateAndDuration ---->
 expect addDateAndDuration unixEpoch (Duration.fromDays 1 |> unwrap "will not overflow") == fromYmd 1970 1 2
+
+# <---- ymdToDaysInYear ---->
+expect ymdToDaysInYear 1970 1 1 == 1
+expect ymdToDaysInYear 1970 12 31 == 365
+expect ymdToDaysInYear 1972 3 1 == 61

@@ -14,7 +14,6 @@ interface Utils
         utf8ToInt,
         utf8ToIntSigned,
         validateUtf8SingleBytes,
-        ymdToDaysInYear,
     ]
     imports [
         Const.{
@@ -195,11 +194,3 @@ calendarWeekToDaysInYear = \week, year->
         0
     else
         (w - 1) * daysPerWeek + lengthOfMaybeFirstWeek
-
-ymdToDaysInYear : Int *, Int *, Int * -> U16
-ymdToDaysInYear = \year, month, day ->
-    List.range { start: At 0, end: Before month }
-    |> List.map \m -> monthDays {month: Num.toU64 m, isLeap: isLeapYear year}
-    |> List.sum
-    |> Num.add (Num.toU64 day)
-    |> Num.toU16
