@@ -569,6 +569,10 @@ expect DateTime.fromIsoStr "2024-02-23T00:00:00+14" |> unwrap "DateTime.fromIsoS
 expect parseDateTimeFromStr "2024-02-23T23:59:59-12" == (19_776 * Const.nanosPerDay + (Const.nanosPerDay - 1 * nanosPerSecond) + 12 * nanosPerHour) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
 expect DateTime.fromIsoStr "2024-02-23T23:59:59-12" == DateTime.fromYmdhms 2024 2 24 11 59 59 |> Ok
 expect DateTime.fromIsoStr "2024-02-23T23:59:59-12" |> unwrap "DateTime.fromIsoStr '2024-02-23T23:59:59-12'" |> DateTime.toUtc == Utc.fromNanosSinceEpoch (19_776 * Const.nanosPerDay + (Const.nanosPerDay - 1 * nanosPerSecond) + 12 * nanosPerHour)
+# 135
+expect parseDateTimeFromStr "2024-02-23T12:00:00+01:30" == (19_776 * Const.nanosPerDay + 10 * nanosPerHour + 30 * nanosPerMinute) |> Num.toI128 |> fromNanosSinceEpoch |> Ok
+expect DateTime.fromIsoStr "2024-02-23T12:00:00+01:30" == DateTime.fromYmdhms 2024 2 23 10 30 0 |> Ok
+expect DateTime.fromIsoStr "2024-02-23T12:00:00+01:30" |> unwrap "DateTime.fromIsoStr '2024-02-23T12:00:00+01:30'" |> DateTime.toUtc == Utc.fromNanosSinceEpoch (19_776 * Const.nanosPerDay + 10 * nanosPerHour + 30 * nanosPerMinute)
 
 
 # <==== Utils.roc ====>
