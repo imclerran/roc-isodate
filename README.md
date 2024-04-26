@@ -24,9 +24,43 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
   - With this comes a slew of features: Times, Dates, DateTimes, and Durations.
   - Functionality to convert between the above DateTime types, and Utc types.
   - __This means the Library is expanding to be more of a universal DateTime library, and not just for ISO parsing!__ 🚀
-- Time interval representations are the next planned feature.
+- Time interval representations will be added once the parsing to Date/Time/DateTime is complete.
 - Once Parsing is complete, add formatting dates and times to ISO strings.
 - Research adding custom encoding/decoding for json parsers.
+
+## Planned API
+To simplify the API, the plan is to reduce the package exports to the various date and time types. Thus, the library will simply provide a collection of types for working with dates. Each of these types will provide all the necessary functions for interacting with it, including functions for converting to and from ISO strings, and converting to and from Utc types.
+
+Thus, an application might look like the following:
+```roc
+App "MyDateApp"
+    packages {
+        pf: "https://github.com/roc-lang/basic-cli/releases/download/0.9.0/oKWkaruh2zXxin_xfsYsCJobH1tO8_JvNkFzDwwzNUQ.tar.br"
+        dt: "https://github.com/imclerran/Roc-IsoDate/releases/download/v0.2.2/xltugTSJABqhNB-sqjutGTJOkBMqHy2uHLr-fri4FGo.tar.br"
+    }
+    imports [
+        dt.DateTime,
+        pf.Utc,
+        pf.Stdout,
+        pf.Task,
+    ]
+    provides [main] to pf
+
+main =
+    utcNow <- Task.await Utc.now
+    dtNow = DateTime.fromUtc utcNow # Convert Utc to DateTime easily
+    dtEpoch = DateTime.unixEpoch # Constructor for the epoch
+    dtSomeTime = DateTime.fromIsoStr "2024-04-19T11:31:41.329515-05:00" # parse a DateTime from ISO str easily
+    utcSomeTime = DateTime.toUtc dtSomeTime # DateTime can be parsed to utc easily
+    nanosSomeTime = Utc.toNanosSinceEpoch utcSomeTime
+    
+    Stdout.line "ISO epoch: $(DateTime.toIsoStr dtEpoch)" |> Task.await
+    Stdout.line "Time now: $(Num.toStr dtNow.time.hour):$(Num.toStr dtNow.time.minute):$(Num.toStr dtNow.time.second)" |> Task.await
+    Stdout.line "Month some time: $(Num.toStr dtSomeTime.date.month)" |> Task.await
+    Stdout.line "Utc nanos some time: $(Num.toStr nanosSomeTime)" |> Task.await
+```
+
+This is just a small sample of the available functionality, but meant to demonstrate the general design of the API. Moving to and from computer-friendly representations like `Utc`, web-friendly representations like ISO `Str`s, and human friendly representations like `DateTime` are all just a single function call away.  `Durations` and `TimeInterval`s will add additional quality of life functionality for easily manipulating dates and times.
 
 ## Known Issues
 - Missing features mentioned above.
