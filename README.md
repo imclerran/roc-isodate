@@ -33,10 +33,10 @@ To extend functionality and simplify the API, library *now* simply provides a co
 
 Thus, an application might look like the following:
 ```roc
-App "MyDateApp"
+app "MyDateApp"
     packages {
-        pf: "https://github.com/roc-lang/basic-cli/releases/download/0.9.0/oKWkaruh2zXxin_xfsYsCJobH1tO8_JvNkFzDwwzNUQ.tar.br"
-        dt: "https://github.com/imclerran/Roc-IsoDate/releases/download/v0.3.0/GLLnv2LpABZzVYHlata79rpfaF_bJaxsbYMLtk-mF_w.tar.br"
+        pf: "https://github.com/roc-lang/basic-cli/releases/download/0.9.0/oKWkaruh2zXxin_xfsYsCJobH1tO8_JvNkFzDwwzNUQ.tar.br",
+        dt: "https://github.com/imclerran/Roc-IsoDate/releases/download/v0.3.0/GLLnv2LpABZzVYHlata79rpfaF_bJaxsbYMLtk-mF_w.tar.br",
 
     }
     imports [
@@ -53,14 +53,20 @@ main =
     dtNow = DateTime.fromUtc utcNow # Convert Utc to DateTime easily
     dtEpoch = DateTime.unixEpoch # Constructor for the epoch
     dtSomeTime = DateTime.fromIsoStr "2024-04-19T11:31:41.329515-05:00" # parse a DateTime from ISO str easily
-    dtLaterDate = dtSometime |> DateTime.addDateTimeAndDuration (Duration.fromHours 25)
+    dtLaterDate = dtSomeTime |> DateTime.addDateTimeAndDuration (Duration.fromHours 25 |> unwrap "25 hours should not overflow") # Add a duration to a DateTime easily
     utcLaterDate = DateTime.toUtc dtSomeTime # DateTime can be parsed to utc easily
     nanosLaterDate = Utc.toNanosSinceEpoch utcLaterDate
     
     Stdout.line "ISO epoch: $(DateTime.toIsoStr dtEpoch)" |> Task.await
     Stdout.line "Time now: $(Num.toStr dtNow.time.hour):$(Num.toStr dtNow.time.minute):$(Num.toStr dtNow.time.second)" |> Task.await
     Stdout.line "Day some time: $(Num.toStr dtSomeTime.date.day)" |> Task.await
-    Stdout.line "Utc nanos later date: $(Num.toStr nanosSomeTime)" |> Task.await
+    Stdout.line "Utc nanos later date: $(Num.toStr nanosLaterDate)" |> Task.await
+
+unwrap : Result a _, Str -> a
+unwrap = \x, message ->
+    when x is
+        Ok v -> v
+        Err _ -> crash message
 ```
 
 This is just a small sample of the available functionality, but meant to demonstrate the general design of the API. Moving to and from computer-friendly representations like `Utc`, web-friendly representations like ISO `Str`s, and human friendly representations like `DateTime` are all just a single function call away. `Durations` and `TimeInterval`s also add quality of life functionality for easily manipulating dates and times.
