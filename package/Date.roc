@@ -24,8 +24,6 @@ interface Date
         Duration.{ Duration },
         Utc,
         Utils.{
-            isLeapYear,
-            numDaysSinceEpoch,
             splitListAtIndices,
             utf8ToInt,
             utf8ToIntSigned,
@@ -49,6 +47,11 @@ ydToYmdd = \year, dayOfYear ->
     |> List.map \m -> Const.monthDays { month: Num.toU64 m, isLeap: isLeapYear year }
     |> List.walkUntil { daysRemaining: Num.toU16 dayOfYear, month: 1 } walkUntilMonthFunc
     |> \result -> { year: Num.toI64 year, month: Num.toU8 result.month, dayOfMonth: Num.toU8 result.daysRemaining, dayOfYear: Num.toU16 dayOfYear }
+
+isLeapYear = \year ->
+    (year % Const.leapInterval == 0 &&
+    year % Const.leapException != 0) || 
+    year % Const.leapNonException == 0
 
 walkUntilMonthFunc : { daysRemaining: U16, month: U8 }, U64 -> [Break { daysRemaining: U16, month: U8 }, Continue { daysRemaining: U16, month: U8 }]
 walkUntilMonthFunc = \state, currMonthDays ->
@@ -86,13 +89,41 @@ calendarWeekToDaysInYear = \week, year->
     w = week |> Num.toU64
     lengthOfMaybeFirstWeek = 
         if y >= Const.epochYear then 
-            Const.epochWeekOffset - (Utils.numDaysSinceEpochToYear y |> Num.toU64) % 7
+            Const.epochWeekOffset - (numDaysSinceEpochUntilYear (Num.toI64 y) |> Num.toU64) % 7
         else
-            (Const.epochWeekOffset + (Utils.numDaysSinceEpochToYear y |> Num.abs |> Num.toU64)) % 7
+            (Const.epochWeekOffset + (numDaysSinceEpochUntilYear (Num.toI64 y) |> Num.abs |> Num.toU64)) % 7
     if lengthOfMaybeFirstWeek >= 4 && w == 1 then
         0
     else
         (w - 1) * Const.daysPerWeek + lengthOfMaybeFirstWeek
+
+numLeapYearsSinceEpoch : I64, [IncludeCurrent, ExcludeCurrent] -> I64
+numLeapYearsSinceEpoch = \year, inclusive ->
+    leapIncr = isLeapYear year |> \isLeap -> if isLeap && inclusive == IncludeCurrent then 1 else 0
+    nextYear = if year > Const.epochYear then year - 1 else year + 1
+    when inclusive is
+        ExcludeCurrent if year != Const.epochYear -> numLeapYearsSinceEpoch nextYear IncludeCurrent
+        ExcludeCurrent -> 0
+        IncludeCurrent if year != Const.epochYear -> leapIncr + numLeapYearsSinceEpoch nextYear inclusive
+        IncludeCurrent -> leapIncr
+
+numDaysSinceEpoch: Date -> I64
+numDaysSinceEpoch = \date ->
+    numLeapYears = numLeapYearsSinceEpoch date.year ExcludeCurrent
+    getMonthDays = \m -> Const.monthDays {month: m, isLeap: isLeapYear date.year}
+    if date.year >= Const.epochYear then
+        daysInYears = numLeapYears * 366 + (date.year - Const.epochYear - numLeapYears) * 365
+        List.map (List.range { start: At 1, end: Before date.month }) getMonthDays
+            |> List.sum |> Num.toI64 |> Num.add (daysInYears + Num.toI64 date.dayOfMonth - 1)
+    else
+        daysInYears = numLeapYears * 366 + (Const.epochYear - date.year - numLeapYears - 1) * 365
+        List.map (List.range { start: After date.month, end: At 12 }) getMonthDays
+            |> List.sum |> Num.toI64 
+            |> Num.add (daysInYears + Num.toI64 (getMonthDays date.month) - Num.toI64 date.dayOfMonth + 1) 
+            |> Num.mul -1
+
+numDaysSinceEpochUntilYear = \year ->
+    numDaysSinceEpoch {year, month: 1, dayOfMonth: 1, dayOfYear: 1}
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
@@ -107,9 +138,9 @@ fromUtc =\utc ->
 fromUtcHelper : I128, I64 -> Date
 fromUtcHelper =\days, year ->
     if days < 0 then
-        fromUtcHelper (days + if Utils.isLeapYear (year - 1) then 366 else 365) (year - 1)
+        fromUtcHelper (days + if isLeapYear (year - 1) then 366 else 365) (year - 1)
     else
-        daysInYear = if Utils.isLeapYear year then 366 else 365
+        daysInYear = if isLeapYear year then 366 else 365
         if days >= daysInYear then
             fromUtcHelper (days - daysInYear) (year + 1)
         else
@@ -117,7 +148,7 @@ fromUtcHelper =\days, year ->
 
 toUtc : Date -> Utc.Utc
 toUtc =\date ->
-    days = numDaysSinceEpoch {year: date.year |> Num.toU64, month: 1, day: 1} + (date.dayOfYear - 1 |> Num.toI64)
+    days = numDaysSinceEpoch date
     Utc.fromNanosSinceEpoch (days |> Num.toI128 |> Num.mul (Const.nanosPerHour * 24))
 
 toNanosSinceEpoch : Date -> I128
@@ -309,6 +340,26 @@ expect calendarWeekToDaysInYear 1 1971 == 3
 expect calendarWeekToDaysInYear 1 1972 == 2
 expect calendarWeekToDaysInYear 1 1973 == 0
 expect calendarWeekToDaysInYear 2 2024 == 7
+
+# <---- numDaysSinceEpoch ---->
+expect numDaysSinceEpoch (fromYmd 2024 1 1) == 19723 # Removed due to compiler bug with optional record fields
+expect numDaysSinceEpoch (fromYmd 1970 12 31) == 365 - 1
+expect numDaysSinceEpoch (fromYmd 1971 1 2 ) == 365 + 1
+expect numDaysSinceEpoch (fromYmd 2024 1 1) == 19723
+expect numDaysSinceEpoch (fromYmd 2024 2 1) == 19723 + 31
+expect numDaysSinceEpoch (fromYmd 2024 12 31) == 19723 + 366 - 1
+expect numDaysSinceEpoch (fromYmd 1969 12 31) == -1
+expect numDaysSinceEpoch (fromYmd 1969 12 30) == -2
+expect numDaysSinceEpoch (fromYmd 1969 1 1) == -365
+expect numDaysSinceEpoch (fromYmd 1968 1 1) == -365 - 366
+
+# <---- numDaysSinceEpochToYear ---->
+expect numDaysSinceEpochUntilYear 1968 == -365 - 366
+expect numDaysSinceEpochUntilYear 1970 == 0
+expect numDaysSinceEpochUntilYear 1971 == 365
+expect numDaysSinceEpochUntilYear 1972 == 365 + 365
+expect numDaysSinceEpochUntilYear 1973 == 365 + 365 + 366
+expect numDaysSinceEpochUntilYear 2024 == 19723
 
 # <---- fromYmd ---->
 expect fromYmd 1970 1 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }

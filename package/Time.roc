@@ -32,7 +32,6 @@ interface Time
         Utils.{
             splitListAtIndices,
             splitUtf8AndKeepDelimiters,
-            stripTandZ,
             utf8ToFrac,
             utf8ToIntSigned,
             validateUtf8SingleBytes,
@@ -120,6 +119,13 @@ addDurationAndTime = \duration, time ->
 
 addTimeAndDuration : Time, Duration -> Time
 addTimeAndDuration = \time, duration -> addDurationAndTime duration time
+
+stripTandZ : List U8 -> List U8
+stripTandZ = \bytes ->
+    when bytes is
+        ['T', .. as tail] -> stripTandZ tail
+        [.. as head, 'Z'] -> head
+        _ -> bytes
 
 fromIsoStr: Str -> Result Time [InvalidTimeFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8

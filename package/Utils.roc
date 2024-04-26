@@ -1,32 +1,14 @@
 interface Utils
     exposes [
-        daysToNanos,
         findDecimalIndex,
-        isLeapYear,
-        numDaysSinceEpoch,
-        numDaysSinceEpochToYear,
         splitListAtIndices,
         splitUtf8AndKeepDelimiters,
-        stripTandZ,
-        timeToNanos,
         utf8ToFrac,
         utf8ToInt,
         utf8ToIntSigned,
         validateUtf8SingleBytes,
     ]
-    imports [
-        Const.{
-            epochYear,
-            leapException,
-            leapInterval,
-            leapNonException,
-            monthDays,
-            nanosPerSecond,
-            secondsPerDay,
-            secondsPerHour,
-            secondsPerMinute,
-        },
-    ]
+    imports []
 
 splitListAtIndices : List a, List U8 -> List (List a)
 splitListAtIndices = \list, indices ->
@@ -128,50 +110,4 @@ moveDecimalPoint = \num, digits ->
     when digits is
         0 -> num
         _ -> (moveDecimalPoint num (digits - 1)) / 10
-
-stripTandZ : List U8 -> List U8
-stripTandZ = \bytes ->
-    when bytes is
-        ['T', .. as tail] -> stripTandZ tail
-        [.. as head, 'Z'] -> head
-        _ -> bytes
-
-isLeapYear = \year ->
-    (year % leapInterval == 0 &&
-    year % leapException != 0) || 
-    year % leapNonException == 0
-
-numLeapYearsSinceEpoch : U64, [IncludeCurrent, ExcludeCurrent] -> U64
-numLeapYearsSinceEpoch = \year, inclusive ->
-    leapIncr = isLeapYear year |> \isLeap -> if isLeap && inclusive == IncludeCurrent then 1 else 0
-    nextYear = if year > epochYear then year - 1 else year + 1
-    when inclusive is
-        ExcludeCurrent if year != epochYear -> numLeapYearsSinceEpoch nextYear IncludeCurrent
-        ExcludeCurrent -> 0
-        IncludeCurrent if year != epochYear -> leapIncr + numLeapYearsSinceEpoch nextYear inclusive
-        IncludeCurrent -> leapIncr
-
-numDaysSinceEpoch: {year: U64, month? U64, day? U64} -> I64
-numDaysSinceEpoch = \{year, month? 1, day? 1} ->
-    numLeapYears = numLeapYearsSinceEpoch year ExcludeCurrent
-    getMonthDays = \m -> monthDays {month: m, isLeap: isLeapYear year}
-    if year >= epochYear then
-        daysInYears = numLeapYears * 366 + (year - epochYear - numLeapYears) * 365
-        List.map (List.range { start: At 1, end: Before month }) getMonthDays
-            |> List.sum |> Num.add (daysInYears + day - 1) |> Num.toI64
-    else
-        daysInYears = numLeapYears * 366 + (epochYear - year - numLeapYears - 1) * 365
-        List.map (List.range { start: After month, end: At 12 }) getMonthDays
-            |> List.sum |> Num.add (daysInYears + (getMonthDays month) - day + 1) 
-            |> Num.toI64 |> Num.mul -1
-
-# TODO: rename to numDaysSinceEpochUntilYear
-numDaysSinceEpochToYear = \year ->
-    numDaysSinceEpoch {year, month: 1, day: 1}
-
-daysToNanos = \days ->
-    days * secondsPerDay * nanosPerSecond |> Num.toI128    
-
-timeToNanos : {hour: I64, minute: I64, second: I64} -> I64
-timeToNanos = \{hour, minute, second} ->
-    (hour * secondsPerHour + minute * secondsPerMinute + second) * nanosPerSecond
+  
