@@ -36,7 +36,8 @@ Thus, an application might look like the following:
 App "MyDateApp"
     packages {
         pf: "https://github.com/roc-lang/basic-cli/releases/download/0.9.0/oKWkaruh2zXxin_xfsYsCJobH1tO8_JvNkFzDwwzNUQ.tar.br"
-        dt: "https://github.com/imclerran/Roc-IsoDate/releases/download/v0.2.2/xltugTSJABqhNB-sqjutGTJOkBMqHy2uHLr-fri4FGo.tar.br"
+        dt: "https://github.com/imclerran/Roc-IsoDate/releases/download/v0.3.0/GLLnv2LpABZzVYHlata79rpfaF_bJaxsbYMLtk-mF_w.tar.br"
+
     }
     imports [
         dt.DateTime,
