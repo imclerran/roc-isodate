@@ -1,3 +1,5 @@
+## DEPRECATED: `Date`, `Time`, and `DateTime` now provide parsing from ISO 8601 strings 
+## and conversion to `Utc` / `UtcTime`
 interface IsoToUtc
     exposes [
         parseDateFromStr,
