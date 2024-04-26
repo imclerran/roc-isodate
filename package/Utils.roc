@@ -1,6 +1,5 @@
 interface Utils
     exposes [
-        calendarWeekToDaysInYear,
         daysToNanos,
         findDecimalIndex,
         isLeapYear,
@@ -17,9 +16,7 @@ interface Utils
     ]
     imports [
         Const.{
-            epochYear, 
-            epochWeekOffset,
-            daysPerWeek,
+            epochYear,
             leapException,
             leapInterval,
             leapNonException,
@@ -178,19 +175,3 @@ daysToNanos = \days ->
 timeToNanos : {hour: I64, minute: I64, second: I64} -> I64
 timeToNanos = \{hour, minute, second} ->
     (hour * secondsPerHour + minute * secondsPerMinute + second) * nanosPerSecond
-
-calendarWeekToDaysInYear : Int *, Int * -> U64
-calendarWeekToDaysInYear = \week, year->
-    # Week 1 of a year is the first week with a majority of its days in that year
-    # https://en.wikipedia.org/wiki/ISO_week_date#First_week
-    y = year |> Num.toU64
-    w = week |> Num.toU64
-    lengthOfMaybeFirstWeek = 
-        if y >= epochYear then 
-            epochWeekOffset - (numDaysSinceEpochToYear y |> Num.toU64) % 7
-        else
-            (epochWeekOffset + (numDaysSinceEpochToYear y |> Num.abs |> Num.toU64)) % 7
-    if lengthOfMaybeFirstWeek >= 4 && w == 1 then
-        0
-    else
-        (w - 1) * daysPerWeek + lengthOfMaybeFirstWeek

@@ -24,7 +24,6 @@ interface Date
         Duration.{ Duration },
         Utc,
         Utils.{
-            calendarWeekToDaysInYear,
             isLeapYear,
             numDaysSinceEpoch,
             splitListAtIndices,
@@ -78,6 +77,22 @@ fromYwd = \year, week, day ->
         ydToYmdd (year + 1) (d - daysInYear)
     else
         ydToYmdd year d
+
+calendarWeekToDaysInYear : Int *, Int * -> U64
+calendarWeekToDaysInYear = \week, year->
+    # Week 1 of a year is the first week with a majority of its days in that year
+    # https://en.wikipedia.org/wiki/ISO_week_date#First_week
+    y = year |> Num.toU64
+    w = week |> Num.toU64
+    lengthOfMaybeFirstWeek = 
+        if y >= Const.epochYear then 
+            Const.epochWeekOffset - (Utils.numDaysSinceEpochToYear y |> Num.toU64) % 7
+        else
+            (Const.epochWeekOffset + (Utils.numDaysSinceEpochToYear y |> Num.abs |> Num.toU64)) % 7
+    if lengthOfMaybeFirstWeek >= 4 && w == 1 then
+        0
+    else
+        (w - 1) * Const.daysPerWeek + lengthOfMaybeFirstWeek
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
@@ -285,6 +300,15 @@ expect ydToYmdd 1970 31 == { year: 1970, month: 1, dayOfMonth: 31, dayOfYear: 31
 expect ydToYmdd 1970 32 == { year: 1970, month: 2, dayOfMonth: 1, dayOfYear: 32 }
 expect ydToYmdd 1970 60 == { year: 1970, month: 3, dayOfMonth: 1, dayOfYear: 60 }
 expect ydToYmdd 1972 61 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 }
+
+# <---- calendarWeekToDaysInYear ---->
+expect calendarWeekToDaysInYear 1 1965 == 3
+expect calendarWeekToDaysInYear 1 1964 == 0
+expect calendarWeekToDaysInYear 1 1970  == 0
+expect calendarWeekToDaysInYear 1 1971 == 3
+expect calendarWeekToDaysInYear 1 1972 == 2
+expect calendarWeekToDaysInYear 1 1973 == 0
+expect calendarWeekToDaysInYear 2 2024 == 7
 
 # <---- fromYmd ---->
 expect fromYmd 1970 1 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }

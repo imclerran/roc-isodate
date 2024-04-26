@@ -23,7 +23,6 @@ interface Tests
             fromNanosSinceMidnight,
         },
         Utils.{
-            calendarWeekToDaysInYear,
             numDaysSinceEpoch,
             numDaysSinceEpochToYear,
             splitListAtIndices,
@@ -520,12 +519,3 @@ expect numDaysSinceEpochToYear 1971 == 365
 expect numDaysSinceEpochToYear 1972 == 365 + 365
 expect numDaysSinceEpochToYear 1973 == 365 + 365 + 366
 expect numDaysSinceEpochToYear 2024 == 19723
-
-# <---- calendarWeekToDaysInYear ---->
-expect calendarWeekToDaysInYear 1 1965 == 3
-expect calendarWeekToDaysInYear 1 1964 == 0
-expect calendarWeekToDaysInYear 1 1970  == 0
-expect calendarWeekToDaysInYear 1 1971 == 3
-expect calendarWeekToDaysInYear 1 1972 == 2
-expect calendarWeekToDaysInYear 1 1973 == 0
-expect calendarWeekToDaysInYear 2 2024 == 7
