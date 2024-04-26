@@ -7,10 +7,14 @@ interface Const
         epochMonth,
         epochWeekOffset,
         epochYear,
+        hoursPerDay,
         leapException,
         leapInterval,
         leapNonException,
+        minutesPerDay,
+        minutesPerHour,
         monthDays,
+        nanosPerDay,
         nanosPerHour,
         nanosPerMilli,
         nanosPerMinute,
@@ -28,10 +32,16 @@ epochMonth = 1
 epochDay = 1
 epochWeekOffset = 4
 
-nanosPerHour = 3_600_000_000_000
-nanosPerMinute = 60_000_000_000
-nanosPerSecond = 1_000_000_000
+hoursPerDay = 24
+
+minutesPerHour = 60
+minutesPerDay = hoursPerDay * minutesPerHour
+
 nanosPerMilli = 1_000_000
+nanosPerSecond = 1_000_000_000
+nanosPerMinute = 60 * nanosPerSecond
+nanosPerHour = 60 * nanosPerMinute
+nanosPerDay = 24 * nanosPerHour
 
 secondsPerMinute = 60
 secondsPerHour = 3600
@@ -47,7 +57,7 @@ daysPerLeapYear = 366
 daysPerWeek = 7
 weeksPerYear = 52
 
-monthDays : {month: U64, isLeap? Bool} -> U64
+monthDays : {month: Int *, isLeap? Bool} -> U64
 monthDays = \{month, isLeap? Bool.false} ->
     when month is
         1 | 3 | 5 | 7 | 8 | 10 | 12 -> 31
