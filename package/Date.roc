@@ -14,6 +14,8 @@ interface Date
         fromYmd,
         fromYw,
         fromYwd,
+        toIsoStr,
+        toIsoU8,
         toNanosSinceEpoch,
         toUtc,
         unixEpoch,
@@ -24,6 +26,7 @@ interface Date
         Duration.{ Duration },
         Utc,
         Utils.{
+            expandIntWithZeros,
             splitListAtIndices,
             utf8ToInt,
             utf8ToIntSigned,
@@ -196,6 +199,15 @@ addDurationAndDate = \duration, date ->
 
 addDateAndDuration : Date, Duration -> Date
 addDateAndDuration = \date, duration -> addDurationAndDate duration date
+
+toIsoStr : Date -> Str
+toIsoStr = \date -> 
+    expandIntWithZeros date.year 4 |> Str.concat "-"
+    |> Str.concat (expandIntWithZeros date.month 2) |> Str.concat "-"
+    |> Str.concat (expandIntWithZeros date.dayOfMonth 2)
+
+toIsoU8 : Date -> List U8
+toIsoU8 = \date -> toIsoStr date |> Str.toUtf8
 
 fromIsoStr: Str -> Result Date [InvalidDateFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
@@ -427,6 +439,9 @@ expect
 expect
     utc = toUtc { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 }
     utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366)
+
+# <---- toIsoStr ---->
+expect toIsoStr unixEpoch == "1970-01-01"
 
 # <---- addMonths ---->
 expect addMonths unixEpoch 12 == fromYmd 1971 1 1

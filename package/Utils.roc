@@ -1,6 +1,8 @@
 interface Utils
     exposes [
+        expandIntWithZeros,
         findDecimalIndex,
+        padLeft,
         splitListAtIndices,
         splitUtf8AndKeepDelimiters,
         utf8ToFrac,
@@ -110,4 +112,23 @@ moveDecimalPoint = \num, digits ->
     when digits is
         0 -> num
         _ -> (moveDecimalPoint num (digits - 1)) / 10
+
+padLeft : Str, U8, U64 -> Str
+padLeft = \str, padChar, targetLength ->
+    strlen = Str.countUtf8Bytes str
+    padLength = if targetLength > strlen then targetLength - strlen else 0
+    when List.repeat padChar padLength |> Str.fromUtf8 is
+        Ok padStr -> Str.concat padStr str
+        Err _ -> Str.repeat " " padLength |> Str.concat str
+
+expect padLeft "123" ' ' 5 == "  123"
+expect padLeft "123" ' ' 2 == "123"
+
+expandIntWithZeros : Int *, U64 -> Str
+expandIntWithZeros = \num, targetLength ->
+    num |> Num.toStr |> padLeft '0' targetLength
+
+expect expandIntWithZeros 123 5 == "00123"
+
+
   

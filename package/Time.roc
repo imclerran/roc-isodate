@@ -15,6 +15,8 @@ interface Time
         midnight,
         normalize,
         Time,
+        toIsoStr,
+        toIsoU8,
         toNanosSinceMidnight,
         toUtcTime,
     ]
@@ -30,6 +32,7 @@ interface Time
         UtcTime,
         UtcTime.{ UtcTime },
         Utils.{
+            expandIntWithZeros,
             splitListAtIndices,
             splitUtf8AndKeepDelimiters,
             utf8ToFrac,
@@ -126,6 +129,31 @@ stripTandZ = \bytes ->
         ['T', .. as tail] -> stripTandZ tail
         [.. as head, 'Z'] -> head
         _ -> bytes
+
+toIsoStr : Time -> Str
+toIsoStr = \time -> 
+    # fracStr = if time.nanosecond == 0 then "" else Str.concat "," (expandIntWithZeros time.nanosecond 9)
+    expandIntWithZeros time.hour 2 |> Str.concat ":"
+    |> Str.concat (expandIntWithZeros time.minute 2) |> Str.concat ":"
+    |> Str.concat (expandIntWithZeros time.second 2) 
+    |> Str.concat (nanosToFracStr time.nanosecond)
+
+nanosToFracStr : U32 -> Str
+nanosToFracStr = \nanos -> 
+    length = countFracWidth nanos 9
+    untrimmedStr = (if nanos == 0 then "" else Str.concat "," (expandIntWithZeros nanos length))
+    when untrimmedStr |> Str.toUtf8 |> List.takeFirst (length + 1) |> Str.fromUtf8 is
+        Ok str -> str
+        Err _ -> untrimmedStr
+
+countFracWidth : U32, Int _ -> Int _
+countFracWidth = \num, width ->
+    if num == 0 then 0
+    else if num % 10 == 0 then countFracWidth (num // 10) (width - 1)
+    else width
+
+toIsoU8 : Time -> List U8
+toIsoU8 = \time -> toIsoStr time |> Str.toUtf8
 
 fromIsoStr: Str -> Result Time [InvalidTimeFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
@@ -306,6 +334,13 @@ expect fromNanosSinceMidnight 0 == midnight
 expect fromNanosSinceMidnight (24 * Const.nanosPerHour) == fromHms 24 0 0
 expect fromNanosSinceMidnight (25 * nanosPerHour) == fromHms 25 0 0
 expect fromNanosSinceMidnight (12 * nanosPerHour + 34 * nanosPerMinute + 56 * nanosPerSecond + 5) == fromHmsn 12 34 56 5
+
+# <---- toIsoStr ---->
+expect toIsoStr (fromHmsn 12 34 56 5) == "12:34:56,000000005"
+expect toIsoStr midnight == "00:00:00"
+expect 
+    str = toIsoStr (fromHmsn 0 0 0 500_000_000) 
+    str == "00:00:00,5"
 
 # <---- fromUtcTime ---->
 expect fromUtcTime (UtcTime.fromNanosSinceMidnight -123) == fromHmsn -1 59 59 999_999_877

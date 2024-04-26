@@ -19,6 +19,8 @@ interface DateTime
         fromYwd,
         fromYmdhms,
         fromYmdhmsn,
+        toIsoStr,
+        toIsoU8,
         toNanosSinceEpoch,
         toUtc,
         unixEpoch,
@@ -146,6 +148,14 @@ addDurationAndDateTime = \duration, dateTime ->
 addDateTimeAndDuration : DateTime, Duration -> DateTime
 addDateTimeAndDuration = \dateTime, duration -> addDurationAndDateTime duration dateTime
 
+toIsoStr : DateTime -> Str
+toIsoStr = \dateTime -> 
+    Date.toIsoStr dateTime.date |> Str.concat "T" |> Str.concat (Time.toIsoStr dateTime.time)
+
+toIsoU8 : DateTime -> List U8
+toIsoU8 = \dateTime -> 
+    Date.toIsoU8 dateTime.date |> List.concat ['T'] |> List.concat (Time.toIsoU8 dateTime.time)
+
 fromIsoStr : Str -> Result DateTime [InvalidDateTimeFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
 
@@ -164,6 +174,10 @@ fromIsoU8 = \bytes ->
                 Err _ -> Err InvalidDateTimeFormat
         _ -> Err InvalidDateTimeFormat
 
+
+expect toIsoStr unixEpoch == "1970-01-01T00:00:00"
+expect toIsoU8 unixEpoch == Str.toUtf8 "1970-01-01T00:00:00"
+expect toIsoStr (fromYmdhmsn 1970 1 1 0 0 0 (Const.nanosPerSecond // 2)) == "1970-01-01T00:00:00,5"
 
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) 1 == fromYmdhmsn 1970 1 1 0 0 0 1
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerSecond == fromYmdhmsn 1970 1 1 0 0 1 0
