@@ -8,10 +8,14 @@ app "example1"
         pf.Task,
         pf.Utc,
         dt.DateTime,
+        # import additional modules to avoid bug in roc
+        dt.Duration,
+        dt.Time,
+        dt.Date,
     ]
     provides [main] to pf
 
 main =
     utcNow <- Utc.now |> Task.await
     dtNow = Utc.toNanosSinceEpoch utcNow |> DateTime.fromNanosSinceEpoch
-    Stdout.line "Hello, World! The current date and time is: $(DateTime.toIsoStr dtNow)"
+    Stdout.line "Hello, World! The current Zulu time is: $(DateTime.toIsoStr dtNow)"
