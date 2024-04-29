@@ -9,7 +9,6 @@ interface Date
         fromIsoStr,
         fromIsoU8,
         fromNanosSinceEpoch,
-        # fromUtc,
         fromYd,
         fromYmd,
         fromYw,
@@ -17,7 +16,6 @@ interface Date
         toIsoStr,
         toIsoU8,
         toNanosSinceEpoch,
-        # toUtc,
         unixEpoch,
     ]
     imports [
@@ -131,19 +129,6 @@ numDaysSinceEpochUntilYear = \year ->
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
     fromYwd year week 1
-
-# fromUtc : Utc.Utc -> Date
-# fromUtc =\utc ->
-#     days = Utc.toNanosSinceEpoch utc |> Num.divTrunc (Const.nanosPerHour * 24) |> \d -> 
-#         if Utc.toNanosSinceEpoch utc |> Num.rem (Const.nanosPerHour * 24) < 0 then d - 1 else d
-#     fromNanosHelper days 1970
-
-
-
-# toUtc : Date -> Utc.Utc
-# toUtc =\date ->
-#     days = numDaysSinceEpoch date
-#     Utc.fromNanosSinceEpoch (days |> Num.toI128 |> Num.mul (Const.nanosPerHour * 24))
 
 toNanosSinceEpoch : Date -> I128
 toNanosSinceEpoch = \date -> 
