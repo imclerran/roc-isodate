@@ -4,12 +4,12 @@
 [![GitHub last commit][last_commit_badge]][last_commit_link]
 [![CI status][ci_status_badge]][ci_status_link]
 
-Roc-IsoDate is a universal date and time package for Roc. It Features several useful types for working with dates and times. Its primary types (`Date`/`Time`/`DateTime`) store dates and times in a human friendly manner, but allow easy conversion to and from computer friendly types like (`Utc`/`UtcTime`) as well as web web friendly ISO 8601 strings. Roc IsoDate is intended to be a one-stop-shop for all things date and time. 📆 ⏰ 📦
+Roc-IsoDate is a universal date and time package for Roc. It Features several useful types for working with dates and times. Its primary types (`Date`/`Time`/`DateTime`) store dates and times in a human friendly manner, but allow easy conversion to and from computer friendly types like `Utc` as well as web web friendly ISO 8601 strings. Roc IsoDate is intended to be a one-stop-shop for all things date and time. 📆 ⏰ 📦
 
 ## Implementation
-Roc IsoDate is a Roc package which which can convert an ISO date/time string into the [Utc][utc_link] type provided by the Basic CLI and Basic Webserver platforms, which stores the nanoseconds since the UNIX epoch date. When parsing time-only strings, the package returns a [UtcTime][utctime_link], which is similar to the `Utc` type, but stores the nanoseconds since midnight.
+Roc IsoDate's API revolves around its types, primarily `Date`, `Time`, and `DateTime`. These types provide useful functions for such as `fromIsoStr`, `fromIsoStr`, as well as functions for parsing directly from a list of Utf8 bytes. The types are based on records containing some of the most common data fields a user might want for working with dates and times in a human friendly manner, IE: `year`, `month`, `dayOfMonth`, `dayOfYear`, `hour`, `minute`, `second` and `nanosecond`. It also provides functions for performing math operations on these dates, as well as various constructors, and functions to convert to and from nanoseconds since the epoch for dates or since midnght for time.
 
-Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
+Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation of ISO string parsing is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
 ## Progress
 - Full support for parsing all date representations.
@@ -21,7 +21,8 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
   - This means converting to and from ISO strings is as simple as:
   - `DateTime.fromIsoStr str` or `Time.toIsoStr date`
   - Similarly, converting to and from `Utc` is easy:
-  - `Date.toUtc date` or `DateTime.fromUtc utc`
+  - `Date.toNanosSinceEpoch date |> Utc.fromNanosSinceEpoch` or 
+    `DateTime.toNanosSinceEpoch utc |> Utc.fromNanosSinceEpoch`
 
 ## Future Plans
 - Time interval representations will be added once the parsing to Date/Time/DateTime is complete [DONE 🚀].
@@ -50,11 +51,11 @@ app "MyDateApp"
 
 main =
     utcNow <- Task.await Utc.now
-    dtNow = DateTime.fromUtc utcNow # Convert Utc to DateTime easily
+    dtNow = Utc.toNanosSinceEpoch utcNow |> DateTime.fromNanosSinceEpoch # Convert Utc to DateTime easily
     dtEpoch = DateTime.unixEpoch # Constructor for the epoch
     dtSomeTime = DateTime.fromIsoStr "2024-04-19T11:31:41.329515-05:00" # parse a DateTime from ISO str easily
     dtLaterDate = dtSomeTime |> DateTime.addDateTimeAndDuration (Duration.fromHours 25 |> unwrap "25 hours should not overflow") # Add a duration to a DateTime easily
-    utcLaterDate = DateTime.toUtc dtSomeTime # DateTime can be parsed to utc easily
+    utcLaterDate = DateTime.toNanosSinceEpoch dtSomeTime |> Utc.fromNanosSinceEpoch # Convert parsed date to Utc
     nanosLaterDate = Utc.toNanosSinceEpoch utcLaterDate
     
     _ <- Stdout.line "ISO epoch: $(DateTime.toIsoStr dtEpoch)" |> Task.await
