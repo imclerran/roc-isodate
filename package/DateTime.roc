@@ -12,7 +12,6 @@ interface DateTime
         fromIsoStr,
         fromIsoU8,
         fromNanosSinceEpoch,
-        fromUtc,
         fromYd,
         fromYmd,
         fromYw,
@@ -22,7 +21,6 @@ interface DateTime
         toIsoStr,
         toIsoU8,
         toNanosSinceEpoch,
-        toUtc,
         unixEpoch,
     ]
     imports [
@@ -34,12 +32,9 @@ interface DateTime
         Time,
         Time.{ Time },
         Unsafe.{ unwrap }, # for unit testing only
-        Utc,
         Utils.{
             splitUtf8AndKeepDelimiters,
         },
-        Utc.{ Utc },
-        UtcTime,    
     ]
 
 DateTime : { date : Date, time : Time }
@@ -78,39 +73,20 @@ fromYmdhmsn : Int *, Int *, Int *, Int *, Int *, Int *, Int * -> DateTime
 fromYmdhmsn = \year, month, day, hour, minute, second, nanosecond ->
     { date: Date.fromYmd year month day, time: Time.fromHmsn hour minute second nanosecond }
 
-toUtc : DateTime -> Utc
-toUtc =\ dateTime ->
-    dateNanos = Date.toUtc dateTime.date |> Utc.toNanosSinceEpoch
-    timeNanos = Time.toUtcTime dateTime.time |> UtcTime.toNanosSinceMidnight |> Num.toI128
-    Utc.fromNanosSinceEpoch (dateNanos + timeNanos)
-
-expect
-    utc = toUtc (fromYmdhmsn 1970 12 31 12 34 56 5)
-    utc == Utc.fromNanosSinceEpoch (364 * 24 * 60 * 60 * 1_000_000_000 + 12 * 60 * 60 * 1_000_000_000 + 34 * 60 * 1_000_000_000 + 56 * 1_000_000_000 + 5)
-
-fromUtc : Utc -> DateTime
-fromUtc = \utc ->
-    nanos = Utc.toNanosSinceEpoch utc
-    timeNanos = if nanos < 0 && nanos % (Const.nanosPerHour * 24) != 0 then
-        nanos % (Const.nanosPerHour * 24) + Const.nanosPerHour * 24 else nanos % (Const.nanosPerHour * 24)
-    dateNanos = nanos - timeNanos |> Num.toI128
-    date = dateNanos |> Num.toI128 |> Utc.fromNanosSinceEpoch |> Date.fromUtc
-    time = timeNanos |> Num.toI64 |> UtcTime.fromNanosSinceMidnight |> Time.fromUtcTime
-    { date, time }
-
 toNanosSinceEpoch : DateTime -> I128
-toNanosSinceEpoch = \dateTime -> toUtc dateTime |> Utc.toNanosSinceEpoch
+toNanosSinceEpoch = \dateTime -> 
+    dateNanos = Date.toNanosSinceEpoch dateTime.date
+    timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
+    dateNanos + timeNanos
 
 fromNanosSinceEpoch : Int * -> DateTime
-fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch (Num.toI128 nanos) |> fromUtc
-
-expect
-    dateTime = fromUtc (Utc.fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5))
-    dateTime == fromYmdhmsn 1970 12 31 12 34 56 5
-
-expect
-    dateTime = fromUtc (Utc.fromNanosSinceEpoch (-1))
-    dateTime == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+fromNanosSinceEpoch = \nanos -> 
+    timeNanos = if nanos < 0 && Num.toI128 nanos % Const.nanosPerDay != 0 then
+        nanos % Const.nanosPerDay + Const.nanosPerDay else nanos % Const.nanosPerDay
+    dateNanos = nanos - timeNanos
+    date = dateNanos |> Date.fromNanosSinceEpoch
+    time = timeNanos |> Num.toI64 |> Time.fromNanosSinceMidnight
+    { date, time }
 
 addNanoseconds : DateTime, Int * -> DateTime
 addNanoseconds = \dateTime, nanos ->
@@ -174,11 +150,15 @@ fromIsoU8 = \bytes ->
                 Err _ -> Err InvalidDateTimeFormat
         _ -> Err InvalidDateTimeFormat
 
-
+# <==== TESTS ====>
+# <---- toIsoStr ---->
 expect toIsoStr unixEpoch == "1970-01-01T00:00:00"
-expect toIsoU8 unixEpoch == Str.toUtf8 "1970-01-01T00:00:00"
 expect toIsoStr (fromYmdhmsn 1970 1 1 0 0 0 (Const.nanosPerSecond // 2)) == "1970-01-01T00:00:00,5"
 
+# <---- toIsoU8 ---->
+expect toIsoU8 unixEpoch == Str.toUtf8 "1970-01-01T00:00:00"
+
+# <---- addNanoseconds ---->
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) 1 == fromYmdhmsn 1970 1 1 0 0 0 1
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerSecond == fromYmdhmsn 1970 1 1 0 0 1 0
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerDay == fromYmdhmsn 1970 1 2 0 0 0 0
@@ -186,6 +166,13 @@ expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -1 == fromYmdhmsn 1969 12 3
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -Const.nanosPerDay == fromYmdhmsn 1969 12 31 0 0 0 0
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) (-Const.nanosPerDay - 1) == fromYmdhmsn 1969 12 30 23 59 59 (Const.nanosPerSecond - 1)
 
-
+# <---- addDateTimeAndDuration ---->
 expect addDateTimeAndDuration unixEpoch (Duration.fromNanoseconds -1 |> unwrap "will not overflow") == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
 expect addDateTimeAndDuration unixEpoch (Duration.fromDays 365 |> unwrap "will not overflow") == fromYmdhmsn 1971 1 1 0 0 0 0
+
+# <--- fromNanosSinceEpoch --->
+expect fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5) == fromYmdhmsn 1970 12 31 12 34 56 5
+expect fromNanosSinceEpoch (-1) == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+
+# <--- toNanosSinceEpoch --->
+expect toNanosSinceEpoch (fromYmdhmsn 1970 12 31 12 34 56 5)  == 364 * Const.nanosPerDay + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5

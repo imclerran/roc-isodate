@@ -9,7 +9,6 @@ interface Date
         fromIsoStr,
         fromIsoU8,
         fromNanosSinceEpoch,
-        fromUtc,
         fromYd,
         fromYmd,
         fromYw,
@@ -17,14 +16,12 @@ interface Date
         toIsoStr,
         toIsoU8,
         toNanosSinceEpoch,
-        toUtc,
         unixEpoch,
     ]
     imports [
         Const,
         Duration,
         Duration.{ Duration },
-        Utc,
         Utils.{
             expandIntWithZeros,
             splitListAtIndices,
@@ -132,33 +129,26 @@ fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
     fromYwd year week 1
 
-fromUtc : Utc.Utc -> Date
-fromUtc =\utc ->
-    days = Utc.toNanosSinceEpoch utc |> Num.divTrunc (Const.nanosPerHour * 24) |> \d -> 
-        if Utc.toNanosSinceEpoch utc |> Num.rem (Const.nanosPerHour * 24) < 0 then d - 1 else d
-    fromUtcHelper days 1970
+toNanosSinceEpoch : Date -> I128
+toNanosSinceEpoch = \date -> 
+    days = numDaysSinceEpoch date
+    days |> Num.toI128 |> Num.mul Const.nanosPerDay
 
-fromUtcHelper : I128, I64 -> Date
-fromUtcHelper =\days, year ->
+fromNanosSinceEpoch : Int * -> Date
+fromNanosSinceEpoch = \nanos -> 
+    days = nanos // Const.nanosPerDay |> \d -> if nanos % Const.nanosPerDay < 0 then d - 1 else d
+    fromNanosHelper (Num.toI128 days) 1970
+
+fromNanosHelper : I128, I64 -> Date
+fromNanosHelper =\days, year ->
     if days < 0 then
-        fromUtcHelper (days + if isLeapYear (year - 1) then 366 else 365) (year - 1)
+        fromNanosHelper (days + if isLeapYear (year - 1) then 366 else 365) (year - 1)
     else
         daysInYear = if isLeapYear year then 366 else 365
         if days >= daysInYear then
-            fromUtcHelper (days - daysInYear) (year + 1)
+            fromNanosHelper (days - daysInYear) (year + 1)
         else
             ydToYmdd year (days + 1)
-
-toUtc : Date -> Utc.Utc
-toUtc =\date ->
-    days = numDaysSinceEpoch date
-    Utc.fromNanosSinceEpoch (days |> Num.toI128 |> Num.mul (Const.nanosPerHour * 24))
-
-toNanosSinceEpoch : Date -> I128
-toNanosSinceEpoch = \date -> Date.toUtc date |> Utc.toNanosSinceEpoch
-
-fromNanosSinceEpoch : Int * -> Date
-fromNanosSinceEpoch = \nanos -> Utc.fromNanosSinceEpoch (Num.toI128 nanos) |> fromUtc
 
 # TODO: allow for negative years
 addYears : Date, Int * -> Date
@@ -386,59 +376,22 @@ expect fromYwd 1970 52 5 == { year: 1971, month: 1, dayOfMonth: 1, dayOfYear: 1 
 expect fromYw 1970 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
 expect fromYw 1971 1 == { year: 1971, month: 1, dayOfMonth: 4, dayOfYear: 4 }
 
-# <---- fromUtc ---->
-expect
-    utc = Utc.fromNanosSinceEpoch 0
-    fromUtc utc == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+# <---- fromNanosSinceEpoch ---->
+expect fromNanosSinceEpoch 0 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromNanosSinceEpoch (Const.nanosPerDay * 365) == { year: 1971, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromNanosSinceEpoch (Const.nanosPerDay * 365 * 2 + Const.nanosPerDay * 366) == { year: 1973, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromNanosSinceEpoch (-Const.nanosPerDay) == { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }
+expect fromNanosSinceEpoch (-Const.nanosPerDay * 365) == { year: 1969, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromNanosSinceEpoch (-Const.nanosPerDay * 365 - Const.nanosPerDay * 366) == { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromNanosSinceEpoch -1 == { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }
 
-expect
-    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * 365)
-    fromUtc utc == { year: 1971, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-
-expect
-    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * 365 * 2 + Const.nanosPerHour * 24 * 366)
-    fromUtc utc == { year: 1973, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-
-expect
-    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -1)
-    fromUtc utc == { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }
-
-expect
-    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365)
-    fromUtc utc == { year: 1969, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-
-expect
-    utc = Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366)
-    fromUtc utc == { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-
-expect
-    utc = Utc.fromNanosSinceEpoch -1
-    fromUtc utc == { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }
-
-# <---- toUtc ---->
-expect 
-    utc = toUtc { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 } 
-    utc == Utc.fromNanosSinceEpoch 0
-
-expect 
-    utc = toUtc { year: 1970, month: 12, dayOfMonth: 31, dayOfYear: 365 }
-    utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * 364)
-
-expect
-    utc = toUtc { year: 1973, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-    utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * 365 * 2 + Const.nanosPerHour * 24 * 366)
-
-expect
-    utc = toUtc { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }
-    utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -1)
-
-expect
-    utc = toUtc { year: 1969, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-    utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365)
-
-expect
-    utc = toUtc { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-    utc == Utc.fromNanosSinceEpoch (Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366)
+# <---- toNanosSinceEpoch ---->
+expect toNanosSinceEpoch { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 } ==  0
+expect toNanosSinceEpoch { year: 1970, month: 12, dayOfMonth: 31, dayOfYear: 365 } == Const.nanosPerHour * 24 * 364
+expect toNanosSinceEpoch { year: 1973, month: 1, dayOfMonth: 1, dayOfYear: 1 } == Const.nanosPerHour * 24 * 365 * 2 + Const.nanosPerHour * 24 * 366
+expect toNanosSinceEpoch { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }  == Const.nanosPerHour * 24 * -1
+expect toNanosSinceEpoch { year: 1969, month: 1, dayOfMonth: 1, dayOfYear: 1 } == Const.nanosPerHour * 24 * -365
+expect toNanosSinceEpoch { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 } ==  Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366
 
 # <---- toIsoStr ---->
 expect toIsoStr unixEpoch == "1970-01-01"

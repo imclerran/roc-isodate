@@ -4,7 +4,5 @@ package "RocISODate"
         DateTime,
         Duration,
         Time,
-        Utc,
-        UtcTime,
     ]
     packages {}
