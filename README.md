@@ -61,7 +61,7 @@ main =
     _ <- Stdout.line "ISO epoch: $(DateTime.toIsoStr dtEpoch)" |> Task.await
     _ <- Stdout.line "Time now: $(Num.toStr dtNow.time.hour):$(Num.toStr dtNow.time.minute):$(Num.toStr dtNow.time.second)" |> Task.await
     _ <- Stdout.line "Day some time: $(Num.toStr dtSomeTime.date.day)" |> Task.await
-    Stdout.line "Utc nanos later date: $(Num.toStr nanosLaterDate)" |> Task.await
+    Stdout.line "Utc nanos later date: $(Num.toStr nanosLaterDate)"
 
 unwrap : Result a _, Str -> a
 unwrap = \x, message ->
