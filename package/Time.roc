@@ -11,14 +11,12 @@ interface Time
         fromIsoStr,
         fromIsoU8,
         fromNanosSinceMidnight,
-        fromUtcTime,
         midnight,
         normalize,
         Time,
         toIsoStr,
         toIsoU8,
         toNanosSinceMidnight,
-        toUtcTime,
     ]
     imports [
         Const,
@@ -29,8 +27,6 @@ interface Time
         },
         Duration,
         Duration.{ Duration },
-        UtcTime,
-        UtcTime.{ UtcTime },
         Utils.{
             expandIntWithZeros,
             splitListAtIndices,
@@ -41,8 +37,6 @@ interface Time
         },
         Unsafe.{ unwrap }, # for unit testing only
     ]
-
-# TODO: update Time constructors and functions to allow negative times
 
 Time : { hour : I8, minute : U8, second : U8, nanosecond : U32 }
 
@@ -65,30 +59,13 @@ fromHmsn : Int *, Int *, Int *, Int * -> Time
 fromHmsn = \hour, minute, second, nanosecond -> 
     { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
 
-toUtcTime : Time -> UtcTime
-toUtcTime = \time ->
+toNanosSinceMidnight : Time -> I64
+toNanosSinceMidnight = \time -> 
     hNanos = time.hour |> Num.toI64 |> Num.mul Const.nanosPerHour |> Num.toI64
     mNanos = time.minute |> Num.toI64 |> Num.mul Const.nanosPerMinute |> Num.toI64
     sNanos = time.second |> Num.toI64 |> Num.mul Const.nanosPerSecond |> Num.toI64
     nanos = time.nanosecond |> Num.toI64
-    UtcTime.fromNanosSinceMidnight (hNanos + mNanos + sNanos + nanos)
-
-expect
-    utc = toUtcTime (fromHmsn 12 34 56 5)
-    utc == UtcTime.fromNanosSinceMidnight (12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5)
-
-expect
-    utc = toUtcTime (fromHmsn -1 0 0 0)
-    utc == UtcTime.fromNanosSinceMidnight (-1 * Const.nanosPerHour) &&
-    UtcTime.toNanosSinceMidnight utc == -1 * Const.nanosPerHour
-
-# TODO: update fromUtcTime to handle negative times correctly
-fromUtcTime : UtcTime -> Time
-fromUtcTime = \utcTime ->
-    fromNanosSinceMidnight (UtcTime.toNanosSinceMidnight utcTime)
-
-toNanosSinceMidnight : Time -> I64
-toNanosSinceMidnight = \time -> UtcTime.toNanosSinceMidnight (toUtcTime time)
+    hNanos + mNanos + sNanos + nanos
 
 fromNanosSinceMidnight : Int * -> Time
 fromNanosSinceMidnight = \nanos -> 
@@ -132,7 +109,6 @@ stripTandZ = \bytes ->
 
 toIsoStr : Time -> Str
 toIsoStr = \time -> 
-    # fracStr = if time.nanosecond == 0 then "" else Str.concat "," (expandIntWithZeros time.nanosecond 9)
     expandIntWithZeros time.hour 2 |> Str.concat ":"
     |> Str.concat (expandIntWithZeros time.minute 2) |> Str.concat ":"
     |> Str.concat (expandIntWithZeros time.second 2) 
@@ -342,9 +318,13 @@ expect
     str = toIsoStr (fromHmsn 0 0 0 500_000_000) 
     str == "00:00:00,5"
 
-# <---- fromUtcTime ---->
-expect fromUtcTime (UtcTime.fromNanosSinceMidnight -123) == fromHmsn -1 59 59 999_999_877
-expect fromUtcTime (UtcTime.fromNanosSinceMidnight 0) == midnight
-expect fromUtcTime (UtcTime.fromNanosSinceMidnight (24 * Const.nanosPerHour)) == fromHms 24 0 0
-expect fromUtcTime (UtcTime.fromNanosSinceMidnight (25 * Const.nanosPerHour)) == fromHms 25 0 0
-expect toUtcTime { hour: 12, minute: 34, second: 56, nanosecond: 5 } == UtcTime.fromNanosSinceMidnight (12 * nanosPerHour + 34 * nanosPerMinute + 56 * nanosPerSecond + 5 )
+# <---- fromNanosSinceMidnight ---->
+expect fromNanosSinceMidnight -123 == fromHmsn -1 59 59 999_999_877
+expect fromNanosSinceMidnight 0 == midnight
+expect fromNanosSinceMidnight (24 * Const.nanosPerHour) == fromHms 24 0 0
+expect fromNanosSinceMidnight (25 * Const.nanosPerHour) == fromHms 25 0 0
+
+# <---- toNanosSinceMidnight ---->
+expect toNanosSinceMidnight { hour: 12, minute: 34, second: 56, nanosecond: 5 } == 12 * nanosPerHour + 34 * nanosPerMinute + 56 * nanosPerSecond + 5
+expect toNanosSinceMidnight (fromHmsn 12 34 56 5) == 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5
+expect toNanosSinceMidnight (fromHmsn -1 0 0 0) == -1 * Const.nanosPerHour
