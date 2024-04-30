@@ -16,6 +16,9 @@ app "example1"
     provides [main] to pf
 
 main =
-    utcNow <- Utc.now |> Task.await
-    dtNow = Utc.toNanosSinceEpoch utcNow |> DateTime.fromNanosSinceEpoch
-    Stdout.line "Hello, World! The current Zulu time is: $(DateTime.toIsoStr dtNow)"
+    utcNow = Utc.now!
+    nowStr = utcNow
+        |> Utc.toNanosSinceEpoch
+        |> DateTime.fromNanosSinceEpoch
+        |> DateTime.toIsoStr
+    Stdout.line "Hello, World! The current Zulu time is: $(nowStr)"
