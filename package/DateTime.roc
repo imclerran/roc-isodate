@@ -9,6 +9,7 @@ interface DateTime
         addNanoseconds,
         addSeconds,
         addYears,
+        DateTime,
         fromIsoStr,
         fromIsoU8,
         fromNanosSinceEpoch,
