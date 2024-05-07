@@ -9,11 +9,8 @@ interface Tests
             secondsPerDay,
         },
         Date,
-        Date.{ Date },
         DateTime,
-        DateTime.{ DateTime },
         Time,
-        Time.{ Time },
         Utils.{
             splitListAtIndices,
             splitUtf8AndKeepDelimiters,
