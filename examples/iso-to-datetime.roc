@@ -1,15 +1,12 @@
-app "parse-iso"
-    packages {
-        pf: "https://github.com/roc-lang/basic-cli/releases/download/0.10.0/vNe6s9hWzoTZtFmNkvEICPErI9ptji_ySjicO6CkucY.tar.br",
-        dt: "../package/main.roc",
-    }
-    imports [
-        pf.Http,
-        pf.Task.{ Task },
-        pf.Stdout,
-        dt.DateTime,
-    ]
-    provides [main] to pf
+app [main] {
+    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.10.0/vNe6s9hWzoTZtFmNkvEICPErI9ptji_ySjicO6CkucY.tar.br",
+    dt: "../package/main.roc",
+}
+
+import pf.Http
+import pf.Task exposing [Task]
+import pf.Stdout
+import dt.DateTime
 
 main =
     response = Http.send! (formatRequest "America/Chicago")
@@ -27,7 +24,6 @@ main =
 
     timeStr = "$(Num.toStr dtNow.time.hour):$(Num.toStr dtNow.time.minute):$(Num.toStr dtNow.time.second)"
     dateStr = "$(Num.toStr dtNow.date.year)-$(Num.toStr dtNow.date.month)-$(Num.toStr dtNow.date.dayOfMonth)"
-
     Stdout.line! "The current Zulut date is: $(dateStr)"
     Stdout.line "The current Zulu time is: $(timeStr)"
 
@@ -40,11 +36,11 @@ formatRequest = \timezone -> {
     timeout: TimeoutMilliseconds 5000,
 }
 
-
 getIsoString = \body ->
     when Str.split body "\n" |> List.get 2 is
         Ok line ->
             when Str.splitFirst line ":" is
                 Ok lineParts -> lineParts.after |> Str.trim
                 Err _ -> crash "Error splitting line at delimiter"
+
         Err _ -> crash "Error getting output line"
