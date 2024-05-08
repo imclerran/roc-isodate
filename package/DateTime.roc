@@ -1,42 +1,39 @@
-interface DateTime
-    exposes [
-        addDateTimeAndDuration,
-        addDays,
-        addDurationAndDateTime,
-        addHours,
-        addMinutes,
-        addMonths,
-        addNanoseconds,
-        addSeconds,
-        addYears,
-        DateTime,
-        fromIsoStr,
-        fromIsoU8,
-        fromNanosSinceEpoch,
-        fromYd,
-        fromYmd,
-        fromYw,
-        fromYwd,
-        fromYmdhms,
-        fromYmdhmsn,
-        toIsoStr,
-        toIsoU8,
-        toNanosSinceEpoch,
-        unixEpoch,
-    ]
-    imports [
-        Const,
-        Date,
-        Date.{ Date },
-        Duration,
-        Duration.{ Duration },
-        Time,
-        Time.{ Time },
-        Unsafe.{ unwrap }, # for unit testing only
-        Utils.{
-            splitUtf8AndKeepDelimiters,
-        },
-    ]
+module [
+    addDateTimeAndDuration,
+    addDays,
+    addDurationAndDateTime,
+    addHours,
+    addMinutes,
+    addMonths,
+    addNanoseconds,
+    addSeconds,
+    addYears,
+    DateTime,
+    fromIsoStr,
+    fromIsoU8,
+    fromNanosSinceEpoch,
+    fromYd,
+    fromYmd,
+    fromYw,
+    fromYwd,
+    fromYmdhms,
+    fromYmdhmsn,
+    toIsoStr,
+    toIsoU8,
+    toNanosSinceEpoch,
+    unixEpoch,
+]
+
+import Const
+import Date
+import Date exposing [Date]
+import Duration
+import Duration exposing [Duration]
+import Time
+import Time exposing [Time]
+import Utils exposing [
+    splitUtf8AndKeepDelimiters,
+]
 
 DateTime : { date : Date, time : Time }
 
@@ -168,8 +165,12 @@ expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -Const.nanosPerDay == fromY
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) (-Const.nanosPerDay - 1) == fromYmdhmsn 1969 12 30 23 59 59 (Const.nanosPerSecond - 1)
 
 # <---- addDateTimeAndDuration ---->
-expect addDateTimeAndDuration unixEpoch (Duration.fromNanoseconds -1 |> unwrap "will not overflow") == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
-expect addDateTimeAndDuration unixEpoch (Duration.fromDays 365 |> unwrap "will not overflow") == fromYmdhmsn 1971 1 1 0 0 0 0
+expect 
+    import Unsafe exposing [unwrap]
+    addDateTimeAndDuration unixEpoch (Duration.fromNanoseconds -1 |> unwrap "will not overflow") == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+expect
+    import Unsafe exposing [unwrap]
+    addDateTimeAndDuration unixEpoch (Duration.fromDays 365 |> unwrap "will not overflow") == fromYmdhmsn 1971 1 1 0 0 0 0
 
 # <--- fromNanosSinceEpoch --->
 expect fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5) == fromYmdhmsn 1970 12 31 12 34 56 5

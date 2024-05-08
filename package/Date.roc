@@ -1,36 +1,68 @@
-interface Date
-    exposes [
-        addDateAndDuration,
-        addDays,
-        addDurationAndDate,
-        addMonths,
-        addYears,
-        Date,
-        fromIsoStr,
-        fromIsoU8,
-        fromNanosSinceEpoch,
-        fromYd,
-        fromYmd,
-        fromYw,
-        fromYwd,
-        toIsoStr,
-        toIsoU8,
-        toNanosSinceEpoch,
-        unixEpoch,
-    ]
-    imports [
-        Const,
-        Duration,
-        Duration.{ Duration },
-        Utils.{
-            expandIntWithZeros,
-            splitListAtIndices,
-            utf8ToInt,
-            utf8ToIntSigned,
-            validateUtf8SingleBytes,
-        },
-        Unsafe.{ unwrap }, # for unit testing only
-    ]
+module [
+    addDateAndDuration,
+    addDays,
+    addDurationAndDate,
+    addMonths,
+    addYears,
+    Date,
+    fromIsoStr,
+    fromIsoU8,
+    fromNanosSinceEpoch,
+    fromYd,
+    fromYmd,
+    fromYw,
+    fromYwd,
+    toIsoStr,
+    toIsoU8,
+    toNanosSinceEpoch,
+    unixEpoch,
+]
+
+import Const
+import Duration
+import Duration exposing [Duration]
+import Utils exposing [
+    expandIntWithZeros,
+    splitListAtIndices,
+    utf8ToInt,
+    utf8ToIntSigned,
+    validateUtf8SingleBytes,
+]
+
+
+# interface Date
+#     exposes [
+#         addDateAndDuration,
+#         addDays,
+#         addDurationAndDate,
+#         addMonths,
+#         addYears,
+#         Date,
+#         fromIsoStr,
+#         fromIsoU8,
+#         fromNanosSinceEpoch,
+#         fromYd,
+#         fromYmd,
+#         fromYw,
+#         fromYwd,
+#         toIsoStr,
+#         toIsoU8,
+#         toNanosSinceEpoch,
+#         unixEpoch,
+#     ]
+#     imports [
+#         Const,
+#         Duration,
+#         Duration.{ Duration },
+#         Utils.{
+#             expandIntWithZeros,
+#             splitListAtIndices,
+#             utf8ToInt,
+#             utf8ToIntSigned,
+#             validateUtf8SingleBytes,
+#         },
+#         Unsafe.{ unwrap }, # for unit testing only
+#     ]
 
 Date : { year: I64, month: U8, dayOfMonth: U8, dayOfYear: U16 }
 
@@ -411,7 +443,9 @@ expect addDays unixEpoch (-365 - 1) == fromYmd 1968 12 31
 expect addDays unixEpoch (-365 - 366) == fromYmd 1968 1 1
 
 # <---- addDateAndDuration ---->
-expect addDateAndDuration unixEpoch (Duration.fromDays 1 |> unwrap "will not overflow") == fromYmd 1970 1 2
+expect 
+    import Unsafe exposing [unwrap]
+    addDateAndDuration unixEpoch (Duration.fromDays 1 |> unwrap "will not overflow") == fromYmd 1970 1 2
 
 # <---- ymdToDaysInYear ---->
 expect ymdToDaysInYear 1970 1 1 == 1

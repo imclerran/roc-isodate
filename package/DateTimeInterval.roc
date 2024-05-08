@@ -1,10 +1,8 @@
-interface DateTimeInterval
-    exposes [
-        DateTimeInterval,
-    ]
-    imports [
-        DateTime,
-        DateTime.{ DateTime },
-    ]
+module [
+    DateTimeInterval,
+]
 
-DateTimeInterval : { start: DateTime, end: DateTime }
+import DateTime
+import DateTime exposing [DateTime]
+
+DateTimeInterval : { start : DateTime, end : DateTime }
