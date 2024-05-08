@@ -1,14 +1,12 @@
-interface ContextualDuration
-    exposes [
-        fromHms,
-        fromHmsn,
-        fromYmd,
-        fromYmdHms,
-        fromYmdHmsn,
-    ]
-    imports []
+module [
+    fromHms,
+    fromHmsn,
+    fromYmd,
+    fromYmdHms,
+    fromYmdHmsn,
+]
 
-ContextualDuration : { years: I64, months: I8, days: I16, hours: I8, minutes: I8, seconds: I8, nanoseconds: I32 }
+ContextualDuration : { years : I64, months : I8, days : I16, hours : I8, minutes : I8, seconds : I8, nanoseconds : I32 }
 
 fromYmd : Int *, Int *, Int * -> ContextualDuration
 fromYmd = \y, m, d -> { years: Num.toI64 y, months: Num.toI8 m, days: Num.toI16 d, hours: 0, minutes: 0, seconds: 0, nanoseconds: 0 }
@@ -28,7 +26,7 @@ fromYmdHmsn = \y, m, d, h, mi, s, n -> { years: Num.toI64 y, months: Num.toI8 m,
 # TODO: functions below belong in Date
 
 # addDateAndDuration : Date, ContextualDuration -> Date
-# addDateAndDuration = \date, duration -> 
+# addDateAndDuration = \date, duration ->
 #     Date.addYears date duration.years
 #     |> Date.addMonths duration.months
 #     |> Date.addDays duration.days

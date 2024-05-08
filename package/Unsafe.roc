@@ -1,6 +1,4 @@
-interface Unsafe
-    exposes [ unwrap ]
-    imports []
+module [unwrap]
 
 ## Unsafe function which should be used only for debugging purposes only
 unwrap : Result a _, Str -> a
