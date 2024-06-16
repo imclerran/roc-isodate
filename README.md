@@ -81,11 +81,11 @@ This is just a small sample of the available functionality, but meant to demonst
 Description of ISO date/time [format][iso_8601_md] (WIP)
 
 
-[roc_badge]: https://img.shields.io/endpoint?url=https%3A%2F%2Fpastebin.com%2Fraw%2FGcfjHKzb
+[roc_badge]: https://img.shields.io/endpoint?url=https%3A%2F%2Fpastebin.com%2Fraw%2FcFzuCCd7
 [roc_link]: https://github.com/roc-lang/roc
 [ci_status_badge]: https://img.shields.io/github/actions/workflow/status/imclerran/roc-isodate/ci.yml?logo=github&logoColor=lightgrey
 [ci_status_link]: https://github.com/imclerran/Roc-IsoDate/actions/workflows/ci.yml
-[last_commit_badge]: https://img.shields.io/github/last-commit/imclerran/roc-isodate
+[last_commit_badge]: https://img.shields.io/github/last-commit/imclerran/roc-isodate?logo=git&logoColor=lightgrey
 [last_commit_link]: https://github.com/imclerran/Roc-IsoDate/commits/main/
 
 [iso_8601_doc]: https://www.loc.gov/standards/datetime/iso-tc154-wg5_n0038_iso_wd_8601-1_2016-02-16.pdf
