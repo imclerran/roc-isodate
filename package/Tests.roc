@@ -18,7 +18,7 @@ import Utils exposing [
     utf8ToIntSigned,
     validateUtf8SingleBytes,
 ]
-import Unsafe exposing [unwrap]
+import Unsafe exposing [unwrap] # for unit testing only
 
 # <==== Date.roc ====>
 # <---- parseDate ---->

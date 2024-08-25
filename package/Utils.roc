@@ -88,26 +88,26 @@ utf8ToFrac = \u8List ->
                         (_, _) -> Err InvalidBytes
 
                 [['.'], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
-                    fracPart <- utf8ToInt tail |> Result.map
+                    fracPart = utf8ToInt? tail
                     decimalShift = List.len tail |> Num.toU8
-                    moveDecimalPoint (Num.toF64 fracPart) decimalShift
+                    Ok (moveDecimalPoint (Num.toF64 fracPart) decimalShift)
 
                 [[','], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
-                    fracPart <- utf8ToInt tail |> Result.map
+                    fracPart = utf8ToInt? tail
                     decimalShift = List.len tail |> Num.toU8
-                    moveDecimalPoint (Num.toF64 fracPart) decimalShift
+                    Ok (moveDecimalPoint (Num.toF64 fracPart) decimalShift)
 
                 [head, [byte]] if byte == ',' || byte == '.' ->
-                    intPart <- utf8ToInt head |> Result.map
-                    Num.toF64 intPart
+                    intPart = utf8ToInt? head
+                    Ok (Num.toF64 intPart)
 
                 _ ->
-                    intPart <- utf8ToInt u8List |> Result.map
-                    Num.toF64 intPart
+                    intPart = utf8ToInt? u8List
+                    Ok (Num.toF64 intPart)
 
         Err NoDecimalPoint ->
-            intPart <- utf8ToInt u8List |> Result.map
-            Num.toF64 intPart
+            intPart = utf8ToInt? u8List
+            Ok (Num.toF64 intPart)
 
 findDecimalIndex : List U8 -> Result U8 [NoDecimalPoint]
 findDecimalIndex = \u8List ->

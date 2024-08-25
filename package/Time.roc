@@ -34,6 +34,7 @@ import Utils exposing [
     utf8ToIntSigned,
     validateUtf8SingleBytes,
 ]
+import Unsafe exposing [unwrap] # for unit testing only
 
 Time : { hour : I8, minute : U8, second : U8, nanosecond : U32 }
 
@@ -188,23 +189,23 @@ parseFractionalTime = \wholeBytes, fractionalBytes ->
             Err _ -> Err InvalidTimeFormat
     when (wholeBytes, utf8ToFrac fractionalBytes) is
         ([_, _], Ok frac) -> # hh
-            time <- parseLocalTimeHour wholeBytes |> Result.try
+            time = parseLocalTimeHour? wholeBytes
             frac * Const.nanosPerHour |> Num.round |> Duration.fromNanoseconds |> combineDurationResAndTime time
 
         ([_, _, _, _], Ok frac) -> # hhmm
-            time <- parseLocalTimeMinuteBasic wholeBytes |> Result.try
+            time = parseLocalTimeMinuteBasic? wholeBytes
             frac * Const.nanosPerMinute |> Num.round |> Duration.fromNanoseconds |> combineDurationResAndTime time
 
         ([_, _, ':', _, _], Ok frac) -> # hh:mm
-            time <- parseLocalTimeMinuteExtended wholeBytes |> Result.try
+            time = parseLocalTimeMinuteExtended? wholeBytes
             frac * Const.nanosPerMinute |> Num.round |> Duration.fromNanoseconds |> combineDurationResAndTime time
 
         ([_, _, _, _, _, _], Ok frac) -> # hhmmss
-            time <- parseLocalTimeBasic wholeBytes |> Result.try
+            time = parseLocalTimeBasic? wholeBytes
             frac * Const.nanosPerSecond |> Num.round |> Duration.fromNanoseconds |> combineDurationResAndTime time
 
         ([_, _, ':', _, _, ':', _, _], Ok frac) -> # hh:mm:ss
-            time <- parseLocalTimeExtended wholeBytes |> Result.try
+            time = parseLocalTimeExtended? wholeBytes
             frac * Const.nanosPerSecond |> Num.round |> Duration.fromNanoseconds |> combineDurationResAndTime time
 
         _ -> Err InvalidTimeFormat
@@ -333,7 +334,6 @@ expect addHours (fromHms 12 34 56) 12 == fromHms 24 34 56
 
 # <---- addTimeAndDuration ---->
 expect
-    import Unsafe exposing [unwrap] # for unit testing only
     addTimeAndDuration (fromHms 0 0 0) (Duration.fromHours 1 |> unwrap "will not overflow") == fromHms 1 0 0
 
 # <---- fromNanosSinceMidnight ---->
