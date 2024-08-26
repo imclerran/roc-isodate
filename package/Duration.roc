@@ -14,6 +14,7 @@ module [
 ]
 
 import Const
+import Unsafe exposing [unwrap] # for unit testing only
 
 Duration : { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : I32 }
 
@@ -138,27 +139,23 @@ addDurations = \d1, d2 ->
     fromNanoseconds (nanos1 + nanos2)
 
 expect
-    import Unsafe exposing [unwrap]
     days = Num.maxI64
     duration = fromDays days |> unwrap "will not overflow"
     duration |> toDays == days
 
 expect
-    import Unsafe exposing [unwrap]
     d1 = fromDays (Num.maxI64 // 2) |> unwrap "will not overflow"
     d2 = fromDays (Num.maxI64 // 2) |> unwrap "will not overflow"
     d3 = fromDays ((Num.maxI64 // 2) * 2) |> unwrap "will not overflow"
     addDurations d1 d2 == Ok d3
 
 expect
-    import Unsafe exposing [unwrap]
     d1 = fromDays Num.minI64 |> unwrap "will not overflow"
     d2 = fromDays Num.maxI64 |> unwrap "will not overflow"
     d3 = fromDays -1 |> unwrap "will not overflow"
     addDurations d1 d2 == Ok d3
 
 expect
-    import Unsafe exposing [unwrap]
     duration = fromDays Num.maxI64 |> unwrap "will not overflow"
     addDurations duration duration == Err DurationOverflow
 

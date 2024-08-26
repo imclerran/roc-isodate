@@ -19,8 +19,7 @@ module [
 ]
 
 import Const
-import Duration
-import Duration exposing [Duration]
+import Duration exposing [Duration, toNanoseconds, fromDays]
 import Utils exposing [
     expandIntWithZeros,
     splitListAtIndices,
@@ -28,7 +27,7 @@ import Utils exposing [
     utf8ToIntSigned,
     validateUtf8SingleBytes,
 ]
-
+import Unsafe exposing [unwrap] # for unit testing only
 
 # interface Date
 #     exposes [
@@ -64,13 +63,13 @@ import Utils exposing [
 #         Unsafe.{ unwrap }, # for unit testing only
 #     ]
 
-Date : { year: I64, month: U8, dayOfMonth: U8, dayOfYear: U16 }
+Date : { year : I64, month : U8, dayOfMonth : U8, dayOfYear : U16 }
 
 unixEpoch : Date
 unixEpoch = { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
 
 fromYd : Int *, Int * -> Date
-fromYd = \year, dayOfYear -> 
+fromYd = \year, dayOfYear ->
     ydToYmdd year dayOfYear
 
 ydToYmdd : Int *, Int * -> Date
@@ -81,11 +80,19 @@ ydToYmdd = \year, dayOfYear ->
     |> \result -> { year: Num.toI64 year, month: Num.toU8 result.month, dayOfMonth: Num.toU8 result.daysRemaining, dayOfYear: Num.toU16 dayOfYear }
 
 isLeapYear = \year ->
-    (year % Const.leapInterval == 0 &&
-    year % Const.leapException != 0) || 
-    year % Const.leapNonException == 0
+    (
+        year
+        % Const.leapInterval
+        == 0
+        && year
+        % Const.leapException
+        != 0
+    )
+    || year
+    % Const.leapNonException
+    == 0
 
-walkUntilMonthFunc : { daysRemaining: U16, month: U8 }, U64 -> [Break { daysRemaining: U16, month: U8 }, Continue { daysRemaining: U16, month: U8 }]
+walkUntilMonthFunc : { daysRemaining : U16, month : U8 }, U64 -> [Break { daysRemaining : U16, month : U8 }, Continue { daysRemaining : U16, month : U8 }]
 walkUntilMonthFunc = \state, currMonthDays ->
     if state.daysRemaining <= Num.toU16 currMonthDays then
         Break { daysRemaining: state.daysRemaining, month: state.month }
@@ -93,13 +100,13 @@ walkUntilMonthFunc = \state, currMonthDays ->
         Continue { daysRemaining: state.daysRemaining - Num.toU16 currMonthDays, month: state.month + 1 }
 
 fromYmd : Int *, Int *, Int * -> Date
-fromYmd =\year, month, day -> 
+fromYmd = \year, month, day ->
     { year: Num.toI64 year, month: Num.toU8 month, dayOfMonth: Num.toU8 day, dayOfYear: ymdToDaysInYear year month day }
 
 ymdToDaysInYear : Int *, Int *, Int * -> U16
 ymdToDaysInYear = \year, month, day ->
     List.range { start: At 0, end: Before month }
-    |> List.map \m -> Const.monthDays {month: Num.toU64 m, isLeap: isLeapYear year}
+    |> List.map \m -> Const.monthDays { month: Num.toU64 m, isLeap: isLeapYear year }
     |> List.sum
     |> Num.add (Num.toU64 day)
     |> Num.toU16
@@ -114,13 +121,13 @@ fromYwd = \year, week, day ->
         ydToYmdd year d
 
 calendarWeekToDaysInYear : Int *, Int * -> U64
-calendarWeekToDaysInYear = \week, year->
+calendarWeekToDaysInYear = \week, year ->
     # Week 1 of a year is the first week with a majority of its days in that year
     # https://en.wikipedia.org/wiki/ISO_week_date#First_week
     y = year |> Num.toU64
     w = week |> Num.toU64
-    lengthOfMaybeFirstWeek = 
-        if y >= Const.epochYear then 
+    lengthOfMaybeFirstWeek =
+        if y >= Const.epochYear then
             Const.epochWeekOffset - (numDaysSinceEpochUntilYear (Num.toI64 y) |> Num.toU64) % 7
         else
             (Const.epochWeekOffset + (numDaysSinceEpochUntilYear (Num.toI64 y) |> Num.abs |> Num.toU64)) % 7
@@ -139,40 +146,43 @@ numLeapYearsSinceEpoch = \year, inclusive ->
         IncludeCurrent if year != Const.epochYear -> leapIncr + numLeapYearsSinceEpoch nextYear inclusive
         IncludeCurrent -> leapIncr
 
-numDaysSinceEpoch: Date -> I64
+numDaysSinceEpoch : Date -> I64
 numDaysSinceEpoch = \date ->
     numLeapYears = numLeapYearsSinceEpoch date.year ExcludeCurrent
-    getMonthDays = \m -> Const.monthDays {month: m, isLeap: isLeapYear date.year}
+    getMonthDays = \m -> Const.monthDays { month: m, isLeap: isLeapYear date.year }
     if date.year >= Const.epochYear then
         daysInYears = numLeapYears * 366 + (date.year - Const.epochYear - numLeapYears) * 365
         List.map (List.range { start: At 1, end: Before date.month }) getMonthDays
-            |> List.sum |> Num.toI64 |> Num.add (daysInYears + Num.toI64 date.dayOfMonth - 1)
+        |> List.sum
+        |> Num.toI64
+        |> Num.add (daysInYears + Num.toI64 date.dayOfMonth - 1)
     else
         daysInYears = numLeapYears * 366 + (Const.epochYear - date.year - numLeapYears - 1) * 365
         List.map (List.range { start: After date.month, end: At 12 }) getMonthDays
-            |> List.sum |> Num.toI64 
-            |> Num.add (daysInYears + Num.toI64 (getMonthDays date.month) - Num.toI64 date.dayOfMonth + 1) 
-            |> Num.mul -1
+        |> List.sum
+        |> Num.toI64
+        |> Num.add (daysInYears + Num.toI64 (getMonthDays date.month) - Num.toI64 date.dayOfMonth + 1)
+        |> Num.mul -1
 
 numDaysSinceEpochUntilYear = \year ->
-    numDaysSinceEpoch {year, month: 1, dayOfMonth: 1, dayOfYear: 1}
+    numDaysSinceEpoch { year, month: 1, dayOfMonth: 1, dayOfYear: 1 }
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
     fromYwd year week 1
 
 toNanosSinceEpoch : Date -> I128
-toNanosSinceEpoch = \date -> 
+toNanosSinceEpoch = \date ->
     days = numDaysSinceEpoch date
     days |> Num.toI128 |> Num.mul Const.nanosPerDay
 
 fromNanosSinceEpoch : Int * -> Date
-fromNanosSinceEpoch = \nanos -> 
+fromNanosSinceEpoch = \nanos ->
     days = nanos // Const.nanosPerDay |> \d -> if nanos % Const.nanosPerDay < 0 then d - 1 else d
     fromNanosHelper (Num.toI128 days) 1970
 
 fromNanosHelper : I128, I64 -> Date
-fromNanosHelper =\days, year ->
+fromNanosHelper = \days, year ->
     if days < 0 then
         fromNanosHelper (days + if isLeapYear (year - 1) then 366 else 365) (year - 1)
     else
@@ -188,17 +198,20 @@ addYears = \date, years -> fromYmd (date.year + Num.toI64 years) date.month date
 
 # TODO: allow for negative months
 addMonths : Date, Int * -> Date
-addMonths = \date, months -> 
+addMonths = \date, months ->
     newMonthWithOverflow = date.month + Num.toU8 months
     newYear = date.year + Num.toI64 (newMonthWithOverflow // 12)
     newMonth = newMonthWithOverflow % 12
-    newDay = if date.dayOfMonth > Num.toU8 (Const.monthDays { month: newMonth, isLeap: isLeapYear newYear } )
-        then Num.toU8 (Const.monthDays { month: newMonth, isLeap: isLeapYear newYear } )
-        else date.dayOfMonth
+    newDay = (
+        if date.dayOfMonth > Num.toU8 (Const.monthDays { month: newMonth, isLeap: isLeapYear newYear }) then
+            Num.toU8 (Const.monthDays { month: newMonth, isLeap: isLeapYear newYear })
+        else
+            date.dayOfMonth
+    )
     fromYmd newYear newMonth newDay
 
 addDays : Date, Int * -> Date
-addDays = \date, days -> 
+addDays = \date, days ->
     addDaysHelper date (Num.toI16 days)
 
 addDaysHelper : Date, I16 -> Date
@@ -214,8 +227,8 @@ addDaysHelper = \date, days ->
         fromYd date.year newDayOfYear
 
 addDurationAndDate : Duration, Date -> Date
-addDurationAndDate = \duration, date -> 
-    durationNanos = Duration.toNanoseconds duration
+addDurationAndDate = \duration, date ->
+    durationNanos = toNanoseconds duration
     dateNanos = toNanosSinceEpoch date |> Num.toI128
     durationNanos + dateNanos |> fromNanosSinceEpoch
 
@@ -223,15 +236,17 @@ addDateAndDuration : Date, Duration -> Date
 addDateAndDuration = \date, duration -> addDurationAndDate duration date
 
 toIsoStr : Date -> Str
-toIsoStr = \date -> 
-    expandIntWithZeros date.year 4 |> Str.concat "-"
-    |> Str.concat (expandIntWithZeros date.month 2) |> Str.concat "-"
+toIsoStr = \date ->
+    expandIntWithZeros date.year 4
+    |> Str.concat "-"
+    |> Str.concat (expandIntWithZeros date.month 2)
+    |> Str.concat "-"
     |> Str.concat (expandIntWithZeros date.dayOfMonth 2)
 
 toIsoU8 : Date -> List U8
 toIsoU8 = \date -> toIsoStr date |> Str.toUtf8
 
-fromIsoStr: Str -> Result Date [InvalidDateFormat]
+fromIsoStr : Str -> Result Date [InvalidDateFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
 
 # TODO: More efficient parsing method?
@@ -239,17 +254,17 @@ fromIsoU8 : List U8 -> Result Date [InvalidDateFormat]
 fromIsoU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
         when bytes is
-            [_,_] -> parseCalendarDateCentury bytes # YY
-            [_,_,_,_] -> parseCalendarDateYear bytes # YYYY
-            [_,_,_,_,'W',_,_] -> parseWeekDateReducedBasic bytes # YYYYWww
-            [_,_,_,_,'-',_,_] -> parseCalendarDateMonth bytes # YYYY-MM
-            [_,_,_,_,_,_,_] -> parseOrdinalDateBasic bytes # YYYYDDD
-            [_,_,_,_,'-','W',_,_] -> parseWeekDateReducedExtended bytes # YYYY-Www
-            [_,_,_,_,'W',_,_,_] -> parseWeekDateBasic bytes # YYYYWwwD
-            [_,_,_,_,'-',_,_,_] -> parseOrdinalDateExtended bytes # YYYY-DDD
-            [_,_,_,_,_,_,_,_] -> parseCalendarDateBasic bytes # YYYYMMDD
-            [_,_,_,_,'-','W',_,_,'-',_] -> parseWeekDateExtended bytes # YYYY-Www-D
-            [_,_,_,_,'-',_,_,'-',_,_] -> parseCalendarDateExtended bytes # YYYY-MM-DD
+            [_, _] -> parseCalendarDateCentury bytes # YY
+            [_, _, _, _] -> parseCalendarDateYear bytes # YYYY
+            [_, _, _, _, 'W', _, _] -> parseWeekDateReducedBasic bytes # YYYYWww
+            [_, _, _, _, '-', _, _] -> parseCalendarDateMonth bytes # YYYY-MM
+            [_, _, _, _, _, _, _] -> parseOrdinalDateBasic bytes # YYYYDDD
+            [_, _, _, _, '-', 'W', _, _] -> parseWeekDateReducedExtended bytes # YYYY-Www
+            [_, _, _, _, 'W', _, _, _] -> parseWeekDateBasic bytes # YYYYWwwD
+            [_, _, _, _, '-', _, _, _] -> parseOrdinalDateExtended bytes # YYYY-DDD
+            [_, _, _, _, _, _, _, _] -> parseCalendarDateBasic bytes # YYYYMMDD
+            [_, _, _, _, '-', 'W', _, _, '-', _] -> parseWeekDateExtended bytes # YYYY-Www-D
+            [_, _, _, _, '-', _, _, '-', _, _] -> parseCalendarDateExtended bytes # YYYY-MM-DD
             _ -> Err InvalidDateFormat
     else
         Err InvalidDateFormat
@@ -259,19 +274,23 @@ parseCalendarDateBasic = \bytes ->
     when splitListAtIndices bytes [4, 6] is
         [yearBytes, monthBytes, dayBytes] ->
             when (utf8ToInt yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
-                Date.fromYmd y m d |> Ok
-            (_, _, _) -> Err InvalidDateFormat
+                (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
+                    Date.fromYmd y m d |> Ok
+
+                (_, _, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
 
-parseCalendarDateExtended  : List U8 -> Result Date [InvalidDateFormat]
-parseCalendarDateExtended = \bytes -> 
-    when splitListAtIndices bytes [4,5,7,8] is
-        [yearBytes, _, monthBytes, _, dayBytes] -> 
+parseCalendarDateExtended : List U8 -> Result Date [InvalidDateFormat]
+parseCalendarDateExtended = \bytes ->
+    when splitListAtIndices bytes [4, 5, 7, 8] is
+        [yearBytes, _, monthBytes, _, dayBytes] ->
             when (utf8ToIntSigned yearBytes, utf8ToInt monthBytes, utf8ToInt dayBytes) is
-            (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
-                Date.fromYmd y m d |> Ok
-            (_, _, _) -> Err InvalidDateFormat
+                (Ok y, Ok m, Ok d) if m >= 1 && m <= 12 && d >= 1 && d <= 31 ->
+                    Date.fromYmd y m d |> Ok
+
+                (_, _, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
 
 parseCalendarDateCentury : List U8 -> Result Date [InvalidDateFormat]
@@ -287,76 +306,88 @@ parseCalendarDateYear = \bytes ->
         Err _ -> Err InvalidDateFormat
 
 parseCalendarDateMonth : List U8 -> Result Date [InvalidDateFormat]
-parseCalendarDateMonth = \bytes -> 
-    when splitListAtIndices bytes [4,5] is
-        [yearBytes, _, monthBytes] -> 
+parseCalendarDateMonth = \bytes ->
+    when splitListAtIndices bytes [4, 5] is
+        [yearBytes, _, monthBytes] ->
             when (utf8ToIntSigned yearBytes, utf8ToInt monthBytes) is
-            (Ok year, Ok month) if month >= 1 && month <= 12 ->
-                Date.fromYmd year month 1 |> Ok
-            (_, _) -> Err InvalidDateFormat
+                (Ok year, Ok month) if month >= 1 && month <= 12 ->
+                    Date.fromYmd year month 1 |> Ok
+
+                (_, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
 
 parseOrdinalDateBasic : List U8 -> Result Date [InvalidDateFormat]
-parseOrdinalDateBasic = \bytes -> 
+parseOrdinalDateBasic = \bytes ->
     when splitListAtIndices bytes [4] is
-        [yearBytes, dayBytes] -> 
+        [yearBytes, dayBytes] ->
             when (utf8ToIntSigned yearBytes, utf8ToInt dayBytes) is
-            (Ok year, Ok day) if day >= 1 && day <= 366 ->
-                Date.fromYd year day |> Ok
-            (_, _) -> Err InvalidDateFormat
+                (Ok year, Ok day) if day >= 1 && day <= 366 ->
+                    Date.fromYd year day |> Ok
+
+                (_, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
 
 parseOrdinalDateExtended : List U8 -> Result Date [InvalidDateFormat]
-parseOrdinalDateExtended = \bytes -> 
-    when splitListAtIndices bytes [4,5] is
-        [yearBytes, _, dayBytes] -> 
+parseOrdinalDateExtended = \bytes ->
+    when splitListAtIndices bytes [4, 5] is
+        [yearBytes, _, dayBytes] ->
             when (utf8ToIntSigned yearBytes, utf8ToInt dayBytes) is
-            (Ok year, Ok day) if day >= 1 && day <= 366 ->
-                Date.fromYd year day |> Ok
-            (_, _) -> Err InvalidDateFormat
+                (Ok year, Ok day) if day >= 1 && day <= 366 ->
+                    Date.fromYd year day |> Ok
+
+                (_, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
 
 parseWeekDateBasic : List U8 -> Result Date [InvalidDateFormat]
-parseWeekDateBasic = \bytes -> 
-    when splitListAtIndices bytes [4,5,7] is
-    [yearBytes, _, weekBytes, dayBytes] -> 
-        when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
-        (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
-            Date.fromYwd y w d |> Ok
-        (_, _, _) -> Err InvalidDateFormat
-    _ -> Err InvalidDateFormat
+parseWeekDateBasic = \bytes ->
+    when splitListAtIndices bytes [4, 5, 7] is
+        [yearBytes, _, weekBytes, dayBytes] ->
+            when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
+                (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+                    Date.fromYwd y w d |> Ok
+
+                (_, _, _) -> Err InvalidDateFormat
+
+        _ -> Err InvalidDateFormat
 
 parseWeekDateExtended : List U8 -> Result Date [InvalidDateFormat]
-parseWeekDateExtended = \bytes -> 
-    when splitListAtIndices bytes [4,6,8,9] is
-    [yearBytes, _, weekBytes, _, dayBytes] -> 
-        when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
-        (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
-            Date.fromYwd y w d |> Ok
-        (_, _, _) -> Err InvalidDateFormat
-    _ -> Err InvalidDateFormat
+parseWeekDateExtended = \bytes ->
+    when splitListAtIndices bytes [4, 6, 8, 9] is
+        [yearBytes, _, weekBytes, _, dayBytes] ->
+            when (utf8ToInt yearBytes, utf8ToInt weekBytes, utf8ToInt dayBytes) is
+                (Ok y, Ok w, Ok d) if w >= 1 && w <= 52 && d >= 1 && d <= 7 ->
+                    Date.fromYwd y w d |> Ok
+
+                (_, _, _) -> Err InvalidDateFormat
+
+        _ -> Err InvalidDateFormat
 
 parseWeekDateReducedBasic : List U8 -> Result Date [InvalidDateFormat]
-parseWeekDateReducedBasic = \bytes -> 
-    when splitListAtIndices bytes [4,5] is
-        [yearBytes, _, weekBytes] -> 
+parseWeekDateReducedBasic = \bytes ->
+    when splitListAtIndices bytes [4, 5] is
+        [yearBytes, _, weekBytes] ->
             when (utf8ToInt yearBytes, utf8ToInt weekBytes) is
-            (Ok year, Ok week) if week >= 1 && week <= 52 ->
-                Date.fromYw year week |> Ok
-            (_, _) -> Err InvalidDateFormat
+                (Ok year, Ok week) if week >= 1 && week <= 52 ->
+                    Date.fromYw year week |> Ok
+
+                (_, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
 
 parseWeekDateReducedExtended : List U8 -> Result Date [InvalidDateFormat]
-parseWeekDateReducedExtended = \bytes -> 
-    when splitListAtIndices bytes [4,6] is
-        [yearBytes, _, weekBytes] -> 
+parseWeekDateReducedExtended = \bytes ->
+    when splitListAtIndices bytes [4, 6] is
+        [yearBytes, _, weekBytes] ->
             when (utf8ToInt yearBytes, utf8ToInt weekBytes) is
-            (Ok year, Ok week) if week >= 1 && week <= 52  ->
-                Date.fromYw year week |> Ok
-            (_, _) -> Err InvalidDateFormat
+                (Ok year, Ok week) if week >= 1 && week <= 52 ->
+                    Date.fromYw year week |> Ok
+
+                (_, _) -> Err InvalidDateFormat
+
         _ -> Err InvalidDateFormat
-
-
 
 # <==== TESTS ====>
 # <---- ydToYmdd ---->
@@ -369,7 +400,7 @@ expect ydToYmdd 1972 61 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 
 # <---- calendarWeekToDaysInYear ---->
 expect calendarWeekToDaysInYear 1 1965 == 3
 expect calendarWeekToDaysInYear 1 1964 == 0
-expect calendarWeekToDaysInYear 1 1970  == 0
+expect calendarWeekToDaysInYear 1 1970 == 0
 expect calendarWeekToDaysInYear 1 1971 == 3
 expect calendarWeekToDaysInYear 1 1972 == 2
 expect calendarWeekToDaysInYear 1 1973 == 0
@@ -378,7 +409,7 @@ expect calendarWeekToDaysInYear 2 2024 == 7
 # <---- numDaysSinceEpoch ---->
 expect numDaysSinceEpoch (fromYmd 2024 1 1) == 19723 # Removed due to compiler bug with optional record fields
 expect numDaysSinceEpoch (fromYmd 1970 12 31) == 365 - 1
-expect numDaysSinceEpoch (fromYmd 1971 1 2 ) == 365 + 1
+expect numDaysSinceEpoch (fromYmd 1971 1 2) == 365 + 1
 expect numDaysSinceEpoch (fromYmd 2024 1 1) == 19723
 expect numDaysSinceEpoch (fromYmd 2024 2 1) == 19723 + 31
 expect numDaysSinceEpoch (fromYmd 2024 12 31) == 19723 + 366 - 1
@@ -397,7 +428,7 @@ expect numDaysSinceEpochUntilYear 2024 == 19723
 
 # <---- fromYmd ---->
 expect fromYmd 1970 1 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-expect fromYmd 1970 12 31 == { year: 1970, month: 12, dayOfMonth: 31,  dayOfYear: 365 }
+expect fromYmd 1970 12 31 == { year: 1970, month: 12, dayOfMonth: 31, dayOfYear: 365 }
 expect fromYmd 1972 3 1 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 }
 
 # <---- fromYwd ---->
@@ -418,12 +449,12 @@ expect fromNanosSinceEpoch (-Const.nanosPerDay * 365 - Const.nanosPerDay * 366) 
 expect fromNanosSinceEpoch -1 == { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }
 
 # <---- toNanosSinceEpoch ---->
-expect toNanosSinceEpoch { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 } ==  0
+expect toNanosSinceEpoch { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 } == 0
 expect toNanosSinceEpoch { year: 1970, month: 12, dayOfMonth: 31, dayOfYear: 365 } == Const.nanosPerHour * 24 * 364
 expect toNanosSinceEpoch { year: 1973, month: 1, dayOfMonth: 1, dayOfYear: 1 } == Const.nanosPerHour * 24 * 365 * 2 + Const.nanosPerHour * 24 * 366
-expect toNanosSinceEpoch { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 }  == Const.nanosPerHour * 24 * -1
+expect toNanosSinceEpoch { year: 1969, month: 12, dayOfMonth: 31, dayOfYear: 365 } == Const.nanosPerHour * 24 * -1
 expect toNanosSinceEpoch { year: 1969, month: 1, dayOfMonth: 1, dayOfYear: 1 } == Const.nanosPerHour * 24 * -365
-expect toNanosSinceEpoch { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 } ==  Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366
+expect toNanosSinceEpoch { year: 1968, month: 1, dayOfMonth: 1, dayOfYear: 1 } == Const.nanosPerHour * 24 * -365 - Const.nanosPerHour * 24 * 366
 
 # <---- toIsoStr ---->
 expect toIsoStr unixEpoch == "1970-01-01"
@@ -443,9 +474,8 @@ expect addDays unixEpoch (-365 - 1) == fromYmd 1968 12 31
 expect addDays unixEpoch (-365 - 366) == fromYmd 1968 1 1
 
 # <---- addDateAndDuration ---->
-expect 
-    import Unsafe exposing [unwrap]
-    addDateAndDuration unixEpoch (Duration.fromDays 1 |> unwrap "will not overflow") == fromYmd 1970 1 2
+expect
+    addDateAndDuration unixEpoch (fromDays 1 |> unwrap "will not overflow") == fromYmd 1970 1 2
 
 # <---- ymdToDaysInYear ---->
 expect ymdToDaysInYear 1970 1 1 == 1

@@ -34,6 +34,7 @@ import Time exposing [Time]
 import Utils exposing [
     splitUtf8AndKeepDelimiters,
 ]
+import Unsafe exposing [unwrap] # for unit testing only
 
 DateTime : { date : Date, time : Time }
 
@@ -42,10 +43,12 @@ unixEpoch = { date: Date.unixEpoch, time: Time.midnight }
 
 normalize : DateTime -> DateTime
 normalize = \dateTime ->
-    addHours { 
-        date: dateTime.date, 
-        time: Time.fromHmsn 0 dateTime.time.minute dateTime.time.second dateTime.time.nanosecond,
-    } dateTime.time.hour
+    addHours
+        {
+            date: dateTime.date,
+            time: Time.fromHmsn 0 dateTime.time.minute dateTime.time.second dateTime.time.nanosecond,
+        }
+        dateTime.time.hour
 
 expect normalize (fromYmdhmsn 1970 1 2 -12 1 2 3) == fromYmdhmsn 1970 1 1 12 1 2 3
 expect normalize (fromYmdhmsn 1970 1 1 12 1 2 3) == fromYmdhmsn 1970 1 1 12 1 2 3
@@ -72,15 +75,19 @@ fromYmdhmsn = \year, month, day, hour, minute, second, nanosecond ->
     { date: Date.fromYmd year month day, time: Time.fromHmsn hour minute second nanosecond }
 
 toNanosSinceEpoch : DateTime -> I128
-toNanosSinceEpoch = \dateTime -> 
+toNanosSinceEpoch = \dateTime ->
     dateNanos = Date.toNanosSinceEpoch dateTime.date
     timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
     dateNanos + timeNanos
 
 fromNanosSinceEpoch : Int * -> DateTime
-fromNanosSinceEpoch = \nanos -> 
-    timeNanos = if nanos < 0 && Num.toI128 nanos % Const.nanosPerDay != 0 then
-        nanos % Const.nanosPerDay + Const.nanosPerDay else nanos % Const.nanosPerDay
+fromNanosSinceEpoch = \nanos ->
+    timeNanos = (
+        if nanos < 0 && Num.toI128 nanos % Const.nanosPerDay != 0 then
+            nanos % Const.nanosPerDay + Const.nanosPerDay
+        else
+            nanos % Const.nanosPerDay
+    )
     dateNanos = nanos - timeNanos
     date = dateNanos |> Date.fromNanosSinceEpoch
     time = timeNanos |> Num.toI64 |> Time.fromNanosSinceMidnight
@@ -89,10 +96,22 @@ fromNanosSinceEpoch = \nanos ->
 addNanoseconds : DateTime, Int * -> DateTime
 addNanoseconds = \dateTime, nanos ->
     timeNanos = Time.toNanosSinceMidnight dateTime.time + Num.toI64 nanos
-    days = if timeNanos >= 0 
-        then timeNanos // Const.nanosPerDay |> Num.toI64
-        else timeNanos // Const.nanosPerDay |> Num.add (if timeNanos % Const.nanosPerDay < 0 then -1 else 0) |> Num.toI64
-    { date:  Date.addDays dateTime.date days, time: Time.fromNanosSinceMidnight timeNanos |> Time.normalize }
+    days = (
+        if timeNanos >= 0 then
+            timeNanos // Const.nanosPerDay |> Num.toI64
+        else
+            timeNanos
+            // Const.nanosPerDay
+            |> Num.add
+                (
+                    if timeNanos % Const.nanosPerDay < 0 then
+                        -1
+                    else
+                        0
+                )
+            |> Num.toI64
+    )
+    { date: Date.addDays dateTime.date days, time: Time.fromNanosSinceMidnight timeNanos |> Time.normalize }
 
 addSeconds : DateTime, Int * -> DateTime
 addSeconds = \dateTime, seconds -> addNanoseconds dateTime (Num.toI64 seconds * Const.nanosPerSecond)
@@ -123,11 +142,11 @@ addDateTimeAndDuration : DateTime, Duration -> DateTime
 addDateTimeAndDuration = \dateTime, duration -> addDurationAndDateTime duration dateTime
 
 toIsoStr : DateTime -> Str
-toIsoStr = \dateTime -> 
+toIsoStr = \dateTime ->
     Date.toIsoStr dateTime.date |> Str.concat "T" |> Str.concat (Time.toIsoStr dateTime.time)
 
 toIsoU8 : DateTime -> List U8
-toIsoU8 = \dateTime -> 
+toIsoU8 = \dateTime ->
     Date.toIsoU8 dateTime.date |> List.concat ['T'] |> List.concat (Time.toIsoU8 dateTime.time)
 
 fromIsoStr : Str -> Result DateTime [InvalidDateTimeFormat]
@@ -139,13 +158,16 @@ fromIsoU8 = \bytes ->
         [dateBytes, ['T'], timeBytes] ->
             # TODO: currently cannot support timezone offsets which exceed or precede the current day
             when (Date.fromIsoU8 dateBytes, Time.fromIsoU8 timeBytes) is
-                (Ok date, Ok time) -> 
+                (Ok date, Ok time) ->
                     { date, time } |> normalize |> Ok
+
                 (_, _) -> Err InvalidDateTimeFormat
-        [dateBytes] -> 
-            when (Date.fromIsoU8 dateBytes) is
+
+        [dateBytes] ->
+            when Date.fromIsoU8 dateBytes is
                 Ok date -> { date, time: Time.fromHms 0 0 0 } |> Ok
                 Err _ -> Err InvalidDateTimeFormat
+
         _ -> Err InvalidDateTimeFormat
 
 # <==== TESTS ====>
@@ -165,11 +187,9 @@ expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -Const.nanosPerDay == fromY
 expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) (-Const.nanosPerDay - 1) == fromYmdhmsn 1969 12 30 23 59 59 (Const.nanosPerSecond - 1)
 
 # <---- addDateTimeAndDuration ---->
-expect 
-    import Unsafe exposing [unwrap]
+expect
     addDateTimeAndDuration unixEpoch (Duration.fromNanoseconds -1 |> unwrap "will not overflow") == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
 expect
-    import Unsafe exposing [unwrap]
     addDateTimeAndDuration unixEpoch (Duration.fromDays 365 |> unwrap "will not overflow") == fromYmdhmsn 1971 1 1 0 0 0 0
 
 # <--- fromNanosSinceEpoch --->
@@ -177,4 +197,4 @@ expect fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerH
 expect fromNanosSinceEpoch (-1) == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
 
 # <--- toNanosSinceEpoch --->
-expect toNanosSinceEpoch (fromYmdhmsn 1970 12 31 12 34 56 5)  == 364 * Const.nanosPerDay + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5
+expect toNanosSinceEpoch (fromYmdhmsn 1970 12 31 12 34 56 5) == 364 * Const.nanosPerDay + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5
