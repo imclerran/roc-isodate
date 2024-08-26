@@ -39,33 +39,29 @@ To extend functionality and simplify the API, library _now_ simply provides a co
 Thus, an application might look like the following:
 
 ```roc
-app "MyDateApp"
-    packages {
-        pf: "https://github.com/roc-lang/basic-cli/releases/download/0.14.0/dC5ceT962N_4jmoyoffVdphJ_4GlW3YMhAPyGPr-nU0.tar.br",
-        dt: "https://github.com/imclerran/Roc-IsoDate/releases/download/v0.3.0/GLLnv2LpABZzVYHlata79rpfaF_bJaxsbYMLtk-mF_w.tar.br",
+app [main] {
+    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.14.0/dC5ceT962N_4jmoyoffVdphJ_4GlW3YMhAPyGPr-nU0.tar.br",
+    dt: "./main.roc",
+}
 
-    }
-    imports [
-        dt.DateTime,
-        dt.Duration,
-        pf.Utc,
-        pf.Stdout,
-        pf.Task,
-    ]
-    provides [main] to pf
+import dt.DateTime
+import dt.Duration
+import pf.Utc
+import pf.Stdout
+import pf.Task exposing [Task]
 
 main =
     utcNow = Utc.now!
-    dtNow = Utc.toNanosSinceEpoch utcNow |> DateTime.fromNanosSinceEpoch # Convert Utc to DateTime easily
+    dtNow = utcNow |> Utc.toNanosSinceEpoch |> DateTime.fromNanosSinceEpoch # Convert Utc to DateTime easily
     dtEpoch = DateTime.unixEpoch # Constructor for the epoch
-    dtSomeTime = DateTime.fromIsoStr "2024-04-19T11:31:41.329515-05:00" # parse a DateTime from ISO str easily
-    dtLaterDate = dtSomeTime |> DateTime.addDateTimeAndDuration (Duration.fromHours 25 |> unwrap "25 hours should not overflow") # Add a duration to a DateTime easily
-    utcLaterDate = DateTime.toNanosSinceEpoch dtSomeTime |> Utc.fromNanosSinceEpoch # Convert parsed date to Utc
+    dtSomeTime = DateTime.fromIsoStr "2024-04-19T11:31:41.329515-05:00" |> unwrap "This is a valid datetime" # parse a DateTime from ISO str easily
+    dtLaterDate = dtSomeTime |> DateTime.addDateTimeAndDuration (Duration.fromHours 25 |> unwrap "25 hours cannot overflow") # Add a duration to a DateTime easily
+    utcLaterDate = DateTime.toNanosSinceEpoch dtLaterDate |> Utc.fromNanosSinceEpoch # Convert parsed date to Utc
     nanosLaterDate = Utc.toNanosSinceEpoch utcLaterDate
 
     Stdout.line! "ISO epoch: $(DateTime.toIsoStr dtEpoch)"
     Stdout.line! "Time now: $(Num.toStr dtNow.time.hour):$(Num.toStr dtNow.time.minute):$(Num.toStr dtNow.time.second)"
-    Stdout.line! "Day some time: $(Num.toStr dtSomeTime.date.day)"
+    Stdout.line! "Day some time: $(Num.toStr dtSomeTime.date.dayOfMonth)"
     Stdout.line! "Utc nanos later date: $(Num.toStr nanosLaterDate)"
 
 unwrap : Result a _, Str -> a
