@@ -490,3 +490,9 @@ expect
 expect ymdToDaysInYear 1970 1 1 == 1
 expect ymdToDaysInYear 1970 12 31 == 365
 expect ymdToDaysInYear 1972 3 1 == 61
+
+# <---- weekday ---->
+expect weekday 1964 10 10 == 6
+expect weekday 1964 10 11 == 0
+expect weekday 1964 10 12 == 1
+expect weekday 2024 10 12 == 6
