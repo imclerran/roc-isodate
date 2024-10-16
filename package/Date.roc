@@ -5,6 +5,7 @@ module [
     addMonths,
     addYears,
     Date,
+    daysInMonth,
     fromIsoStr,
     fromIsoU8,
     fromNanosSinceEpoch,
@@ -142,6 +143,16 @@ weekday = \year, month, day ->
     date = Date.fromYmd year2xxx month day
     daysSinceEpoch = Date.toNanosSinceEpoch date // Const.nanosPerDay
     (daysSinceEpoch + 4) % 7 |> Num.toU8
+
+## Returns the number of days in the given month of the given year.
+daysInMonth : I64, U8 -> U8
+daysInMonth = \year, month ->
+    maybeDays =
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        |> List.get (month - 1 |> Num.toU64)
+    when maybeDays is
+        Ok days -> if Date.isLeapYear year && month == 2 then 29 else days
+        Err OutOfBounds -> crash "Month is assumed to be between 1 and 12"
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
@@ -463,3 +474,18 @@ expect weekday 1964 10 10 == 6
 expect weekday 1964 10 11 == 0
 expect weekday 1964 10 12 == 1
 expect weekday 2024 10 12 == 6
+
+# <---- daysInMonth ---->
+expect daysInMonth 1969 1 == 31
+expect daysInMonth 1969 2 == 28
+expect daysInMonth 1969 3 == 31
+expect daysInMonth 1969 4 == 30
+expect daysInMonth 1969 5 == 31
+expect daysInMonth 1969 6 == 30
+expect daysInMonth 1969 7 == 31
+expect daysInMonth 1969 8 == 31
+expect daysInMonth 1969 9 == 30
+expect daysInMonth 1969 10 == 31
+expect daysInMonth 1969 11 == 30
+expect daysInMonth 1969 12 == 31
+expect daysInMonth 2024 2 == 29
