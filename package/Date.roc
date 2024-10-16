@@ -12,6 +12,7 @@ module [
     fromYmd,
     fromYw,
     fromYwd,
+    isLeapYear,
     toIsoStr,
     toIsoU8,
     toNanosSinceEpoch,
