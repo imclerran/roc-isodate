@@ -30,40 +30,6 @@ import Utils exposing [
 ]
 import Unsafe exposing [unwrap] # for unit testing only
 
-# interface Date
-#     exposes [
-#         addDateAndDuration,
-#         addDays,
-#         addDurationAndDate,
-#         addMonths,
-#         addYears,
-#         Date,
-#         fromIsoStr,
-#         fromIsoU8,
-#         fromNanosSinceEpoch,
-#         fromYd,
-#         fromYmd,
-#         fromYw,
-#         fromYwd,
-#         toIsoStr,
-#         toIsoU8,
-#         toNanosSinceEpoch,
-#         unixEpoch,
-#     ]
-#     imports [
-#         Const,
-#         Duration,
-#         Duration.{ Duration },
-#         Utils.{
-#             expandIntWithZeros,
-#             splitListAtIndices,
-#             utf8ToInt,
-#             utf8ToIntSigned,
-#             validateUtf8SingleBytes,
-#         },
-#         Unsafe.{ unwrap }, # for unit testing only
-#     ]
-
 Date : { year : I64, month : U8, dayOfMonth : U8, dayOfYear : U16 }
 
 unixEpoch : Date
