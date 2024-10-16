@@ -16,6 +16,7 @@ module [
     toIsoU8,
     toNanosSinceEpoch,
     unixEpoch,
+    weekday,
 ]
 
 import Const
@@ -166,6 +167,14 @@ numDaysSinceEpoch = \date ->
 
 numDaysSinceEpochUntilYear = \year ->
     numDaysSinceEpoch { year, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+
+## Returns the day of the week, from 0=Sunday to 6=Saturday
+weekday : I64, U8, U8 -> U8
+weekday = \year, month, day ->
+    year2xxx = (year % 400) + 2400 # to handle years before the epoch
+    date = Date.fromYmd year2xxx month day
+    daysSinceEpoch = Date.toNanosSinceEpoch date // Const.nanosPerDay
+    (daysSinceEpoch + 4) % 7 |> Num.toU8
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
@@ -481,3 +490,9 @@ expect
 expect ymdToDaysInYear 1970 1 1 == 1
 expect ymdToDaysInYear 1970 12 31 == 365
 expect ymdToDaysInYear 1972 3 1 == 61
+
+# <---- weekday ---->
+expect weekday 1964 10 10 == 6
+expect weekday 1964 10 11 == 0
+expect weekday 1964 10 12 == 1
+expect weekday 2024 10 12 == 6
