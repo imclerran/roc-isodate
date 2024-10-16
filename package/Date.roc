@@ -147,12 +147,7 @@ weekday = \year, month, day ->
 ## Returns the number of days in the given month of the given year.
 daysInMonth : I64, U8 -> U8
 daysInMonth = \year, month ->
-    maybeDays =
-        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        |> List.get (month - 1 |> Num.toU64)
-    when maybeDays is
-        Ok days -> if Date.isLeapYear year && month == 2 then 29 else days
-        Err OutOfBounds -> crash "Month is assumed to be between 1 and 12"
+    Const.monthDays { month, isLeap: (isLeapYear year) } |> Num.toU8
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
