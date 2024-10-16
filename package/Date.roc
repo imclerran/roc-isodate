@@ -5,6 +5,7 @@ module [
     addMonths,
     addYears,
     Date,
+    daysInMonth,
     fromIsoStr,
     fromIsoU8,
     fromNanosSinceEpoch,
@@ -12,6 +13,7 @@ module [
     fromYmd,
     fromYw,
     fromYwd,
+    isLeapYear,
     toIsoStr,
     toIsoU8,
     toNanosSinceEpoch,
@@ -29,40 +31,6 @@ import Utils exposing [
     validateUtf8SingleBytes,
 ]
 import Unsafe exposing [unwrap] # for unit testing only
-
-# interface Date
-#     exposes [
-#         addDateAndDuration,
-#         addDays,
-#         addDurationAndDate,
-#         addMonths,
-#         addYears,
-#         Date,
-#         fromIsoStr,
-#         fromIsoU8,
-#         fromNanosSinceEpoch,
-#         fromYd,
-#         fromYmd,
-#         fromYw,
-#         fromYwd,
-#         toIsoStr,
-#         toIsoU8,
-#         toNanosSinceEpoch,
-#         unixEpoch,
-#     ]
-#     imports [
-#         Const,
-#         Duration,
-#         Duration.{ Duration },
-#         Utils.{
-#             expandIntWithZeros,
-#             splitListAtIndices,
-#             utf8ToInt,
-#             utf8ToIntSigned,
-#             validateUtf8SingleBytes,
-#         },
-#         Unsafe.{ unwrap }, # for unit testing only
-#     ]
 
 Date : { year : I64, month : U8, dayOfMonth : U8, dayOfYear : U16 }
 
@@ -175,6 +143,11 @@ weekday = \year, month, day ->
     date = Date.fromYmd year2xxx month day
     daysSinceEpoch = Date.toNanosSinceEpoch date // Const.nanosPerDay
     (daysSinceEpoch + 4) % 7 |> Num.toU8
+
+## Returns the number of days in the given month of the given year.
+daysInMonth : I64, U8 -> U8
+daysInMonth = \year, month ->
+    Const.monthDays { month, isLeap: (isLeapYear year) } |> Num.toU8
 
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
@@ -496,3 +469,18 @@ expect weekday 1964 10 10 == 6
 expect weekday 1964 10 11 == 0
 expect weekday 1964 10 12 == 1
 expect weekday 2024 10 12 == 6
+
+# <---- daysInMonth ---->
+expect daysInMonth 1969 1 == 31
+expect daysInMonth 1969 2 == 28
+expect daysInMonth 1969 3 == 31
+expect daysInMonth 1969 4 == 30
+expect daysInMonth 1969 5 == 31
+expect daysInMonth 1969 6 == 30
+expect daysInMonth 1969 7 == 31
+expect daysInMonth 1969 8 == 31
+expect daysInMonth 1969 9 == 30
+expect daysInMonth 1969 10 == 31
+expect daysInMonth 1969 11 == 30
+expect daysInMonth 1969 12 == 31
+expect daysInMonth 2024 2 == 29
