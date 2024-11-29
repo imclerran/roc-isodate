@@ -18,7 +18,7 @@ splitListAtIndicesRecur : List a, List U8 -> List (List a)
 splitListAtIndicesRecur = \list, indices ->
     when indices is
         [x, .. as xs] if x != 0 && x != List.len list |> Num.toU8 ->
-            { before, others } = List.split list (Num.toU64 x)
+            { before, others } = List.splitAt list (Num.toU64 x)
             splitListAtIndicesRecur before xs |> List.append others
 
         [_, .. as xs] ->
@@ -139,4 +139,3 @@ expandIntWithZeros = \num, targetLength ->
     num |> Num.toStr |> padLeft '0' targetLength
 
 expect expandIntWithZeros 123 5 == "00123"
-
