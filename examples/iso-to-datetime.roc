@@ -4,7 +4,6 @@ app [main] {
 }
 
 import pf.Http
-import pf.Task exposing [Task]
 import pf.Stdout
 import dt.DateTime
 
@@ -37,7 +36,7 @@ formatRequest = \timezone -> {
 }
 
 getIsoString = \body ->
-    when Str.split body "\n" |> List.get 2 is
+    when Str.splitOn body "\n" |> List.get 2 is
         Ok line ->
             when Str.splitFirst line ":" is
                 Ok lineParts -> lineParts.after |> Str.trim
