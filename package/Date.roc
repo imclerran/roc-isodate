@@ -198,10 +198,12 @@ fromNanosHelper = \days, year ->
             fromYd year (days + 1)
 
 # TODO: allow for negative years
+## Add the given number of years to the given `Date`.
 addYears : Date, Int * -> Date
 addYears = \date, years -> fromYmd (date.year + Num.toI64 years) date.month date.dayOfMonth
 
 # TODO: allow for negative months
+## Add the given number of months to the given `Date`.
 addMonths : Date, Int * -> Date
 addMonths = \date, months ->
     newMonthWithOverflow = date.month + Num.toU8 months
