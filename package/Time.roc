@@ -36,8 +36,17 @@ import Utils exposing [
 ]
 import Unsafe exposing [unwrap] # for unit testing only
 
+## ```
+## Time : { 
+##     hour : I8, 
+##     minute : U8, 
+##     second : U8, 
+##     nanosecond : U32 
+## }
+## ```
 Time : { hour : I8, minute : U8, second : U8, nanosecond : U32 }
 
+## `Time` object representing 00:00:00.
 midnight : Time
 midnight = { hour: 0, minute: 0, second: 0, nanosecond: 0 }
 
@@ -50,13 +59,16 @@ expect Time.normalize (fromHms -1 0 0) == fromHms 23 0 0
 expect Time.normalize (fromHms 24 0 0) == fromHms 0 0 0
 expect Time.normalize (fromHms 25 0 0) == fromHms 1 0 0
 
+## Create a `Time` object from the hour, minute, and second.
 fromHms : Int *, Int *, Int * -> Time
 fromHms = \hour, minute, second -> { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: 0u32 }
 
+## Create a `Time` object from the hour, minute, second, and nanosecond.
 fromHmsn : Int *, Int *, Int *, Int * -> Time
 fromHmsn = \hour, minute, second, nanosecond ->
     { hour: Num.toI8 hour, minute: Num.toU8 minute, second: Num.toU8 second, nanosecond: Num.toU32 nanosecond }
 
+## Convert nanoseconds since midnight to a `Time` object.
 toNanosSinceMidnight : Time -> I64
 toNanosSinceMidnight = \time ->
     hNanos = time.hour |> Num.toI64 |> Num.mul Const.nanosPerHour |> Num.toI64
@@ -65,6 +77,7 @@ toNanosSinceMidnight = \time ->
     nanos = time.nanosecond |> Num.toI64
     hNanos + mNanos + sNanos + nanos
 
+## Convert a `Time` object to the number of nanoseconds since midnight.
 fromNanosSinceMidnight : Int * -> Time
 fromNanosSinceMidnight = \nanos ->
     nanos1 = nanos |> Num.rem Const.nanosPerDay |> Num.add Const.nanosPerDay |> Num.rem Const.nanosPerDay |> Num.toU64
@@ -76,25 +89,31 @@ fromNanosSinceMidnight = \nanos ->
     hour = (nanos - Num.intCast (Num.toI64 minute * nanosPerMinute + Num.toI64 second * nanosPerSecond + Num.toI64 nanosecond)) // nanosPerHour |> Num.toI8 # % Const.hoursPerDay |> Num.toI8
     { hour, minute, second, nanosecond }
 
+## Add nanoseconds to a `Time` object.
 addNanoseconds : Time, Int * -> Time
 addNanoseconds = \time, nanos ->
     toNanosSinceMidnight time + Num.toI64 nanos |> fromNanosSinceMidnight
 
+## Add seconds to a `Time` object.
 addSeconds : Time, Int * -> Time
 addSeconds = \time, seconds -> addNanoseconds time (seconds * Const.nanosPerSecond)
 
+## Add minutes to a `Time` object.
 addMinutes : Time, Int * -> Time
 addMinutes = \time, minutes -> addNanoseconds time (minutes * Const.nanosPerMinute)
 
+## Add hours to a `Time` object.
 addHours : Time, Int * -> Time
 addHours = \time, hours -> addNanoseconds time (hours * Const.nanosPerHour)
 
+## Add a `Duration` object to a `Time` object.
 addDurationAndTime : Duration, Time -> Time
 addDurationAndTime = \duration, time ->
     durationNanos = Duration.toNanoseconds duration
     timeNanos = toNanosSinceMidnight time |> Num.toI128
     (durationNanos + timeNanos) |> fromNanosSinceMidnight
 
+## Add a `Time` object to a `Duration` object.
 addTimeAndDuration : Time, Duration -> Time
 addTimeAndDuration = \time, duration -> addDurationAndTime duration time
 
@@ -105,6 +124,7 @@ stripTandZ = \bytes ->
         [.. as head, 'Z'] -> head
         _ -> bytes
 
+## Convert a `Time` object to an ISO 8601 string.
 toIsoStr : Time -> Str
 toIsoStr = \time ->
     expandIntWithZeros time.hour 2
@@ -131,12 +151,15 @@ countFracWidth = \num, width ->
     else
         width
 
+## Convert a `Time` object to an ISO 8601 list of UTF-8 bytes.
 toIsoU8 : Time -> List U8
 toIsoU8 = \time -> toIsoStr time |> Str.toUtf8
 
+## Convert an ISO 8601 string to a `Time` object.
 fromIsoStr : Str -> Result Time [InvalidTimeFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
 
+## Convert an ISO 8601 list of UTF-8 bytes to a `Time` object.
 fromIsoU8 : List U8 -> Result Time [InvalidTimeFormat]
 fromIsoU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
