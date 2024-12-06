@@ -1,7 +1,6 @@
 name: Generate docs
 
 on:
-  # Run when a release is published
   release:
     types:
       - published
@@ -23,9 +22,13 @@ jobs:
           roc-version: nightly
       - name: Generate docs
         run: roc docs package/main.roc
+      - name: List contents of generated-docs directory (before fix paths)
+        run: ls -R generated-docs
       - name: Fix absolute paths
         run: |
           find generated-docs/ -type f -name '*.html' -exec sed -i "s/\(href\|src\)=\"\//\1=\"\/${{ github.event.repository.name }}\//g" {} +
+      - name: List contents of generated-docs directory (after fix paths)
+        run: ls -R generated-docs
       - name: Upload docs artifact
         uses: actions/upload-pages-artifact@v3.0.1
         with:
