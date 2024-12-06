@@ -34,9 +34,19 @@ import Unsafe exposing [unwrap] # for unit testing only
 
 ## Type representing a date.
 ## ```
-## Date : { yeaer: I64, month: U8, dayOfMonth: U8, dayOfYear: U16 }
+## Date : { 
+##     year: I64, 
+##     month: U8, 
+##     dayOfMonth: U8, 
+##     dayOfYear: U16 
+## }
 ## ```
-Date : { year : I64, month : U8, dayOfMonth : U8, dayOfYear : U16 }
+Date : { 
+    year : I64,
+    month : U8, 
+    dayOfMonth : U8, 
+    dayOfYear : U16 
+}
 
 unixEpoch : Date
 unixEpoch = { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
