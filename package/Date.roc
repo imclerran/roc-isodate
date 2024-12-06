@@ -32,7 +32,6 @@ import Utils exposing [
 ]
 import Unsafe exposing [unwrap] # for unit testing only
 
-## Type representing a date.
 ## ```
 ## Date : { 
 ##     year: I64, 
@@ -48,20 +47,19 @@ Date : {
     dayOfYear : U16 
 }
 
+## `Date` object representing the Unix epoch (1970-01-01).
 unixEpoch : Date
 unixEpoch = { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
 
+## Create a `Date` object from the given year and day of the year.
 fromYd : Int *, Int * -> Date
 fromYd = \year, dayOfYear ->
-    ydToYmdd year dayOfYear
-
-ydToYmdd : Int *, Int * -> Date
-ydToYmdd = \year, dayOfYear ->
     List.range { start: At 1, end: At 12 }
     |> List.map \m -> Const.monthDays { month: Num.toU64 m, isLeap: isLeapYear year }
     |> List.walkUntil { daysRemaining: Num.toU16 dayOfYear, month: 1 } walkUntilMonthFunc
     |> \result -> { year: Num.toI64 year, month: Num.toU8 result.month, dayOfMonth: Num.toU8 result.daysRemaining, dayOfYear: Num.toU16 dayOfYear }
 
+## Check whether the given year is a leap year.
 isLeapYear = \year ->
     (
         year
@@ -75,6 +73,7 @@ isLeapYear = \year ->
     % Const.leapNonException
     == 0
 
+## Walk through the months of a year to find the month and day of the month
 walkUntilMonthFunc : { daysRemaining : U16, month : U8 }, U64 -> [Break { daysRemaining : U16, month : U8 }, Continue { daysRemaining : U16, month : U8 }]
 walkUntilMonthFunc = \state, currMonthDays ->
     if state.daysRemaining <= Num.toU16 currMonthDays then
@@ -82,10 +81,12 @@ walkUntilMonthFunc = \state, currMonthDays ->
     else
         Continue { daysRemaining: state.daysRemaining - Num.toU16 currMonthDays, month: state.month + 1 }
 
+## Create a `Date` object from the given year, month, and day of the month.
 fromYmd : Int *, Int *, Int * -> Date
 fromYmd = \year, month, day ->
     { year: Num.toI64 year, month: Num.toU8 month, dayOfMonth: Num.toU8 day, dayOfYear: ymdToDaysInYear year month day }
 
+## Convert the given year, month, and day of the month to the day of the year.
 ymdToDaysInYear : Int *, Int *, Int * -> U16
 ymdToDaysInYear = \year, month, day ->
     List.range { start: At 0, end: Before month }
@@ -94,15 +95,17 @@ ymdToDaysInYear = \year, month, day ->
     |> Num.add (Num.toU64 day)
     |> Num.toU16
 
+## Create a `Date` object from the given year, week, and day of the week.
 fromYwd : Int *, Int *, Int * -> Date
 fromYwd = \year, week, day ->
     daysInYear = if isLeapYear year then 366 else 365
     d = calendarWeekToDaysInYear week year |> Num.add (Num.toU64 day)
     if d > daysInYear then
-        ydToYmdd (year + 1) (d - daysInYear)
+        fromYd (year + 1) (d - daysInYear)
     else
-        ydToYmdd year d
+        fromYd year d
 
+## Convert the given calendar week and year to the day of the year.
 calendarWeekToDaysInYear : Int *, Int * -> U64
 calendarWeekToDaysInYear = \week, year ->
     # Week 1 of a year is the first week with a majority of its days in that year
@@ -119,6 +122,7 @@ calendarWeekToDaysInYear = \week, year ->
     else
         (w - 1) * Const.daysPerWeek + lengthOfMaybeFirstWeek
 
+## Calculate the number of leap years since the epoch.
 numLeapYearsSinceEpoch : I64, [IncludeCurrent, ExcludeCurrent] -> I64
 numLeapYearsSinceEpoch = \year, inclusive ->
     leapIncr = isLeapYear year |> \isLeap -> if isLeap && inclusive == IncludeCurrent then 1 else 0
@@ -129,6 +133,7 @@ numLeapYearsSinceEpoch = \year, inclusive ->
         IncludeCurrent if year != Const.epochYear -> leapIncr + numLeapYearsSinceEpoch nextYear inclusive
         IncludeCurrent -> leapIncr
 
+## Calculate the number of days since the epoch.
 numDaysSinceEpoch : Date -> I64
 numDaysSinceEpoch = \date ->
     numLeapYears = numLeapYearsSinceEpoch date.year ExcludeCurrent
@@ -147,10 +152,11 @@ numDaysSinceEpoch = \date ->
         |> Num.add (daysInYears + Num.toI64 (getMonthDays date.month) - Num.toI64 date.dayOfMonth + 1)
         |> Num.mul -1
 
+## Calculate the number of days since the epoch until the given year.
 numDaysSinceEpochUntilYear = \year ->
     numDaysSinceEpoch { year, month: 1, dayOfMonth: 1, dayOfYear: 1 }
 
-## Returns the day of the week, from 0=Sunday to 6=Saturday
+## Return the day of the week, from 0=Sunday to 6=Saturday
 weekday : I64, U8, U8 -> U8
 weekday = \year, month, day ->
     year2xxx = (year % 400) + 2400 # to handle years before the epoch
@@ -163,15 +169,18 @@ daysInMonth : I64, U8 -> U8
 daysInMonth = \year, month ->
     Const.monthDays { month, isLeap: (isLeapYear year) } |> Num.toU8
 
+## Create a `Date` object from the given year and week.
 fromYw : Int *, Int * -> Date
 fromYw = \year, week ->
     fromYwd year week 1
 
+## Convert the given `Date` to nanoseconds since the epoch.
 toNanosSinceEpoch : Date -> I128
 toNanosSinceEpoch = \date ->
     days = numDaysSinceEpoch date
     days |> Num.toI128 |> Num.mul Const.nanosPerDay
 
+## Create a `Date` object from the given nanoseconds since the epoch.
 fromNanosSinceEpoch : Int * -> Date
 fromNanosSinceEpoch = \nanos ->
     days = nanos // Const.nanosPerDay |> \d -> if nanos % Const.nanosPerDay < 0 then d - 1 else d
@@ -186,7 +195,7 @@ fromNanosHelper = \days, year ->
         if days >= daysInYear then
             fromNanosHelper (days - daysInYear) (year + 1)
         else
-            ydToYmdd year (days + 1)
+            fromYd year (days + 1)
 
 # TODO: allow for negative years
 addYears : Date, Int * -> Date
@@ -206,6 +215,7 @@ addMonths = \date, months ->
     )
     fromYmd newYear newMonth newDay
 
+## Add the given number of days to the given `Date`.
 addDays : Date, Int * -> Date
 addDays = \date, days ->
     addDaysHelper date (Num.toI16 days)
@@ -222,15 +232,18 @@ addDaysHelper = \date, days ->
     else
         fromYd date.year newDayOfYear
 
+## Add the given `Duration` to the given `Date`.
 addDurationAndDate : Duration, Date -> Date
 addDurationAndDate = \duration, date ->
     durationNanos = toNanoseconds duration
     dateNanos = toNanosSinceEpoch date |> Num.toI128
     durationNanos + dateNanos |> fromNanosSinceEpoch
 
+## Add the given `Date` and `Duration`.
 addDateAndDuration : Date, Duration -> Date
 addDateAndDuration = \date, duration -> addDurationAndDate duration date
 
+## Convert the given `Date` to an ISO 8601 string.
 toIsoStr : Date -> Str
 toIsoStr = \date ->
     expandIntWithZeros date.year 4
@@ -239,13 +252,16 @@ toIsoStr = \date ->
     |> Str.concat "-"
     |> Str.concat (expandIntWithZeros date.dayOfMonth 2)
 
+## Convert the `Date` to an ISO 8601 string as a list of UTF-8 bytes.
 toIsoU8 : Date -> List U8
 toIsoU8 = \date -> toIsoStr date |> Str.toUtf8
 
+## Convert the given ISO 8601 string to a `Date`.
 fromIsoStr : Str -> Result Date [InvalidDateFormat]
 fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
 
 # TODO: More efficient parsing method?
+## Convert the given ISO 8601 list of UTF-8 bytes to a `Date`.
 fromIsoU8 : List U8 -> Result Date [InvalidDateFormat]
 fromIsoU8 = \bytes ->
     if validateUtf8SingleBytes bytes then
@@ -386,12 +402,12 @@ parseWeekDateReducedExtended = \bytes ->
         _ -> Err InvalidDateFormat
 
 # <==== TESTS ====>
-# <---- ydToYmdd ---->
-expect ydToYmdd 1970 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-expect ydToYmdd 1970 31 == { year: 1970, month: 1, dayOfMonth: 31, dayOfYear: 31 }
-expect ydToYmdd 1970 32 == { year: 1970, month: 2, dayOfMonth: 1, dayOfYear: 32 }
-expect ydToYmdd 1970 60 == { year: 1970, month: 3, dayOfMonth: 1, dayOfYear: 60 }
-expect ydToYmdd 1972 61 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 }
+# <---- fromYd ---->
+expect fromYd 1970 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromYd 1970 31 == { year: 1970, month: 1, dayOfMonth: 31, dayOfYear: 31 }
+expect fromYd 1970 32 == { year: 1970, month: 2, dayOfMonth: 1, dayOfYear: 32 }
+expect fromYd 1970 60 == { year: 1970, month: 3, dayOfMonth: 1, dayOfYear: 60 }
+expect fromYd 1972 61 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 }
 
 # <---- calendarWeekToDaysInYear ---->
 expect calendarWeekToDaysInYear 1 1965 == 3
