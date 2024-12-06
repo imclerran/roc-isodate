@@ -54,11 +54,6 @@ unixEpoch = { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
 ## Create a `Date` object from the given year and day of the year.
 fromYd : Int *, Int * -> Date
 fromYd = \year, dayOfYear ->
-    ydToYmdd year dayOfYear
-
-
-ydToYmdd : Int *, Int * -> Date
-ydToYmdd = \year, dayOfYear ->
     List.range { start: At 1, end: At 12 }
     |> List.map \m -> Const.monthDays { month: Num.toU64 m, isLeap: isLeapYear year }
     |> List.walkUntil { daysRemaining: Num.toU16 dayOfYear, month: 1 } walkUntilMonthFunc
@@ -106,9 +101,9 @@ fromYwd = \year, week, day ->
     daysInYear = if isLeapYear year then 366 else 365
     d = calendarWeekToDaysInYear week year |> Num.add (Num.toU64 day)
     if d > daysInYear then
-        ydToYmdd (year + 1) (d - daysInYear)
+        fromYd (year + 1) (d - daysInYear)
     else
-        ydToYmdd year d
+        fromYd year d
 
 ## Convert the given calendar week and year to the day of the year.
 calendarWeekToDaysInYear : Int *, Int * -> U64
@@ -200,7 +195,7 @@ fromNanosHelper = \days, year ->
         if days >= daysInYear then
             fromNanosHelper (days - daysInYear) (year + 1)
         else
-            ydToYmdd year (days + 1)
+            fromYd year (days + 1)
 
 # TODO: allow for negative years
 addYears : Date, Int * -> Date
@@ -407,12 +402,12 @@ parseWeekDateReducedExtended = \bytes ->
         _ -> Err InvalidDateFormat
 
 # <==== TESTS ====>
-# <---- ydToYmdd ---->
-expect ydToYmdd 1970 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
-expect ydToYmdd 1970 31 == { year: 1970, month: 1, dayOfMonth: 31, dayOfYear: 31 }
-expect ydToYmdd 1970 32 == { year: 1970, month: 2, dayOfMonth: 1, dayOfYear: 32 }
-expect ydToYmdd 1970 60 == { year: 1970, month: 3, dayOfMonth: 1, dayOfYear: 60 }
-expect ydToYmdd 1972 61 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 }
+# <---- fromYd ---->
+expect fromYd 1970 1 == { year: 1970, month: 1, dayOfMonth: 1, dayOfYear: 1 }
+expect fromYd 1970 31 == { year: 1970, month: 1, dayOfMonth: 31, dayOfYear: 31 }
+expect fromYd 1970 32 == { year: 1970, month: 2, dayOfMonth: 1, dayOfYear: 32 }
+expect fromYd 1970 60 == { year: 1970, month: 3, dayOfMonth: 1, dayOfYear: 60 }
+expect fromYd 1972 61 == { year: 1972, month: 3, dayOfMonth: 1, dayOfYear: 61 }
 
 # <---- calendarWeekToDaysInYear ---->
 expect calendarWeekToDaysInYear 1 1965 == 3
