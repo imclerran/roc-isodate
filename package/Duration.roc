@@ -16,8 +16,18 @@ module [
 import Const
 import Unsafe exposing [unwrap] # for unit testing only
 
+## ```
+## Duration : { 
+##     days : I64, 
+##     hours : I8, 
+##     minutes : I8, 
+##     seconds : I8, 
+##     nanoseconds : I32 
+## }
+## ```
 Duration : { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : I32 }
 
+## Create a `Duration` object from nanoseconds.
 fromNanoseconds : Int * -> Result Duration [DurationOverflow]
 fromNanoseconds = \nanos ->
     if
@@ -33,6 +43,7 @@ fromNanoseconds = \nanos ->
             nanoseconds: nanos % Const.nanosPerSecond |> Num.toI32,
         }
 
+## Convert a `Duration` object to nanoseconds.
 toNanoseconds : Duration -> I128
 toNanoseconds = \duration ->
     (Num.toI128 duration.nanoseconds)
@@ -45,6 +56,7 @@ toNanoseconds = \duration ->
     + (Num.toI128 duration.days)
     * (Const.nanosPerHour * 24)
 
+## Create a `Duration` object from seconds.
 fromSeconds : Int * -> Result Duration [DurationOverflow]
 fromSeconds = \seconds ->
     if
@@ -60,6 +72,7 @@ fromSeconds = \seconds ->
             nanoseconds: 0,
         }
 
+## Convert a `Duration` object to seconds (truncates nanoseconds).
 toSeconds : Duration -> I128
 toSeconds = \duration ->
     (Num.toI128 duration.seconds)
@@ -70,6 +83,7 @@ toSeconds = \duration ->
     + (Num.toI128 duration.days)
     * (Const.secondsPerHour * 24)
 
+## Create a `Duration` object from minutes.
 fromMinutes : Int * -> Result Duration [DurationOverflow]
 fromMinutes = \minutes ->
     if
@@ -85,6 +99,7 @@ fromMinutes = \minutes ->
             nanoseconds: 0,
         }
 
+## Convert a `Duration` object to minutes (truncates seconds and lower).
 toMinutes : Duration -> I128
 toMinutes = \duration ->
     (Num.toI128 duration.minutes)
@@ -93,6 +108,7 @@ toMinutes = \duration ->
     + (Num.toI128 duration.days)
     * (Const.minutesPerHour * 24)
 
+## Create a `Duration` object from hours.
 fromHours : Int * -> Result Duration [DurationOverflow]
 fromHours = \hours ->
     if
@@ -108,12 +124,14 @@ fromHours = \hours ->
             nanoseconds: 0,
         }
 
+## Convert a `Duration` object to hours (truncates minutes and lower).
 toHours : Duration -> I128
 toHours = \duration ->
     (Num.toI128 duration.hours)
     + (Num.toI128 duration.days)
     * 24
 
+## Create a `Duration` object from days.
 fromDays : Int * -> Result Duration [DurationOverflow]
 fromDays = \days ->
     if
@@ -129,9 +147,11 @@ fromDays = \days ->
             nanoseconds: 0,
         }
 
+## Convert a `Duration` object to days (truncates hours and lower).
 toDays : Duration -> I64
 toDays = \duration -> duration.days
 
+## Add two `Duration` objects.
 addDurations : Duration, Duration -> Result Duration [DurationOverflow]
 addDurations = \d1, d2 ->
     nanos1 = toNanoseconds d1
