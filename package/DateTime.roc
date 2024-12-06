@@ -1,3 +1,7 @@
+## The DateTime module provides the `DateTime` type as well as functions for working with combined date and time values.
+##
+## These functions include functions for creating `DateTime` objects from various numeric values, converting `DateTime`s to and from ISO 8601 strings, and performing arithmetic operations on `DateTime`s.
+
 module [
     addDateTimeAndDuration,
     addDays,

@@ -1,3 +1,5 @@
+## The duration modules provides the `Duration` type and associated functions for representing time durations and performing date/time arithmetic.
+
 module [
     addDurations,
     Duration,

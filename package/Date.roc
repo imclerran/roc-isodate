@@ -1,3 +1,7 @@
+## The Date module provides the `Date` type, as well as various functions for working with dates.
+##
+## These functions include functions for creating dates from varioius numeric values, converting dates to and from ISO 8601 strings, and performing arithmetic operations on dates.
+
 module [
     addDateAndDuration,
     addDays,
