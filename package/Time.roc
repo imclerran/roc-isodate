@@ -1,7 +1,6 @@
 ## The Time module provides the `Time` type as well as functions for working with time values.
 ##
 ## These functions include functions for creating `Time` objects from various numeric values, converting `Time`s to and from ISO 8601 strings, and performing arithmetic operations on `Time`s.
-
 module [
     addDurationAndTime,
     addHours,
