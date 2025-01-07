@@ -1,18 +1,17 @@
 app [main] {
-    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.14.0/dC5ceT962N_4jmoyoffVdphJ_4GlW3YMhAPyGPr-nU0.tar.br",
+    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.17.0/lZFLstMUCUvd5bjnnpYromZJXkQUrdhbva4xdBInicE.tar.br",
     dt: "../package/main.roc",
 }
 
 import pf.Stdout
-import pf.Task
 import pf.Utc
 import dt.DateTime
 
 main =
-    utcNow = Utc.now!
-    nowStr =
-        utcNow
+    utc_now = Utc.now! {}
+    now_str =
+        utc_now
         |> Utc.toNanosSinceEpoch
-        |> DateTime.fromNanosSinceEpoch
-        |> DateTime.toIsoStr
-    Stdout.line "Hello, World! The current Zulu time is: $(nowStr)"
+        |> DateTime.from_nanos_since_epoch
+        |> DateTime.to_iso_str
+    Stdout.line! "Hello, World! The current Zulu time is: $(now_str)"
