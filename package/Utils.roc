@@ -1,141 +1,143 @@
 module [
-    expandIntWithZeros,
-    findDecimalIndex,
-    padLeft,
-    splitListAtIndices,
-    splitUtf8AndKeepDelimiters,
-    utf8ToFrac,
-    utf8ToInt,
-    utf8ToIntSigned,
-    validateUtf8SingleBytes,
+    expand_int_with_zeros,
+    find_decimal_index,
+    pad_left,
+    split_list_at_indices,
+    split_utf8_and_keep_delimiters,
+    utf8_to_frac,
+    utf8_to_int,
+    utf8_to_int_signed,
+    validate_utf8_single_bytes,
 ]
 
-splitListAtIndices : List a, List U8 -> List (List a)
-splitListAtIndices = \list, indices ->
-    splitListAtIndicesRecur list (List.sortDesc indices)
+split_list_at_indices : List a, List U8 -> List (List a)
+split_list_at_indices = \list, indices ->
+    split_list_at_indices_recur list (List.sortDesc indices)
 
-splitListAtIndicesRecur : List a, List U8 -> List (List a)
-splitListAtIndicesRecur = \list, indices ->
+split_list_at_indices_recur : List a, List U8 -> List (List a)
+split_list_at_indices_recur = \list, indices ->
     when indices is
         [x, .. as xs] if x != 0 && x != List.len list |> Num.toU8 ->
             { before, others } = List.splitAt list (Num.toU64 x)
-            splitListAtIndicesRecur before xs |> List.append others
+            split_list_at_indices_recur before xs |> List.append others
 
         [_, .. as xs] ->
-            splitListAtIndicesRecur list xs
+            split_list_at_indices_recur list xs
 
         [] -> [list]
 
-splitUtf8AndKeepDelimiters : List U8, List U8 -> List (List U8)
-splitUtf8AndKeepDelimiters = \u8List, delimiters ->
-    compareToDelimiters = \byte -> List.contains delimiters byte |> \isFound -> if isFound then Found else NotFound
-    result = List.walk u8List [] \lists, byte ->
+split_utf8_and_keep_delimiters : List U8, List U8 -> List (List U8)
+split_utf8_and_keep_delimiters = \u8_list, delimiters ->
+    compare_to_delimiters = \byte -> List.contains delimiters byte |> \is_found -> if is_found then Found else NotFound
+    result = List.walk u8_list [] \lists, byte ->
         when lists is
             [.. as xs, []] ->
-                when compareToDelimiters byte is
+                when compare_to_delimiters byte is
                     Found -> xs |> List.append [byte] |> List.append []
                     NotFound -> xs |> List.append [byte]
 
             [.. as xs, x] ->
-                when compareToDelimiters byte is
+                when compare_to_delimiters byte is
                     Found -> xs |> List.append x |> List.append [byte] |> List.append []
                     NotFound -> xs |> List.append (x |> List.append byte)
 
             [] ->
-                when compareToDelimiters byte is
+                when compare_to_delimiters byte is
                     Found -> [[byte], []]
                     NotFound -> [[byte]]
     when result is
         [.. as xs, []] -> xs
         _ -> result
 
-validateUtf8SingleBytes : List U8 -> Bool
-validateUtf8SingleBytes = \u8List ->
-    if List.all u8List \u8 -> Num.bitwiseAnd u8 0b10000000 == 0b00000000 then
+validate_utf8_single_bytes : List U8 -> Bool
+validate_utf8_single_bytes = \u8_list ->
+    if List.all u8_list \u8 -> Num.bitwiseAnd u8 0b10000000 == 0b00000000 then
         Bool.true
     else
         Bool.false
 
-utf8ToInt : List U8 -> Result U64 [InvalidBytes]
-utf8ToInt = \u8List ->
-    u8List
+utf8_to_int : List U8 -> Result U64 [InvalidBytes]
+utf8_to_int = \u8_list ->
+    u8_list
     |> List.reverse
-    |> List.walkWithIndex (Ok 0) \numResult, byte, index ->
-        Result.try numResult \num ->
+    |> List.walkWithIndex (Ok 0) \num_result, byte, index ->
+        Result.try num_result \num ->
             if 0x30 <= byte && byte <= 0x39 then
                 Ok (num + (Num.toU64 byte - 0x30) * (Num.toU64 (Num.powInt 10 index)))
             else
                 Err InvalidBytes
 
-utf8ToIntSigned : List U8 -> Result I64 [InvalidBytes]
-utf8ToIntSigned = \u8List ->
-    when u8List is
-        ['-', .. as xs] -> utf8ToInt xs |> Result.map \num -> -1 * Num.toI64 num
-        ['+', .. as xs] -> utf8ToInt xs |> Result.map \num -> Num.toI64 num
-        _ -> utf8ToInt u8List |> Result.map \num -> Num.toI64 num
+utf8_to_int_signed : List U8 -> Result I64 [InvalidBytes]
+utf8_to_int_signed = \u8_list ->
+    when u8_list is
+        ['-', .. as xs] -> utf8_to_int xs |> Result.map \num -> -1 * Num.toI64 num
+        ['+', .. as xs] -> utf8_to_int xs |> Result.map \num -> Num.toI64 num
+        _ -> utf8_to_int u8_list |> Result.map \num -> Num.toI64 num
 
-utf8ToFrac : List U8 -> Result F64 [InvalidBytes]
-utf8ToFrac = \u8List ->
-    when findDecimalIndex u8List is
-        Ok decimalIndex ->
-            when splitListAtIndices u8List [decimalIndex, (decimalIndex + 1)] is
+utf8_to_frac : List U8 -> Result F64 [InvalidBytes]
+utf8_to_frac = \u8_list ->
+    when find_decimal_index u8_list is
+        Ok decimal_index ->
+            when split_list_at_indices u8_list [decimal_index, (decimal_index + 1)] is
                 [head, [byte], tail] if byte == ',' || byte == '.' ->
-                    when (utf8ToInt head, utf8ToInt tail) is
-                        (Ok intPart, Ok fracPart) ->
-                            decimalShift = List.len tail |> Num.toU8
-                            Num.toF64 intPart + moveDecimalPoint (Num.toF64 fracPart) decimalShift |> Ok
+                    when (utf8_to_int head, utf8_to_int tail) is
+                        (Ok int_part, Ok frac_part) ->
+                            decimal_shift = List.len tail |> Num.toU8
+                            Num.toF64 int_part + move_decimal_point (Num.toF64 frac_part) decimal_shift |> Ok
 
                         (_, _) -> Err InvalidBytes
 
                 [['.'], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
-                    fracPart = utf8ToInt? tail
-                    decimalShift = List.len tail |> Num.toU8
-                    Ok (moveDecimalPoint (Num.toF64 fracPart) decimalShift)
+                    frac_part = utf8_to_int? tail
+                    decimal_shift = List.len tail |> Num.toU8
+                    Ok (move_decimal_point (Num.toF64 frac_part) decimal_shift)
 
                 [[','], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
-                    fracPart = utf8ToInt? tail
-                    decimalShift = List.len tail |> Num.toU8
-                    Ok (moveDecimalPoint (Num.toF64 fracPart) decimalShift)
+                    frac_part = utf8_to_int? tail
+                    decimal_shift = List.len tail |> Num.toU8
+                    Ok (move_decimal_point (Num.toF64 frac_part) decimal_shift)
 
                 [head, [byte]] if byte == ',' || byte == '.' ->
-                    intPart = utf8ToInt? head
-                    Ok (Num.toF64 intPart)
+                    int_part = utf8_to_int? head
+                    Ok (Num.toF64 int_part)
 
                 _ ->
-                    intPart = utf8ToInt? u8List
-                    Ok (Num.toF64 intPart)
+                    int_part = utf8_to_int? u8_list
+                    Ok (Num.toF64 int_part)
 
         Err NoDecimalPoint ->
-            intPart = utf8ToInt? u8List
-            Ok (Num.toF64 intPart)
+            int_part = utf8_to_int? u8_list
+            Ok (Num.toF64 int_part)
 
-findDecimalIndex : List U8 -> Result U8 [NoDecimalPoint]
-findDecimalIndex = \u8List ->
-    List.walkWithIndexUntil u8List (Err NoDecimalPoint) \_, byte, index ->
+find_decimal_index : List U8 -> Result U8 [NoDecimalPoint]
+find_decimal_index = \u8_list ->
+    List.walkWithIndexUntil u8_list (Err NoDecimalPoint) \_, byte, index ->
         if byte == '.' || byte == ',' then
             Break (Ok (Num.toU8 index))
         else
             Continue (Err NoDecimalPoint)
 
-moveDecimalPoint : F64, U8 -> F64
-moveDecimalPoint = \num, digits ->
+move_decimal_point : F64, U8 -> F64
+move_decimal_point = \num, digits ->
     when digits is
         0 -> num
-        _ -> (moveDecimalPoint num (digits - 1)) / 10
+        _ -> (move_decimal_point num (digits - 1)) / 10
 
-padLeft : Str, U8, U64 -> Str
-padLeft = \str, padChar, targetLength ->
+pad_left : Str, U8, U64 -> Str
+pad_left = \str, pad_char, target_length ->
     strlen = Str.countUtf8Bytes str
-    padLength = if targetLength > strlen then targetLength - strlen else 0
-    when List.repeat padChar padLength |> Str.fromUtf8 is
-        Ok padStr -> Str.concat padStr str
-        Err _ -> Str.repeat " " padLength |> Str.concat str
+    pad_length = if target_length > strlen then target_length - strlen else 0
+    when List.repeat pad_char pad_length |> Str.fromUtf8 is
+        Ok pad_str -> Str.concat pad_str str
+        Err _ -> Str.repeat " " pad_length |> Str.concat str
 
-expect padLeft "123" ' ' 5 == "  123"
-expect padLeft "123" ' ' 2 == "123"
+expect pad_left "123" ' ' 5 == "  123"
+expect pad_left "123" ' ' 2 == "123"
+expect pad_left "123" 128 5  == "  123"
+expect pad_left "123" '_' 5 == "__123"
 
-expandIntWithZeros : Int *, U64 -> Str
-expandIntWithZeros = \num, targetLength ->
-    num |> Num.toStr |> padLeft '0' targetLength
+expand_int_with_zeros : Int *, U64 -> Str
+expand_int_with_zeros = \num, target_length ->
+    num |> Num.toStr |> pad_left '0' target_length
 
-expect expandIntWithZeros 123 5 == "00123"
+expect expand_int_with_zeros 123 5 == "00123"

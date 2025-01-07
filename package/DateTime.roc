@@ -2,29 +2,29 @@
 ##
 ## These functions include functions for creating `DateTime` objects from various numeric values, converting `DateTime`s to and from ISO 8601 strings, and performing arithmetic operations on `DateTime`s.
 module [
-    addDateTimeAndDuration,
-    addDays,
-    addDurationAndDateTime,
-    addHours,
-    addMinutes,
-    addMonths,
-    addNanoseconds,
-    addSeconds,
-    addYears,
+    add_date_time_and_duration,
+    add_days,
+    add_duration_and_date_time,
+    add_hours,
+    add_minutes,
+    add_months,
+    add_nanoseconds,
+    add_seconds,
+    add_years,
     DateTime,
-    fromIsoStr,
-    fromIsoU8,
-    fromNanosSinceEpoch,
-    fromYd,
-    fromYmd,
-    fromYw,
-    fromYwd,
-    fromYmdhms,
-    fromYmdhmsn,
-    toIsoStr,
-    toIsoU8,
-    toNanosSinceEpoch,
-    unixEpoch,
+    from_iso_str,
+    from_iso_u8,
+    from_nanos_since_epoch,
+    from_yd,
+    from_ymd,
+    from_yw,
+    from_ywd,
+    from_ymdhms,
+    from_ymdhmsn,
+    to_iso_str,
+    to_iso_u8,
+    to_nanos_since_epoch,
+    unix_epoch,
 ]
 
 import Const
@@ -35,7 +35,7 @@ import Duration exposing [Duration]
 import Time
 import Time exposing [Time]
 import Utils exposing [
-    splitUtf8AndKeepDelimiters,
+    split_utf8_and_keep_delimiters,
 ]
 import Unsafe exposing [unwrap] # for unit testing only
 
@@ -45,184 +45,184 @@ import Unsafe exposing [unwrap] # for unit testing only
 DateTime : { date : Date, time : Time }
 
 ## `DateTime` object representing the Unix epoch (1970-01-01T00:00:00).
-unixEpoch : DateTime
-unixEpoch = { date: Date.unixEpoch, time: Time.midnight }
+unix_epoch : DateTime
+unix_epoch = { date: Date.unix_epoch, time: Time.midnight }
 
 normalize : DateTime -> DateTime
-normalize = \dateTime ->
-    addHours
+normalize = \date_time ->
+    add_hours
         {
-            date: dateTime.date,
-            time: Time.fromHmsn 0 dateTime.time.minute dateTime.time.second dateTime.time.nanosecond,
+            date: date_time.date,
+            time: Time.from_hmsn 0 date_time.time.minute date_time.time.second date_time.time.nanosecond,
         }
-        dateTime.time.hour
+        date_time.time.hour
 
-expect normalize (fromYmdhmsn 1970 1 2 -12 1 2 3) == fromYmdhmsn 1970 1 1 12 1 2 3
-expect normalize (fromYmdhmsn 1970 1 1 12 1 2 3) == fromYmdhmsn 1970 1 1 12 1 2 3
-expect normalize (fromYmdhmsn 1970 1 1 36 1 2 3) == fromYmdhmsn 1970 1 2 12 1 2 3
+expect normalize (from_ymdhmsn 1970 1 2 -12 1 2 3) == from_ymdhmsn 1970 1 1 12 1 2 3
+expect normalize (from_ymdhmsn 1970 1 1 12 1 2 3) == from_ymdhmsn 1970 1 1 12 1 2 3
+expect normalize (from_ymdhmsn 1970 1 1 36 1 2 3) == from_ymdhmsn 1970 1 2 12 1 2 3
 
 ## Create a `DateTime` object from the year and day of the year.
-fromYd : Int *, Int * -> DateTime
-fromYd = \year, day -> { date: Date.fromYd year day, time: Time.midnight }
+from_yd : Int *, Int * -> DateTime
+from_yd = \year, day -> { date: Date.from_yd year day, time: Time.midnight }
 
 ## Create a `DateTime` object from the year, month, and day.
-fromYmd : Int *, Int *, Int * -> DateTime
-fromYmd = \year, month, day -> { date: Date.fromYmd year month day, time: Time.midnight }
+from_ymd : Int *, Int *, Int * -> DateTime
+from_ymd = \year, month, day -> { date: Date.from_ymd year month day, time: Time.midnight }
 
 ## Create a `DateTime` object from the year, week, and day of the week.
-fromYwd : Int *, Int *, Int * -> DateTime
-fromYwd = \year, week, day -> { date: Date.fromYwd year week day, time: Time.midnight }
+from_ywd : Int *, Int *, Int * -> DateTime
+from_ywd = \year, week, day -> { date: Date.from_ywd year week day, time: Time.midnight }
 
 ## Create a `DateTime` object from the year and week.
-fromYw : Int *, Int * -> DateTime
-fromYw = \year, week -> { date: Date.fromYw year week, time: Time.midnight }
+from_yw : Int *, Int * -> DateTime
+from_yw = \year, week -> { date: Date.from_yw year week, time: Time.midnight }
 
 ## Create a `DateTime` object from the year, month, day, hour, minute, and second.
-fromYmdhms : Int *, Int *, Int *, Int *, Int *, Int * -> DateTime
-fromYmdhms = \year, month, day, hour, minute, second ->
-    { date: Date.fromYmd year month day, time: Time.fromHms hour minute second }
+from_ymdhms : Int *, Int *, Int *, Int *, Int *, Int * -> DateTime
+from_ymdhms = \year, month, day, hour, minute, second ->
+    { date: Date.from_ymd year month day, time: Time.from_hms hour minute second }
 
 ## Create a `DateTime` object from the year, month, day, hour, minute, second, and nanosecond.
-fromYmdhmsn : Int *, Int *, Int *, Int *, Int *, Int *, Int * -> DateTime
-fromYmdhmsn = \year, month, day, hour, minute, second, nanosecond ->
-    { date: Date.fromYmd year month day, time: Time.fromHmsn hour minute second nanosecond }
+from_ymdhmsn : Int *, Int *, Int *, Int *, Int *, Int *, Int * -> DateTime
+from_ymdhmsn = \year, month, day, hour, minute, second, nanosecond ->
+    { date: Date.from_ymd year month day, time: Time.from_hmsn hour minute second nanosecond }
 
 ## Convert a `DateTime` object to the number of nanoseconds since the Unix epoch.
-toNanosSinceEpoch : DateTime -> I128
-toNanosSinceEpoch = \dateTime ->
-    dateNanos = Date.toNanosSinceEpoch dateTime.date
-    timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
-    dateNanos + timeNanos
+to_nanos_since_epoch : DateTime -> I128
+to_nanos_since_epoch = \date_time ->
+    date_nanos = Date.to_nanos_since_epoch date_time.date
+    time_nanos = Time.to_nanos_since_midnight date_time.time |> Num.toI128
+    date_nanos + time_nanos
 
 ## Convert the number of nanoseconds since the Unix epoch to a `DateTime` object.
-fromNanosSinceEpoch : Int * -> DateTime
-fromNanosSinceEpoch = \nanos ->
-    timeNanos = (
-        if nanos < 0 && Num.toI128 nanos % Const.nanosPerDay != 0 then
-            nanos % Const.nanosPerDay + Const.nanosPerDay
+from_nanos_since_epoch : Int * -> DateTime
+from_nanos_since_epoch = \nanos ->
+    time_nanos = (
+        if nanos < 0 && Num.toI128 nanos % Const.nanos_per_day != 0 then
+            nanos % Const.nanos_per_day + Const.nanos_per_day
         else
-            nanos % Const.nanosPerDay
+            nanos % Const.nanos_per_day
     )
-    dateNanos = nanos - timeNanos
-    date = dateNanos |> Date.fromNanosSinceEpoch
-    time = timeNanos |> Num.toI64 |> Time.fromNanosSinceMidnight
+    date_nanos = nanos - time_nanos
+    date = date_nanos |> Date.from_nanos_since_epoch
+    time = time_nanos |> Num.toI64 |> Time.from_nanos_since_midnight
     { date, time }
 
 ## Add nanoseconds to a `DateTime` object.
-addNanoseconds : DateTime, Int * -> DateTime
-addNanoseconds = \dateTime, nanos ->
-    timeNanos = Time.toNanosSinceMidnight dateTime.time + Num.toI64 nanos
+add_nanoseconds : DateTime, Int * -> DateTime
+add_nanoseconds = \date_time, nanos ->
+    time_nanos = Time.to_nanos_since_midnight date_time.time + Num.toI64 nanos
     days = (
-        if timeNanos >= 0 then
-            timeNanos // Const.nanosPerDay |> Num.toI64
+        if time_nanos >= 0 then
+            time_nanos // Const.nanos_per_day |> Num.toI64
         else
-            timeNanos
-            // Const.nanosPerDay
+            time_nanos
+            // Const.nanos_per_day
             |> Num.add
                 (
-                    if timeNanos % Const.nanosPerDay < 0 then
+                    if time_nanos % Const.nanos_per_day < 0 then
                         -1
                     else
                         0
                 )
             |> Num.toI64
     )
-    { date: Date.addDays dateTime.date days, time: Time.fromNanosSinceMidnight timeNanos |> Time.normalize }
+    { date: Date.add_days date_time.date days, time: Time.from_nanos_since_midnight time_nanos |> Time.normalize }
 
 ## Add seconds to a `DateTime` object.
-addSeconds : DateTime, Int * -> DateTime
-addSeconds = \dateTime, seconds -> addNanoseconds dateTime (Num.toI64 seconds * Const.nanosPerSecond)
+add_seconds : DateTime, Int * -> DateTime
+add_seconds = \date_time, seconds -> add_nanoseconds date_time (Num.toI64 seconds * Const.nanos_per_second)
 
 ## Add minutes to a `DateTime` object.
-addMinutes : DateTime, Int * -> DateTime
-addMinutes = \dateTime, minutes -> addNanoseconds dateTime (Num.toI64 minutes * Const.nanosPerMinute)
+add_minutes : DateTime, Int * -> DateTime
+add_minutes = \date_time, minutes -> add_nanoseconds date_time (Num.toI64 minutes * Const.nanos_per_minute)
 
 ## Add hours to a `DateTime` object.
-addHours : DateTime, Int * -> DateTime
-addHours = \dateTime, hours -> addNanoseconds dateTime (Num.toI64 hours * Const.nanosPerHour)
+add_hours : DateTime, Int * -> DateTime
+add_hours = \date_time, hours -> add_nanoseconds date_time (Num.toI64 hours * Const.nanos_per_hour)
 
 ## Add days to a `DateTime` object.
-addDays : DateTime, Int * -> DateTime
-addDays = \dateTime, days -> { date: Date.addDays dateTime.date days, time: dateTime.time }
+add_days : DateTime, Int * -> DateTime
+add_days = \date_time, days -> { date: Date.add_days date_time.date days, time: date_time.time }
 
 ## Add months to a `DateTime` object.
-addMonths : DateTime, Int * -> DateTime
-addMonths = \dateTime, months -> { date: Date.addMonths dateTime.date months, time: dateTime.time }
+add_months : DateTime, Int * -> DateTime
+add_months = \date_time, months -> { date: Date.add_months date_time.date months, time: date_time.time }
 
 ## Add years to a `DateTime` object.
-addYears : DateTime, Int * -> DateTime
-addYears = \dateTime, years -> { date: Date.addYears dateTime.date years, time: dateTime.time }
+add_years : DateTime, Int * -> DateTime
+add_years = \date_time, years -> { date: Date.add_years date_time.date years, time: date_time.time }
 
 ## Add a `Duration` object to a `DateTime` object.
-addDurationAndDateTime : Duration, DateTime -> DateTime
-addDurationAndDateTime = \duration, dateTime ->
-    durationNanos = Duration.toNanoseconds duration
-    dateNanos = Date.toNanosSinceEpoch dateTime.date |> Num.toI128
-    timeNanos = Time.toNanosSinceMidnight dateTime.time |> Num.toI128
-    durationNanos + dateNanos + timeNanos |> fromNanosSinceEpoch
+add_duration_and_date_time : Duration, DateTime -> DateTime
+add_duration_and_date_time = \duration, date_time ->
+    duration_nanos = Duration.to_nanoseconds duration
+    date_nanos = Date.to_nanos_since_epoch date_time.date |> Num.toI128
+    time_nanos = Time.to_nanos_since_midnight date_time.time |> Num.toI128
+    duration_nanos + date_nanos + time_nanos |> from_nanos_since_epoch
 
 ## Add a `DateTime` object and a `Duration` object.
-addDateTimeAndDuration : DateTime, Duration -> DateTime
-addDateTimeAndDuration = \dateTime, duration -> addDurationAndDateTime duration dateTime
+add_date_time_and_duration : DateTime, Duration -> DateTime
+add_date_time_and_duration = \date_time, duration -> add_duration_and_date_time duration date_time
 
 ## Convert a `DateTime` object to an ISO 8601 string.
-toIsoStr : DateTime -> Str
-toIsoStr = \dateTime ->
-    Date.toIsoStr dateTime.date |> Str.concat "T" |> Str.concat (Time.toIsoStr dateTime.time)
+to_iso_str : DateTime -> Str
+to_iso_str = \date_time ->
+    Date.to_iso_str date_time.date |> Str.concat "T" |> Str.concat (Time.to_iso_str date_time.time)
 
 ## Convert a `DateTime` object to an ISO 8601 list of UTF-8 bytes.
-toIsoU8 : DateTime -> List U8
-toIsoU8 = \dateTime ->
-    Date.toIsoU8 dateTime.date |> List.concat ['T'] |> List.concat (Time.toIsoU8 dateTime.time)
+to_iso_u8 : DateTime -> List U8
+to_iso_u8 = \date_time ->
+    Date.to_iso_u8 date_time.date |> List.concat ['T'] |> List.concat (Time.to_iso_u8 date_time.time)
 
 ## Convert an ISO 8601 string to a `DateTime` object.
-fromIsoStr : Str -> Result DateTime [InvalidDateTimeFormat]
-fromIsoStr = \str -> Str.toUtf8 str |> fromIsoU8
+from_iso_str : Str -> Result DateTime [InvalidDateTimeFormat]
+from_iso_str = \str -> Str.toUtf8 str |> from_iso_u8
 
 ## Convert an ISO 8601 list of UTF-8 bytes to a `DateTime` object.
-fromIsoU8 : List U8 -> Result DateTime [InvalidDateTimeFormat]
-fromIsoU8 = \bytes ->
-    when splitUtf8AndKeepDelimiters bytes ['T'] is
-        [dateBytes, ['T'], timeBytes] ->
+from_iso_u8 : List U8 -> Result DateTime [InvalidDateTimeFormat]
+from_iso_u8 = \bytes ->
+    when split_utf8_and_keep_delimiters bytes ['T'] is
+        [date_bytes, ['T'], time_bytes] ->
             # TODO: currently cannot support timezone offsets which exceed or precede the current day
-            when (Date.fromIsoU8 dateBytes, Time.fromIsoU8 timeBytes) is
+            when (Date.from_iso_u8 date_bytes, Time.from_iso_u8 time_bytes) is
                 (Ok date, Ok time) ->
                     { date, time } |> normalize |> Ok
 
                 (_, _) -> Err InvalidDateTimeFormat
 
-        [dateBytes] ->
-            when Date.fromIsoU8 dateBytes is
-                Ok date -> { date, time: Time.fromHms 0 0 0 } |> Ok
+        [date_bytes] ->
+            when Date.from_iso_u8 date_bytes is
+                Ok date -> { date, time: Time.from_hms 0 0 0 } |> Ok
                 Err _ -> Err InvalidDateTimeFormat
 
         _ -> Err InvalidDateTimeFormat
 
 # <==== TESTS ====>
 # <---- toIsoStr ---->
-expect toIsoStr unixEpoch == "1970-01-01T00:00:00"
-expect toIsoStr (fromYmdhmsn 1970 1 1 0 0 0 (Const.nanosPerSecond // 2)) == "1970-01-01T00:00:00,5"
+expect to_iso_str unix_epoch == "1970-01-01T00:00:00"
+expect to_iso_str (from_ymdhmsn 1970 1 1 0 0 0 (Const.nanos_per_second // 2)) == "1970-01-01T00:00:00,5"
 
 # <---- toIsoU8 ---->
-expect toIsoU8 unixEpoch == Str.toUtf8 "1970-01-01T00:00:00"
+expect to_iso_u8 unix_epoch == Str.toUtf8 "1970-01-01T00:00:00"
 
 # <---- addNanoseconds ---->
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) 1 == fromYmdhmsn 1970 1 1 0 0 0 1
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerSecond == fromYmdhmsn 1970 1 1 0 0 1 0
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) Const.nanosPerDay == fromYmdhmsn 1970 1 2 0 0 0 0
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -1 == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) -Const.nanosPerDay == fromYmdhmsn 1969 12 31 0 0 0 0
-expect addNanoseconds (fromYmdhmsn 1970 1 1 0 0 0 0) (-Const.nanosPerDay - 1) == fromYmdhmsn 1969 12 30 23 59 59 (Const.nanosPerSecond - 1)
+expect add_nanoseconds (from_ymdhmsn 1970 1 1 0 0 0 0) 1 == from_ymdhmsn 1970 1 1 0 0 0 1
+expect add_nanoseconds (from_ymdhmsn 1970 1 1 0 0 0 0) Const.nanos_per_second == from_ymdhmsn 1970 1 1 0 0 1 0
+expect add_nanoseconds (from_ymdhmsn 1970 1 1 0 0 0 0) Const.nanos_per_day == from_ymdhmsn 1970 1 2 0 0 0 0
+expect add_nanoseconds (from_ymdhmsn 1970 1 1 0 0 0 0) -1 == from_ymdhmsn 1969 12 31 23 59 59 (Const.nanos_per_second - 1)
+expect add_nanoseconds (from_ymdhmsn 1970 1 1 0 0 0 0) -Const.nanos_per_day == from_ymdhmsn 1969 12 31 0 0 0 0
+expect add_nanoseconds (from_ymdhmsn 1970 1 1 0 0 0 0) ((-Const.nanos_per_day) - 1) == from_ymdhmsn 1969 12 30 23 59 59 (Const.nanos_per_second - 1)
 
 # <---- addDateTimeAndDuration ---->
 expect
-    addDateTimeAndDuration unixEpoch (Duration.fromNanoseconds -1 |> unwrap "will not overflow") == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+    add_date_time_and_duration unix_epoch (Duration.from_nanoseconds -1 |> unwrap "will not overflow") == from_ymdhmsn 1969 12 31 23 59 59 (Const.nanos_per_second - 1)
 expect
-    addDateTimeAndDuration unixEpoch (Duration.fromDays 365 |> unwrap "will not overflow") == fromYmdhmsn 1971 1 1 0 0 0 0
+    add_date_time_and_duration unix_epoch (Duration.from_days 365 |> unwrap "will not overflow") == from_ymdhmsn 1971 1 1 0 0 0 0
 
 # <--- fromNanosSinceEpoch --->
-expect fromNanosSinceEpoch (364 * 24 * Const.nanosPerHour + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5) == fromYmdhmsn 1970 12 31 12 34 56 5
-expect fromNanosSinceEpoch (-1) == fromYmdhmsn 1969 12 31 23 59 59 (Const.nanosPerSecond - 1)
+expect from_nanos_since_epoch (364 * 24 * Const.nanos_per_hour + 12 * Const.nanos_per_hour + 34 * Const.nanos_per_minute + 56 * Const.nanos_per_second + 5) == from_ymdhmsn 1970 12 31 12 34 56 5
+expect from_nanos_since_epoch (-1) == from_ymdhmsn 1969 12 31 23 59 59 (Const.nanos_per_second - 1)
 
 # <--- toNanosSinceEpoch --->
-expect toNanosSinceEpoch (fromYmdhmsn 1970 12 31 12 34 56 5) == 364 * Const.nanosPerDay + 12 * Const.nanosPerHour + 34 * Const.nanosPerMinute + 56 * Const.nanosPerSecond + 5
+expect to_nanos_since_epoch (from_ymdhmsn 1970 12 31 12 34 56 5) == 364 * Const.nanos_per_day + 12 * Const.nanos_per_hour + 34 * Const.nanos_per_minute + 56 * Const.nanos_per_second + 5
