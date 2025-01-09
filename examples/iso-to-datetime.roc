@@ -13,7 +13,7 @@ main! = \_ ->
 
     response_body =
         when response is
-            { status, body } if status == 200 -> Str.from_utf8(body)?
+            Ok { status, body } if status == 200 -> Str.from_utf8(body)?
             _ -> crash("Error getting response body")
     
     iso_str = get_iso_string(response_body)
