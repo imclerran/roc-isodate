@@ -3,6 +3,7 @@
 [![Roc-Lang][roc_badge]][roc_link]
 [![GitHub last commit][last_commit_badge]][last_commit_link]
 [![CI status][ci_status_badge]][ci_status_link]
+[![Latest release][version_badge]][version_link]
 
 Roc-IsoDate is a universal date and time package for Roc. It Features several useful types for working with dates and times. Its primary types (`Date`/`Time`/`DateTime`) store dates and times in a human friendly manner, but allow easy conversion to and from computer friendly types like `Utc` as well as web web friendly ISO 8601 strings. Roc IsoDate is intended to be a one-stop-shop for all things date and time. 📆 ⏰ 📦
 
@@ -89,6 +90,8 @@ Description of ISO date/time [format][iso_8601_md] (WIP)
 [ci_status_link]: https://github.com/imclerran/Roc-IsoDate/actions/workflows/ci.yml
 [last_commit_badge]: https://img.shields.io/github/last-commit/imclerran/roc-isodate?logo=git&logoColor=lightgrey
 [last_commit_link]: https://github.com/imclerran/Roc-IsoDate/commits/main/
+[version_badge]: https://img.shields.io/github/v/release/imclerran/roc-isodate
+[version_link]: https://github.com/imclerran/roc-isodate/releases/latest
 [iso_8601_doc]: https://www.loc.gov/standards/datetime/iso-tc154-wg5_n0038_iso_wd_8601-1_2016-02-16.pdf
 [utc_link]: https://github.com/roc-lang/basic-cli/blob/main/platform/Utc.roc
 [utctime_link]: https://github.com/imlerran/roc-isodate/blob/main/platform/UtcTime.roc
