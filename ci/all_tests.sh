@@ -13,7 +13,7 @@ for roc_file in $package_dir*.roc; do
     $roc check $roc_file
 done
 
-for roc_file in $examples_dir*.roc; do
+for roc_file in $example_dir*.roc; do
     $roc check $roc_file
 done
 
