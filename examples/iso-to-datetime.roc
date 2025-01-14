@@ -15,7 +15,7 @@ main! = \_ ->
         when response is
             Ok { status, body } if status == 200 -> Str.from_utf8(body)?
             _ -> crash("Error getting response body")
-    
+
     iso_str = get_iso_string(response_body)
 
     dt_now =
@@ -23,16 +23,16 @@ main! = \_ ->
             Ok(date_time) -> date_time
             Err(_) -> crash("Parsing Error")
 
-    time_str = "$(Num.to_str(dt_now.time.hour)):$(Num.to_str(dt_now.time.minute)):$(Num.to_str(dt_now.time.second))"
-    date_str = "$(Num.to_str(dt_now.date.year))-$(Num.to_str(dt_now.date.month))-$(Num.to_str(dt_now.date.day_of_month))"
-    try Stdout.line! ("The current Zulu date is: $(date_str)")
-    try Stdout.line!("The current Zulu time is: $(time_str)")
+    time_str = "${Num.to_str(dt_now.time.hour)}:${Num.to_str(dt_now.time.minute)}:${Num.to_str(dt_now.time.second)}"
+    date_str = "${Num.to_str(dt_now.date.year)}-${Num.to_str(dt_now.date.month)}-${Num.to_str(dt_now.date.day_of_month)}"
+    try Stdout.line!("The current Zulu date is: ${date_str}")
+    try Stdout.line!("The current Zulu time is: ${time_str}")
     Ok {}
 
 format_request = \timezone -> {
     method: GET,
     headers: [],
-    uri: "http://worldtimeapi.org/api/timezone/$(timezone).txt",
+    uri: "http://worldtimeapi.org/api/timezone/${timezone}.txt",
     body: [],
     timeout_ms: TimeoutMilliseconds(5000),
 }

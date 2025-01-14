@@ -15,4 +15,4 @@ main! = \_ ->
         |> Utc.to_nanos_since_epoch
         |> DateTime.from_nanos_since_epoch
         |> DateTime.to_iso_str
-    Stdout.line!("Hello, World! The current Zulu time is: $(now_str)")
+    Stdout.line!("Hello, World! The current Zulu time is: ${now_str}")
