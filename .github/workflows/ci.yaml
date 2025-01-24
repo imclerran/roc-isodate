@@ -1,0 +1,33 @@
+name: Check and Test Package
+on: 
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+# this cancels workflows currently in progress if you start a new one
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run roc tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+      - name: Install Roc
+        uses: hasnep/setup-roc@v0.4.0
+        with:
+          roc-version: nightly
+          testing: "true"
+      - name: Run roc check on package
+        run: roc check ./package/main.roc
+      - name: Test the library
+        run: roc test package/Tests.roc
+      - name: Run roc check on examples
+        run: for roc_file in ./examples/*.roc; do roc check $roc_file; done
