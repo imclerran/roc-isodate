@@ -21,10 +21,10 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
       - name: Install Roc
-        uses: hasnep/setup-roc@v0.4.0
+        uses: hasnep/setup-roc@v0.5.0
         with:
           roc-version: nightly
-          testing: "true"
+          testing: "auto"
       - name: Run roc check on package
         run: roc check ./package/main.roc
       - name: Test the library
