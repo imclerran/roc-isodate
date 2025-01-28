@@ -14,11 +14,12 @@ jobs:
       contents: write # Used to upload the bundled library
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Roc
-        uses: hasnep/setup-roc@main
+        uses: hasnep/setup-roc@v0.5.0
         with:
           roc-version: nightly
+          testing: "auto"
       - name: Bundle and release the library
         uses: hasnep/bundle-roc-library@main
         with:
