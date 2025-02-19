@@ -16,8 +16,8 @@ main! = |_|
 
         time_str = "${Num.to_str dt_now.time.hour}:${Num.to_str dt_now.time.minute}:${Num.to_str dt_now.time.second}"
         date_str = "${Num.to_str dt_now.date.year}-${Num.to_str dt_now.date.month}-${Num.to_str dt_now.date.day_of_month}"
-        Stdout.line!("The current Zulu date is: ${date_str}")?
-        Stdout.line!("The current Zulu time is: ${time_str}")
+        "The current Zulu date is: ${date_str}" |> Stdout.line!()?
+        "The current Zulu time is: ${time_str}"|> Stdout.line!()
     else
         Err FailedToGetServerResponse(response.status)
 
