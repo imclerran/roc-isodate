@@ -34,10 +34,8 @@ import Duration
 import Duration exposing [Duration]
 import Time
 import Time exposing [Time]
-import Utils exposing [
-    split_utf8_and_keep_delimiters,
-]
-import Unsafe exposing [unwrap] # for unit testing only
+import rtils.Unsafe exposing [unwrap] # for unit testing only
+import rtils.ListUtils exposing [split_with_delims]
 
 ## ```
 ## DateTime : { date : Date, time: Time }
@@ -184,7 +182,7 @@ from_iso_str = |str| Str.to_utf8(str) |> from_iso_u8
 ## Convert an ISO 8601 list of UTF-8 bytes to a `DateTime` object.
 from_iso_u8 : List U8 -> Result DateTime [InvalidDateTimeFormat]
 from_iso_u8 = |bytes|
-    when split_utf8_and_keep_delimiters(bytes, ['T']) is
+    when split_with_delims(bytes, |b| b == 'T') is
         [date_bytes, ['T'], time_bytes] ->
             # TODO: currently cannot support timezone offsets which exceed or precede the current day
             when (Date.from_iso_u8(date_bytes), Time.from_iso_u8(time_bytes)) is

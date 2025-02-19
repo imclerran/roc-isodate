@@ -31,13 +31,12 @@ import Duration
 import Duration exposing [Duration]
 import Utils exposing [
     expand_int_with_zeros,
-    split_list_at_indices,
-    split_utf8_and_keep_delimiters,
     utf8_to_frac,
     utf8_to_int_signed,
     validate_utf8_single_bytes,
 ]
-import Unsafe exposing [unwrap] # for unit testing only
+import rtils.Unsafe exposing [unwrap] # for unit testing only
+import rtils.ListUtils exposing [split_at_indices, split_with_delims]
 
 ## ```
 ## Time : {
@@ -120,10 +119,10 @@ add_duration_and_time = |duration, time|
 add_time_and_duration : Time, Duration -> Time
 add_time_and_duration = |time, duration| add_duration_and_time(duration, time)
 
-strip_tand_z : List U8 -> List U8
-strip_tand_z = |bytes|
+strip_t_and_z : List U8 -> List U8
+strip_t_and_z = |bytes|
     when bytes is
-        ['T', .. as tail] -> strip_tand_z(tail)
+        ['T', .. as tail] -> strip_t_and_z(tail)
         [.. as head, 'Z'] -> head
         _ -> bytes
 
@@ -166,8 +165,8 @@ from_iso_str = |str| Str.to_utf8(str) |> from_iso_u8
 from_iso_u8 : List U8 -> Result Time [InvalidTimeFormat]
 from_iso_u8 = |bytes|
     if validate_utf8_single_bytes(bytes) then
-        stripped_bytes = strip_tand_z(bytes)
-        when (split_utf8_and_keep_delimiters(stripped_bytes, ['.', ',', '+', '-']), List.last(bytes)) is
+        stripped_bytes = strip_t_and_z(bytes)
+        when (split_with_delims(stripped_bytes, |b| List.contains(['.', ',', '+', '-'], b)), List.last(bytes)) is
             # time.fractionaltime+timeoffset / time,fractionaltime-timeoffset
             ([time_bytes, [byte1], fractional_bytes, [byte2], offset_bytes], Ok(last_byte)) if last_byte != 'Z' ->
                 time_res = parse_fractional_time(time_bytes, List.join([[byte1], fractional_bytes]))
@@ -282,7 +281,7 @@ parse_local_time_hour = |bytes|
 
 parse_local_time_minute_basic : List U8 -> Result Time [InvalidTimeFormat]
 parse_local_time_minute_basic = |bytes|
-    when split_list_at_indices(bytes, [2]) is
+    when split_at_indices(bytes, [2]) is
         [hour_bytes, minute_bytes] ->
             when (utf8_to_int_signed(hour_bytes), utf8_to_int_signed(minute_bytes)) is
                 (Ok(hour), Ok(minute)) if hour >= 0 and hour <= 23 and minute >= 0 and minute <= 59 ->
@@ -297,7 +296,7 @@ parse_local_time_minute_basic = |bytes|
 
 parse_local_time_minute_extended : List U8 -> Result Time [InvalidTimeFormat]
 parse_local_time_minute_extended = |bytes|
-    when split_list_at_indices(bytes, [2, 3]) is
+    when split_at_indices(bytes, [2, 3]) is
         [hour_bytes, _, minute_bytes] ->
             when (utf8_to_int_signed(hour_bytes), utf8_to_int_signed(minute_bytes)) is
                 (Ok(hour), Ok(minute)) if hour >= 0 and hour <= 23 and minute >= 0 and minute <= 59 ->
@@ -312,7 +311,7 @@ parse_local_time_minute_extended = |bytes|
 
 parse_local_time_basic : List U8 -> Result Time [InvalidTimeFormat]
 parse_local_time_basic = |bytes|
-    when split_list_at_indices(bytes, [2, 4]) is
+    when split_at_indices(bytes, [2, 4]) is
         [hour_bytes, minute_bytes, second_bytes] ->
             when (utf8_to_int_signed(hour_bytes), utf8_to_int_signed(minute_bytes), utf8_to_int_signed(second_bytes)) is
                 (Ok(h), Ok(m), Ok(s)) if h >= 0 and h <= 23 and m >= 0 and m <= 59 and s >= 0 and s <= 59 ->
@@ -327,7 +326,7 @@ parse_local_time_basic = |bytes|
 
 parse_local_time_extended : List U8 -> Result Time [InvalidTimeFormat]
 parse_local_time_extended = |bytes|
-    when split_list_at_indices(bytes, [2, 3, 5, 6]) is
+    when split_at_indices(bytes, [2, 3, 5, 6]) is
         [hour_bytes, _, minute_bytes, _, second_bytes] ->
             when (utf8_to_int_signed(hour_bytes), utf8_to_int_signed(minute_bytes), utf8_to_int_signed(second_bytes)) is
                 (Ok(h), Ok(m), Ok(s)) if h >= 0 and h <= 23 and m >= 0 and m <= 59 and s >= 0 and s <= 59 ->

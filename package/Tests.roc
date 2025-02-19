@@ -11,14 +11,12 @@ import Date
 import DateTime
 import Time
 import Utils exposing [
-    split_list_at_indices,
-    split_utf8_and_keep_delimiters,
     utf8_to_frac,
     utf8_to_int,
     utf8_to_int_signed,
     validate_utf8_single_bytes,
 ]
-import Unsafe exposing [unwrap] # for unit testing only
+import rtils.Unsafe exposing [unwrap] # for unit testing only
 
 # <==== Date.roc ====>
 # <---- parseDate ---->
@@ -419,20 +417,6 @@ expect DateTime.from_iso_str("2024-02-23T12:00:00+01:30") == DateTime.from_ymdhm
 expect DateTime.from_iso_str("2024-02-23T12:00:00+01:30") |> unwrap("DateTime.fromIsoStr '2024-02-23T12:00:00+01:30'") |> DateTime.to_nanos_since_epoch == 19_776 * Const.nanos_per_day + 10 * nanos_per_hour + 30 * nanos_per_minute
 
 # <==== Utils.roc ====>
-# <---- splitListAtIndices ---->
-expect split_list_at_indices([1, 2], [0, 1, 2]) == [[1], [2]]
-expect split_list_at_indices([1, 2], [0]) == [[1, 2]]
-expect split_list_at_indices([1, 2], [1]) == [[1], [2]]
-
-# <---- splitUtf8AndKeepDelimiters ---->
-expect split_utf8_and_keep_delimiters([], []) == []
-expect split_utf8_and_keep_delimiters([], ['-', '+']) == []
-expect split_utf8_and_keep_delimiters(['1', '2', '3'], []) == [['1', '2', '3']]
-expect split_utf8_and_keep_delimiters(['1', '2', '3'], ['-', '+']) == [['1', '2', '3']]
-expect split_utf8_and_keep_delimiters(['0', '1', '+', '2', '3'], ['-', '+']) == [['0', '1'], ['+'], ['2', '3']]
-expect split_utf8_and_keep_delimiters(['+', '-', '0', '1', '2'], ['-', '+']) == [['+'], ['-'], ['0', '1', '2']]
-expect split_utf8_and_keep_delimiters(['+', '-'], ['-', '+']) == [['+'], ['-']]
-
 # <---- validateUtf8SingleBytes ---->
 expect validate_utf8_single_bytes([0b01111111])
 expect !(validate_utf8_single_bytes([0b10000000, 0b00000001]))
