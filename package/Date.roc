@@ -28,12 +28,12 @@ import Const
 import Duration exposing [Duration, to_nanoseconds, from_days]
 import Utils exposing [
     expand_int_with_zeros,
-    split_list_at_indices,
     utf8_to_int,
     utf8_to_int_signed,
     validate_utf8_single_bytes,
 ]
-import Unsafe exposing [unwrap] # for unit testing only
+import rtils.Unsafe exposing [unwrap] # for unit testing only
+import rtils.ListUtils exposing [split_at_indices]
 
 ## ```
 ## Date : {
@@ -290,7 +290,7 @@ from_iso_u8 = |bytes|
 
 parse_calendar_date_basic : List U8 -> Result Date [InvalidDateFormat]
 parse_calendar_date_basic = |bytes|
-    when split_list_at_indices(bytes, [4, 6]) is
+    when split_at_indices(bytes, [4, 6]) is
         [year_bytes, month_bytes, day_bytes] ->
             when (utf8_to_int(year_bytes), utf8_to_int(month_bytes), utf8_to_int(day_bytes)) is
                 (Ok(y), Ok(m), Ok(d)) if m >= 1 and m <= 12 and d >= 1 and d <= 31 ->
@@ -302,7 +302,7 @@ parse_calendar_date_basic = |bytes|
 
 parse_calendar_date_extended : List U8 -> Result Date [InvalidDateFormat]
 parse_calendar_date_extended = |bytes|
-    when split_list_at_indices(bytes, [4, 5, 7, 8]) is
+    when split_at_indices(bytes, [4, 5, 7, 8]) is
         [year_bytes, _, month_bytes, _, day_bytes] ->
             when (utf8_to_int_signed(year_bytes), utf8_to_int(month_bytes), utf8_to_int(day_bytes)) is
                 (Ok(y), Ok(m), Ok(d)) if m >= 1 and m <= 12 and d >= 1 and d <= 31 ->
@@ -326,7 +326,7 @@ parse_calendar_date_year = |bytes|
 
 parse_calendar_date_month : List U8 -> Result Date [InvalidDateFormat]
 parse_calendar_date_month = |bytes|
-    when split_list_at_indices(bytes, [4, 5]) is
+    when split_at_indices(bytes, [4, 5]) is
         [year_bytes, _, month_bytes] ->
             when (utf8_to_int_signed(year_bytes), utf8_to_int(month_bytes)) is
                 (Ok(year), Ok(month)) if month >= 1 and month <= 12 ->
@@ -338,7 +338,7 @@ parse_calendar_date_month = |bytes|
 
 parse_ordinal_date_basic : List U8 -> Result Date [InvalidDateFormat]
 parse_ordinal_date_basic = |bytes|
-    when split_list_at_indices(bytes, [4]) is
+    when split_at_indices(bytes, [4]) is
         [year_bytes, day_bytes] ->
             when (utf8_to_int_signed(year_bytes), utf8_to_int(day_bytes)) is
                 (Ok(year), Ok(day)) if day >= 1 and day <= 366 ->
@@ -350,7 +350,7 @@ parse_ordinal_date_basic = |bytes|
 
 parse_ordinal_date_extended : List U8 -> Result Date [InvalidDateFormat]
 parse_ordinal_date_extended = |bytes|
-    when split_list_at_indices(bytes, [4, 5]) is
+    when split_at_indices(bytes, [4, 5]) is
         [year_bytes, _, day_bytes] ->
             when (utf8_to_int_signed(year_bytes), utf8_to_int(day_bytes)) is
                 (Ok(year), Ok(day)) if day >= 1 and day <= 366 ->
@@ -362,7 +362,7 @@ parse_ordinal_date_extended = |bytes|
 
 parse_week_date_basic : List U8 -> Result Date [InvalidDateFormat]
 parse_week_date_basic = |bytes|
-    when split_list_at_indices(bytes, [4, 5, 7]) is
+    when split_at_indices(bytes, [4, 5, 7]) is
         [year_bytes, _, week_bytes, day_bytes] ->
             when (utf8_to_int(year_bytes), utf8_to_int(week_bytes), utf8_to_int(day_bytes)) is
                 (Ok(y), Ok(w), Ok(d)) if w >= 1 and w <= 52 and d >= 1 and d <= 7 ->
@@ -374,7 +374,7 @@ parse_week_date_basic = |bytes|
 
 parse_week_date_extended : List U8 -> Result Date [InvalidDateFormat]
 parse_week_date_extended = |bytes|
-    when split_list_at_indices(bytes, [4, 6, 8, 9]) is
+    when split_at_indices(bytes, [4, 6, 8, 9]) is
         [year_bytes, _, week_bytes, _, day_bytes] ->
             when (utf8_to_int(year_bytes), utf8_to_int(week_bytes), utf8_to_int(day_bytes)) is
                 (Ok(y), Ok(w), Ok(d)) if w >= 1 and w <= 52 and d >= 1 and d <= 7 ->
@@ -386,7 +386,7 @@ parse_week_date_extended = |bytes|
 
 parse_week_date_reduced_basic : List U8 -> Result Date [InvalidDateFormat]
 parse_week_date_reduced_basic = |bytes|
-    when split_list_at_indices(bytes, [4, 5]) is
+    when split_at_indices(bytes, [4, 5]) is
         [year_bytes, _, week_bytes] ->
             when (utf8_to_int(year_bytes), utf8_to_int(week_bytes)) is
                 (Ok(year), Ok(week)) if week >= 1 and week <= 52 ->
@@ -398,7 +398,7 @@ parse_week_date_reduced_basic = |bytes|
 
 parse_week_date_reduced_extended : List U8 -> Result Date [InvalidDateFormat]
 parse_week_date_reduced_extended = |bytes|
-    when split_list_at_indices(bytes, [4, 6]) is
+    when split_at_indices(bytes, [4, 6]) is
         [year_bytes, _, week_bytes] ->
             when (utf8_to_int(year_bytes), utf8_to_int(week_bytes)) is
                 (Ok(year), Ok(week)) if week >= 1 and week <= 52 ->
