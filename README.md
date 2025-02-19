@@ -40,36 +40,19 @@ To extend functionality and simplify the API, library _now_ simply provides a co
 Thus, an application might look like the following:
 
 ```roc
-app [main] {
-    pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.14.0/dC5ceT962N_4jmoyoffVdphJ_4GlW3YMhAPyGPr-nU0.tar.br",
-    dt: "https://github.com/imclerran/roc-isodate/releases/download/v0.5.0/ptg0ElRLlIqsxMDZTTvQHgUSkNrUSymQaGwTfv0UEmk.tar.br",
-}
+main! = |_|
+    req = format_request("America/Chicago")
+    response = Http.send!(req)?
+    if response.status >= 200 and response.status <= 299 then
+        iso_str = get_iso_str(response.body)?
+        dt_now = DateTime.from_iso_str(iso_str)?
 
-import dt.DateTime
-import dt.Duration
-import pf.Utc
-import pf.Stdout
-import pf.Task exposing [Task]
-
-main =
-    utcNow = Utc.now!
-    dtNow = utcNow |> Utc.toNanosSinceEpoch |> DateTime.fromNanosSinceEpoch # Convert Utc to DateTime easily
-    dtEpoch = DateTime.unixEpoch # Constructor for the epoch
-    dtSomeTime = DateTime.fromIsoStr "2024-04-19T11:31:41.329515-05:00" |> unwrap "This is a valid datetime" # parse a DateTime from ISO str easily
-    dtLaterDate = dtSomeTime |> DateTime.addDateTimeAndDuration (Duration.fromHours 25 |> unwrap "25 hours cannot overflow") # Add a duration to a DateTime easily
-    utcLaterDate = DateTime.toNanosSinceEpoch dtLaterDate |> Utc.fromNanosSinceEpoch # Convert parsed date to Utc
-    nanosLaterDate = Utc.toNanosSinceEpoch utcLaterDate
-
-    Stdout.line! "ISO epoch: $(DateTime.toIsoStr dtEpoch)"
-    Stdout.line! "Time now: $(Num.toStr dtNow.time.hour):$(Num.toStr dtNow.time.minute):$(Num.toStr dtNow.time.second)"
-    Stdout.line! "Day some time: $(Num.toStr dtSomeTime.date.dayOfMonth)"
-    Stdout.line! "Utc nanos later date: $(Num.toStr nanosLaterDate)"
-
-unwrap : Result a _, Str -> a
-unwrap = \x, message ->
-    when x is
-        Ok v -> v
-        Err _ -> crash message
+        time_str = "${Num.to_str dt_now.time.hour}:${Num.to_str dt_now.time.minute}:${Num.to_str dt_now.time.second}"
+        date_str = "${Num.to_str dt_now.date.year}-${Num.to_str dt_now.date.month}-${Num.to_str dt_now.date.day_of_month}"
+        "The current Zulu date is: ${date_str}" |> Stdout.line!()?
+        "The current Zulu time is: ${time_str}"|> Stdout.line!()
+    else
+        Err FailedToGetServerResponse(response.status)
 ```
 
 This is just a small sample of the available functionality, but meant to demonstrate the general design of the API. Moving to and from computer-friendly representations like `Utc`, web-friendly representations like ISO `Str`s, and human friendly representations like `DateTime` are all just a single function call away. `Durations` and `TimeInterval`s also add quality of life functionality for easily manipulating dates and times.
