@@ -8,6 +8,8 @@ module [
     add_duration_and_date,
     add_months,
     add_years,
+    after,
+    before,
     days_in_month,
     from_iso_str,
     from_iso_u8,
@@ -17,6 +19,7 @@ module [
     from_yw,
     from_ywd,
     is_leap_year,
+    same,
     to_iso_str,
     to_iso_u8,
     to_nanos_since_epoch,
@@ -249,6 +252,18 @@ add_duration_and_date = |duration, date|
 ## Add the given `Date` and `Duration`.
 add_date_and_duration : Date, Duration -> Date
 add_date_and_duration = |date, duration| add_duration_and_date(duration, date)
+
+## Determine if the first `Date` falls after the second `Date`.
+after : Date, Date -> Bool
+after = |a, b| (a.year > b.year) or (a.year == b.year and a.day_of_year > b.day_of_year)
+
+## Determine if the first `Date` falls before the second `Date`.
+before : Date, Date -> Bool
+before = |a, b| (a.year < b.year) or (a.year == b.year and a.day_of_year < b.day_of_year)
+
+## Determine if the first `Date` falls on the same day as the second `Date`.
+same : Date, Date -> Bool
+same = |a, b| (a.year == b.year) and (a.day_of_year == b.day_of_year)
 
 ## Convert the given `Date` to an ISO 8601 string.
 to_iso_str : Date -> Str
@@ -520,3 +535,41 @@ expect days_in_month(1969, 10) == 31
 expect days_in_month(1969, 11) == 30
 expect days_in_month(1969, 12) == 31
 expect days_in_month(2024, 2) == 29
+
+# <---- after ---->
+expect
+    a = from_yd 2025 1
+    b = from_yd 2025 2
+    b |> after a
+expect
+    a = from_yd 2025 2
+    b = from_yd 2025 1
+    !(b |> after a)
+expect
+    a = from_yd 2025 1
+    b = from_yd 2025 1
+    !(b |> after a)
+
+# <---- before ---->
+expect
+    a = from_yd 2025 1
+    b = from_yd 2025 2
+    a |> before b
+expect
+    a = from_yd 2025 2
+    b = from_yd 2025 1
+    !(a |> before b)
+expect
+    a = from_yd 2025 1
+    b = from_yd 2025 1
+    !(a |> before b)
+
+# <---- same ---->
+expect
+    a = from_yd 2025 1
+    b = from_yd 2025 1
+    a |> same b
+expect
+    a = from_yd 2025 1
+    b = from_yd 2025 2
+    !(a |> same b)
