@@ -12,6 +12,10 @@ module [
     add_nanoseconds,
     add_seconds,
     add_years,
+    after,
+    before,
+    compare,
+    equal,
     from_iso_str,
     from_iso_u8,
     from_nanos_since_epoch,
@@ -198,6 +202,27 @@ from_iso_u8 = |bytes|
 
         _ -> Err(InvalidDateTimeFormat)
 
+## Compare two `DateTime` objects.
+## If the first is before the second, it returns -1.
+## If the first is after the second, it returns 1.
+## If the first and the second are the equal, it returns 0.
+compare : DateTime, DateTime -> I8
+compare = |a, b|
+    Date.compare a.date b.date
+    |> |result| if result != 0 then result else Time.compare a.time b.time
+
+## Determine if the first `DateTime` occurs after the second `DateTime`.
+after : DateTime, DateTime -> Bool
+after = |a, b| compare a b == 1
+
+## Determine if the first `DateTime` occurs before the second `DateTime`.
+before : DateTime, DateTime -> Bool
+before = |a, b| compare a b == -1
+
+## Determine if the first `DateTime` equals the second `DateTime`.
+equal : DateTime, DateTime -> Bool
+equal = |a, b| compare a b == 0
+
 # <==== TESTS ====>
 # <---- toIsoStr ---->
 expect to_iso_str(unix_epoch) == "1970-01-01T00:00:00"
@@ -226,3 +251,45 @@ expect from_nanos_since_epoch(-1) == from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Con
 
 # <--- toNanosSinceEpoch --->
 expect to_nanos_since_epoch(from_ymdhmsn(1970, 12, 31, 12, 34, 56, 5)) == 364 * Const.nanos_per_day + 12 * Const.nanos_per_hour + 34 * Const.nanos_per_minute + 56 * Const.nanos_per_second + 5
+
+# <--- before --->
+expect
+    a = from_nanos_since_epoch 0
+    b = from_nanos_since_epoch 0
+    !(a |> before b)
+expect
+    a = from_nanos_since_epoch 0
+    b = from_nanos_since_epoch 1
+    a |> before b
+expect
+    a = from_nanos_since_epoch 1
+    b = from_nanos_since_epoch 0
+    !(a |> before b)
+
+# <--- after --->
+expect
+    a = from_nanos_since_epoch 0
+    b = from_nanos_since_epoch 0
+    !(a |> after b)
+expect
+    a = from_nanos_since_epoch 0
+    b = from_nanos_since_epoch 1
+    !(a |> after b)
+expect
+    a = from_nanos_since_epoch 1
+    b = from_nanos_since_epoch 0
+    a |> after b
+
+# <--- equal --->
+expect
+    a = from_nanos_since_epoch 0
+    b = from_nanos_since_epoch 0
+    a |> equal b
+expect
+    a = from_nanos_since_epoch 0
+    b = from_nanos_since_epoch 1
+    !(a |> equal b)
+expect
+    a = from_nanos_since_epoch 1
+    b = from_nanos_since_epoch 0
+    !(a |> equal b)

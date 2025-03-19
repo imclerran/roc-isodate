@@ -1,4 +1,5 @@
 module [
+    compare_values,
     expand_int_with_zeros,
     utf8_to_frac,
     utf8_to_int,
@@ -47,7 +48,7 @@ utf8_to_frac = |u8_list|
 
                 (_, _) -> Err(InvalidBytes)
 
-        [[','], tail] -> #if byte == ',' || byte == '.' -> # crashes when using byte comparison
+        [[','], tail] -> # if byte == ',' || byte == '.' -> # crashes when using byte comparison
             frac_part = utf8_to_int(tail)?
             decimal_shift = List.len(tail) |> Num.to_u8
             Ok(move_decimal_point(Num.to_f64(frac_part), decimal_shift))
@@ -74,5 +75,8 @@ move_decimal_point = |num, digits|
 expand_int_with_zeros : Int *, U64 -> Str
 expand_int_with_zeros = |num, target_length|
     num |> Num.to_str |> pad_left_ascii('0', target_length)
+
+compare_values : Num a, Num a -> I8
+compare_values = |x, y| if x < y then -1 else if x > y then 1 else 0
 
 expect expand_int_with_zeros(123, 5) == "00123"

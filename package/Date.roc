@@ -10,6 +10,7 @@ module [
     add_years,
     after,
     before,
+    compare,
     days_in_month,
     from_iso_str,
     from_iso_u8,
@@ -19,7 +20,7 @@ module [
     from_yw,
     from_ywd,
     is_leap_year,
-    same,
+    equal,
     to_iso_str,
     to_iso_u8,
     to_nanos_since_epoch,
@@ -30,6 +31,7 @@ module [
 import Const
 import Duration exposing [Duration, to_nanoseconds, from_days]
 import Utils exposing [
+    compare_values,
     expand_int_with_zeros,
     utf8_to_int,
     utf8_to_int_signed,
@@ -253,17 +255,26 @@ add_duration_and_date = |duration, date|
 add_date_and_duration : Date, Duration -> Date
 add_date_and_duration = |date, duration| add_duration_and_date(duration, date)
 
+## Compare two `Date` objects.
+## If the first is before the second, it returns -1.
+## If the first is after the second, it returns 1.
+## If the first and the second are the equal, it returns 0.
+compare : Date, Date -> I8
+compare = |a, b|
+    compare_values a.year b.year
+    |> |result| if result != 0 then result else compare_values a.day_of_year b.day_of_year
+
 ## Determine if the first `Date` falls after the second `Date`.
 after : Date, Date -> Bool
-after = |a, b| (a.year > b.year) or (a.year == b.year and a.day_of_year > b.day_of_year)
+after = |a, b| compare a b == 1
 
 ## Determine if the first `Date` falls before the second `Date`.
 before : Date, Date -> Bool
-before = |a, b| (a.year < b.year) or (a.year == b.year and a.day_of_year < b.day_of_year)
+before = |a, b| compare a b == -1
 
-## Determine if the first `Date` falls on the same day as the second `Date`.
-same : Date, Date -> Bool
-same = |a, b| (a.year == b.year) and (a.day_of_year == b.day_of_year)
+## Determine if the first `Date` equals the second `Date`.
+equal : Date, Date -> Bool
+equal = |a, b| compare a b == 0
 
 ## Convert the given `Date` to an ISO 8601 string.
 to_iso_str : Date -> Str
@@ -564,12 +575,16 @@ expect
     b = from_yd 2025 1
     !(a |> before b)
 
-# <---- same ---->
+# <---- equal ---->
 expect
     a = from_yd 2025 1
     b = from_yd 2025 1
-    a |> same b
+    a |> equal b
+expect
+    a = from_yd 2025 2
+    b = from_yd 2025 1
+    !(a |> equal b)
 expect
     a = from_yd 2025 1
     b = from_yd 2025 2
-    !(a |> same b)
+    !(a |> equal b)
