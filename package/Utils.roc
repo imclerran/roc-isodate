@@ -76,7 +76,7 @@ expand_int_with_zeros : Int *, U64 -> Str
 expand_int_with_zeros = |num, target_length|
     num |> Num.to_str |> pad_left_ascii('0', target_length)
 
+expect expand_int_with_zeros(123, 5) == "00123"
+
 compare_values : Num a, Num a -> [LT, EQ, GT]
 compare_values = |x, y| if x < y then LT else if x > y then GT else EQ
-
-expect expand_int_with_zeros(123, 5) == "00123"
