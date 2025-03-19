@@ -3,15 +3,13 @@
 ## These functions include functions for creating dates from varioius numeric values, converting dates to and from ISO 8601 strings, and performing arithmetic operations on dates.
 module [
     Date,
-    add_date_and_duration,
     add_days,
-    add_duration_and_date,
+    add_duration,
     add_months,
     add_years,
     after,
     before,
     compare,
-    days_in_month,
     equal,
     from_iso_str,
     from_iso_u8,
@@ -20,12 +18,11 @@ module [
     from_ymd,
     from_yw,
     from_ywd,
-    is_leap_year,
+    is_leap,
     to_iso_str,
     to_iso_u8,
     to_nanos_since_epoch,
     unix_epoch,
-    weekday,
 ]
 
 import Const
@@ -55,177 +52,6 @@ Date : {
     day_of_year : U16,
 }
 
-## `Date` object representing the Unix epoch (1970-01-01).
-unix_epoch : Date
-unix_epoch = { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
-
-## Create a `Date` object from the given year and day of the year.
-from_yd : Int *, Int * -> Date
-from_yd = |year, day_of_year|
-    List.range({ start: At(1), end: At(12) })
-    |> List.map(|m| Const.month_days({ month: Num.to_u64(m), is_leap: is_leap_year(year) }))
-    |> List.walk_until({ days_remaining: Num.to_u16(day_of_year), month: 1 }, walk_until_month_func)
-    |> |md| { year: Num.to_i64(year), month: Num.to_u8(md.month), day_of_month: Num.to_u8(md.days_remaining), day_of_year: Num.to_u16(day_of_year) }
-
-## Check whether the given year is a leap year.
-is_leap_year = |year|
-    (
-        year
-        % Const.leap_interval
-        == 0
-        and year
-        % Const.leap_exception
-        != 0
-    )
-    or year
-    % Const.leap_non_exception
-    == 0
-
-## Walk through the months of a year to find the month and day of the month
-walk_until_month_func : { days_remaining : U16, month : U8 }, U64 -> [Break { days_remaining : U16, month : U8 }, Continue { days_remaining : U16, month : U8 }]
-walk_until_month_func = |state, curr_month_days|
-    if state.days_remaining <= Num.to_u16(curr_month_days) then
-        Break({ days_remaining: state.days_remaining, month: state.month })
-    else
-        Continue({ days_remaining: state.days_remaining - Num.to_u16(curr_month_days), month: state.month + 1 })
-
-## Create a `Date` object from the given year, month, and day of the month.
-from_ymd : Int *, Int *, Int * -> Date
-from_ymd = |year, month, day|
-    { year: Num.to_i64(year), month: Num.to_u8(month), day_of_month: Num.to_u8(day), day_of_year: ymd_to_days_in_year(year, month, day) }
-
-## Convert the given year, month, and day of the month to the day of the year.
-ymd_to_days_in_year : Int *, Int *, Int * -> U16
-ymd_to_days_in_year = |year, month, day|
-    List.range({ start: At(0), end: Before(month) })
-    |> List.map(|m| Const.month_days({ month: Num.to_u64(m), is_leap: is_leap_year(year) }))
-    |> List.sum
-    |> Num.add(Num.to_u64(day))
-    |> Num.to_u16
-
-## Create a `Date` object from the given year, week, and day of the week.
-from_ywd : Int *, Int *, Int * -> Date
-from_ywd = |year, week, day|
-    days_in_year = if is_leap_year(year) then 366 else 365
-    d = calendar_week_to_days_in_year(week, year) |> Num.add(Num.to_u64(day))
-    if d > days_in_year then
-        from_yd((year + 1), (d - days_in_year))
-    else
-        from_yd(year, d)
-
-## Convert the given calendar week and year to the day of the year.
-calendar_week_to_days_in_year : Int *, Int * -> U64
-calendar_week_to_days_in_year = |week, year|
-    # Week 1 of a year is the first week with a majority of its days in that year
-    # https://en.wikipedia.org/wiki/ISO_week_date#First_week
-    y = year |> Num.to_u64
-    w = week |> Num.to_u64
-    length_of_maybe_first_week =
-        if y >= Const.epoch_year then
-            Const.epoch_week_offset - (num_days_since_epoch_until_year(Num.to_i64(y)) |> Num.to_u64) % 7
-        else
-            (Const.epoch_week_offset + (num_days_since_epoch_until_year(Num.to_i64(y)) |> Num.abs |> Num.to_u64)) % 7
-    if length_of_maybe_first_week >= 4 and w == 1 then
-        0
-    else
-        (w - 1) * Const.days_per_week + length_of_maybe_first_week
-
-## Calculate the number of leap years since the epoch.
-num_leap_years_since_epoch : I64, [IncludeCurrent, ExcludeCurrent] -> I64
-num_leap_years_since_epoch = |year, inclusive|
-    leap_incr = is_leap_year(year) |> |is_leap| if is_leap and inclusive == IncludeCurrent then 1 else 0
-    next_year = if year > Const.epoch_year then year - 1 else year + 1
-    when inclusive is
-        ExcludeCurrent if year != Const.epoch_year -> num_leap_years_since_epoch(next_year, IncludeCurrent)
-        ExcludeCurrent -> 0
-        IncludeCurrent if year != Const.epoch_year -> leap_incr + num_leap_years_since_epoch(next_year, inclusive)
-        IncludeCurrent -> leap_incr
-
-## Calculate the number of days since the epoch.
-num_days_since_epoch : Date -> I64
-num_days_since_epoch = |date|
-    num_leap_years = num_leap_years_since_epoch(date.year, ExcludeCurrent)
-    get_month_days = |m| Const.month_days({ month: m, is_leap: is_leap_year(date.year) })
-
-    if date.year >= Const.epoch_year then
-        days_in_years = num_leap_years * 366 + (date.year - Const.epoch_year - num_leap_years) * 365
-        List.map(List.range({ start: At(1), end: Before(date.month) }), get_month_days)
-        |> List.sum
-        |> Num.to_i64
-        |> Num.add((days_in_years + Num.to_i64(date.day_of_month) - 1))
-    else
-        days_in_years = num_leap_years * 366 + (Const.epoch_year - date.year - num_leap_years - 1) * 365
-        List.map(List.range({ start: After(date.month), end: At(12) }), get_month_days)
-        |> List.sum
-        |> Num.to_i64
-        |> Num.add((days_in_years + Num.to_i64(get_month_days(date.month)) - Num.to_i64(date.day_of_month) + 1))
-        |> Num.mul(-1)
-
-## Calculate the number of days since the epoch until the given year.
-num_days_since_epoch_until_year = |year|
-    num_days_since_epoch({ year, month: 1, day_of_month: 1, day_of_year: 1 })
-
-## Return the day of the week, from 0=Sunday to 6=Saturday
-weekday : I64, U8, U8 -> U8
-weekday = |year, month, day|
-    year2xxx = (year % 400) + 2400 # to handle years before the epoch
-    date = Date.from_ymd(year2xxx, month, day)
-    days_since_epoch = Date.to_nanos_since_epoch(date) // Const.nanos_per_day
-    (days_since_epoch + 4) % 7 |> Num.to_u8
-
-## Returns the number of days in the given month of the given year.
-days_in_month : I64, U8 -> U8
-days_in_month = |year, month|
-    Const.month_days({ month, is_leap: is_leap_year(year) }) |> Num.to_u8
-
-## Create a `Date` object from the given year and week.
-from_yw : Int *, Int * -> Date
-from_yw = |year, week|
-    from_ywd(year, week, 1)
-
-## Convert the given `Date` to nanoseconds since the epoch.
-to_nanos_since_epoch : Date -> I128
-to_nanos_since_epoch = |date|
-    days = num_days_since_epoch(date)
-    days |> Num.to_i128 |> Num.mul(Const.nanos_per_day)
-
-## Create a `Date` object from the given nanoseconds since the epoch.
-from_nanos_since_epoch : Int * -> Date
-from_nanos_since_epoch = |nanos|
-    days = nanos // Const.nanos_per_day |> |d| if nanos % Const.nanos_per_day < 0 then d - 1 else d
-    from_nanos_helper(Num.to_i128(days), 1970)
-
-from_nanos_helper : I128, I64 -> Date
-from_nanos_helper = |days, year|
-    if days < 0 then
-        from_nanos_helper((days + if is_leap_year((year - 1)) then 366 else 365), (year - 1))
-    else
-        days_in_year = if is_leap_year(year) then 366 else 365
-        if days >= days_in_year then
-            from_nanos_helper((days - days_in_year), (year + 1))
-        else
-            from_yd(year, (days + 1))
-
-# TODO: allow for negative years
-## Add the given number of years to the given `Date`.
-add_years : Date, Int * -> Date
-add_years = |date, years| from_ymd((date.year + Num.to_i64(years)), date.month, date.day_of_month)
-
-# TODO: allow for negative months
-## Add the given number of months to the given `Date`.
-add_months : Date, Int * -> Date
-add_months = |date, months|
-    new_month_with_overflow = date.month + Num.to_u8(months)
-    new_year = date.year + Num.to_i64((new_month_with_overflow // 12))
-    new_month = new_month_with_overflow % 12
-    new_day = (
-        if date.day_of_month > Num.to_u8(Const.month_days({ month: new_month, is_leap: is_leap_year(new_year) })) then
-            Num.to_u8(Const.month_days({ month: new_month, is_leap: is_leap_year(new_year) }))
-        else
-            date.day_of_month
-    )
-    from_ymd(new_year, new_month, new_day)
-
 ## Add the given number of days to the given `Date`.
 add_days : Date, Int * -> Date
 add_days = |date, days|
@@ -244,16 +70,57 @@ add_days_helper = |date, days|
     else
         from_yd(date.year, new_day_of_year)
 
-## Add the given `Duration` to the given `Date`.
-add_duration_and_date : Duration, Date -> Date
-add_duration_and_date = |duration, date|
+## Add the given `Date` and `Duration`.
+add_duration : Date, Duration -> Date
+add_duration = |date, duration| 
     duration_nanos = to_nanoseconds(duration)
     date_nanos = to_nanos_since_epoch(date) |> Num.to_i128
     duration_nanos + date_nanos |> from_nanos_since_epoch
 
-## Add the given `Date` and `Duration`.
-add_date_and_duration : Date, Duration -> Date
-add_date_and_duration = |date, duration| add_duration_and_date(duration, date)
+# TODO: allow for negative months
+## Add the given number of months to the given `Date`.
+add_months : Date, Int * -> Date
+add_months = |date, months|
+    new_month_with_overflow = date.month + Num.to_u8(months)
+    new_year = date.year + Num.to_i64((new_month_with_overflow // 12))
+    new_month = new_month_with_overflow % 12
+    new_day = (
+        if date.day_of_month > Num.to_u8(Const.month_days({ month: new_month, is_leap: is_leap_year(new_year) })) then
+            Num.to_u8(Const.month_days({ month: new_month, is_leap: is_leap_year(new_year) }))
+        else
+            date.day_of_month
+    )
+    from_ymd(new_year, new_month, new_day)
+
+# TODO: allow for negative years
+## Add the given number of years to the given `Date`.
+add_years : Date, Int * -> Date
+add_years = |date, years| from_ymd((date.year + Num.to_i64(years)), date.month, date.day_of_month)
+
+## Determine if the first `Date` falls after the second `Date`.
+after : Date, Date -> Bool
+after = |a, b| compare a b == GT
+
+## Determine if the first `Date` falls before the second `Date`.
+before : Date, Date -> Bool
+before = |a, b| compare a b == LT
+
+## Convert the given calendar week and year to the day of the year.
+calendar_week_to_days_in_year : Int *, Int * -> U64
+calendar_week_to_days_in_year = |week, year|
+    # Week 1 of a year is the first week with a majority of its days in that year
+    # https://en.wikipedia.org/wiki/ISO_week_date#First_week
+    y = year |> Num.to_u64
+    w = week |> Num.to_u64
+    length_of_maybe_first_week =
+        if y >= Const.epoch_year then
+            Const.epoch_week_offset - (num_days_since_epoch_until_year(Num.to_i64(y)) |> Num.to_u64) % 7
+        else
+            (Const.epoch_week_offset + (num_days_since_epoch_until_year(Num.to_i64(y)) |> Num.abs |> Num.to_u64)) % 7
+    if length_of_maybe_first_week >= 4 and w == 1 then
+        0
+    else
+        (w - 1) * Const.days_per_week + length_of_maybe_first_week
 
 ## Compare two `Date` objects.
 ## If the first is before the second, it returns LT.
@@ -264,30 +131,14 @@ compare = |a, b|
     compare_values a.year b.year
     |> |result| if result != EQ then result else compare_values a.day_of_year b.day_of_year
 
-## Determine if the first `Date` falls after the second `Date`.
-after : Date, Date -> Bool
-after = |a, b| compare a b == GT
-
-## Determine if the first `Date` falls before the second `Date`.
-before : Date, Date -> Bool
-before = |a, b| compare a b == LT
+## Returns the number of days in the given month of the given year.
+days_in_month : I64, U8 -> U8
+days_in_month = |year, month|
+    Const.month_days({ month, is_leap: is_leap_year(year) }) |> Num.to_u8
 
 ## Determine if the first `Date` equals the second `Date`.
 equal : Date, Date -> Bool
 equal = |a, b| compare a b == EQ
-
-## Convert the given `Date` to an ISO 8601 string.
-to_iso_str : Date -> Str
-to_iso_str = |date|
-    expand_int_with_zeros(date.year, 4)
-    |> Str.concat("-")
-    |> Str.concat(expand_int_with_zeros(date.month, 2))
-    |> Str.concat("-")
-    |> Str.concat(expand_int_with_zeros(date.day_of_month, 2))
-
-## Convert the `Date` to an ISO 8601 string as a list of UTF-8 bytes.
-to_iso_u8 : Date -> List U8
-to_iso_u8 = |date| to_iso_str(date) |> Str.to_utf8
 
 ## Convert the given ISO 8601 string to a `Date`.
 from_iso_str : Str -> Result Date [InvalidDateFormat]
@@ -313,6 +164,105 @@ from_iso_u8 = |bytes|
             _ -> Err(InvalidDateFormat)
     else
         Err(InvalidDateFormat)
+
+## Create a `Date` object from the given nanoseconds since the epoch.
+from_nanos_since_epoch : Int * -> Date
+from_nanos_since_epoch = |nanos|
+    days = nanos // Const.nanos_per_day |> |d| if nanos % Const.nanos_per_day < 0 then d - 1 else d
+    from_nanos_helper(Num.to_i128(days), 1970)
+
+from_nanos_helper : I128, I64 -> Date
+from_nanos_helper = |days, year|
+    if days < 0 then
+        from_nanos_helper((days + if is_leap_year((year - 1)) then 366 else 365), (year - 1))
+    else
+        days_in_year = if is_leap_year(year) then 366 else 365
+        if days >= days_in_year then
+            from_nanos_helper((days - days_in_year), (year + 1))
+        else
+            from_yd(year, (days + 1))
+
+## Create a `Date` object from the given year and day of the year.
+from_yd : Int *, Int * -> Date
+from_yd = |year, day_of_year|
+    List.range({ start: At(1), end: At(12) })
+    |> List.map(|m| Const.month_days({ month: Num.to_u64(m), is_leap: is_leap_year(year) }))
+    |> List.walk_until({ days_remaining: Num.to_u16(day_of_year), month: 1 }, walk_until_month_func)
+    |> |md| { year: Num.to_i64(year), month: Num.to_u8(md.month), day_of_month: Num.to_u8(md.days_remaining), day_of_year: Num.to_u16(day_of_year) }
+
+## Create a `Date` object from the given year, month, and day of the month.
+from_ymd : Int *, Int *, Int * -> Date
+from_ymd = |year, month, day|
+    { year: Num.to_i64(year), month: Num.to_u8(month), day_of_month: Num.to_u8(day), day_of_year: ymd_to_days_in_year(year, month, day) }
+
+## Create a `Date` object from the given year and week.
+from_yw : Int *, Int * -> Date
+from_yw = |year, week|
+    from_ywd(year, week, 1)
+
+## Create a `Date` object from the given year, week, and day of the week.
+from_ywd : Int *, Int *, Int * -> Date
+from_ywd = |year, week, day|
+    days_in_year = if is_leap_year(year) then 366 else 365
+    d = calendar_week_to_days_in_year(week, year) |> Num.add(Num.to_u64(day))
+    if d > days_in_year then
+        from_yd((year + 1), (d - days_in_year))
+    else
+        from_yd(year, d)
+
+## Check whether the given date falls in a leap year
+is_leap : Date -> Bool
+is_leap = |date|
+    is_leap_year(date.year)
+
+## Check whether the given year is a leap year.
+is_leap_year = |year|
+    (
+        year
+        % Const.leap_interval
+        == 0
+        and year
+        % Const.leap_exception
+        != 0
+    )
+    or year
+    % Const.leap_non_exception
+    == 0
+
+## Calculate the number of days since the epoch.
+num_days_since_epoch : Date -> I64
+num_days_since_epoch = |date|
+    num_leap_years = num_leap_years_since_epoch(date.year, ExcludeCurrent)
+    get_month_days = |m| Const.month_days({ month: m, is_leap: is_leap_year(date.year) })
+
+    if date.year >= Const.epoch_year then
+        days_in_years = num_leap_years * 366 + (date.year - Const.epoch_year - num_leap_years) * 365
+        List.map(List.range({ start: At(1), end: Before(date.month) }), get_month_days)
+        |> List.sum
+        |> Num.to_i64
+        |> Num.add((days_in_years + Num.to_i64(date.day_of_month) - 1))
+    else
+        days_in_years = num_leap_years * 366 + (Const.epoch_year - date.year - num_leap_years - 1) * 365
+        List.map(List.range({ start: After(date.month), end: At(12) }), get_month_days)
+        |> List.sum
+        |> Num.to_i64
+        |> Num.add((days_in_years + Num.to_i64(get_month_days(date.month)) - Num.to_i64(date.day_of_month) + 1))
+        |> Num.mul(-1)
+
+## Calculate the number of days since the epoch until the given year.
+num_days_since_epoch_until_year = |year|
+    num_days_since_epoch({ year, month: 1, day_of_month: 1, day_of_year: 1 })
+
+## Calculate the number of leap years since the epoch.
+num_leap_years_since_epoch : I64, [IncludeCurrent, ExcludeCurrent] -> I64
+num_leap_years_since_epoch = |year, inclusive|
+    leap_incr = if is_leap_year(year) and inclusive == IncludeCurrent then 1 else 0
+    next_year = if year > Const.epoch_year then year - 1 else year + 1
+    when inclusive is
+        ExcludeCurrent if year != Const.epoch_year -> num_leap_years_since_epoch(next_year, IncludeCurrent)
+        ExcludeCurrent -> 0
+        IncludeCurrent if year != Const.epoch_year -> leap_incr + num_leap_years_since_epoch(next_year, inclusive)
+        IncludeCurrent -> leap_incr
 
 parse_calendar_date_basic : List U8 -> Result Date [InvalidDateFormat]
 parse_calendar_date_basic = |bytes|
@@ -434,15 +384,64 @@ parse_week_date_reduced_extended = |bytes|
 
         _ -> Err(InvalidDateFormat)
 
+
+## Convert the given `Date` to an ISO 8601 string.
+to_iso_str : Date -> Str
+to_iso_str = |date|
+    expand_int_with_zeros(date.year, 4)
+    |> Str.concat("-")
+    |> Str.concat(expand_int_with_zeros(date.month, 2))
+    |> Str.concat("-")
+    |> Str.concat(expand_int_with_zeros(date.day_of_month, 2))
+
+## Convert the `Date` to an ISO 8601 string as a list of UTF-8 bytes.
+to_iso_u8 : Date -> List U8
+to_iso_u8 = |date| to_iso_str(date) |> Str.to_utf8
+
+## Convert the given `Date` to nanoseconds since the epoch.
+to_nanos_since_epoch : Date -> I128
+to_nanos_since_epoch = |date|
+    days = num_days_since_epoch(date)
+    days |> Num.to_i128 |> Num.mul(Const.nanos_per_day)
+
+## `Date` object representing the Unix epoch (1970-01-01).
+unix_epoch : Date
+unix_epoch = { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
+
+## Walk through the months of a year to find the month and day of the month
+walk_until_month_func : { days_remaining : U16, month : U8 }, U64 -> [Break { days_remaining : U16, month : U8 }, Continue { days_remaining : U16, month : U8 }]
+walk_until_month_func = |state, curr_month_days|
+    if state.days_remaining <= Num.to_u16(curr_month_days) then
+        Break({ days_remaining: state.days_remaining, month: state.month })
+    else
+        Continue({ days_remaining: state.days_remaining - Num.to_u16(curr_month_days), month: state.month + 1 })
+
+## Return the day of the week, from 0=Sunday to 6=Saturday
+weekday : I64, U8, U8 -> U8
+weekday = |year, month, day|
+    year2xxx = (year % 400) + 2400 # to handle years before the epoch
+    date = Date.from_ymd(year2xxx, month, day)
+    days_since_epoch = Date.to_nanos_since_epoch(date) // Const.nanos_per_day
+    (days_since_epoch + 4) % 7 |> Num.to_u8
+
+## Convert the given year, month, and day of the month to the day of the year.
+ymd_to_days_in_year : Int *, Int *, Int * -> U16
+ymd_to_days_in_year = |year, month, day|
+    List.range({ start: At(0), end: Before(month) })
+    |> List.map(|m| Const.month_days({ month: Num.to_u64(m), is_leap: is_leap_year(year) }))
+    |> List.sum
+    |> Num.add(Num.to_u64(day))
+    |> Num.to_u16
+
 # <==== TESTS ====>
-# <---- fromYd ---->
+# <---- from_yd ---->
 expect from_yd(1970, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_yd(1970, 31) == { year: 1970, month: 1, day_of_month: 31, day_of_year: 31 }
 expect from_yd(1970, 32) == { year: 1970, month: 2, day_of_month: 1, day_of_year: 32 }
 expect from_yd(1970, 60) == { year: 1970, month: 3, day_of_month: 1, day_of_year: 60 }
 expect from_yd(1972, 61) == { year: 1972, month: 3, day_of_month: 1, day_of_year: 61 }
 
-# <---- calendarWeekToDaysInYear ---->
+# <---- calendar_week_to_days_in_year ---->
 expect calendar_week_to_days_in_year(1, 1965) == 3
 expect calendar_week_to_days_in_year(1, 1964) == 0
 expect calendar_week_to_days_in_year(1, 1970) == 0
@@ -451,7 +450,7 @@ expect calendar_week_to_days_in_year(1, 1972) == 2
 expect calendar_week_to_days_in_year(1, 1973) == 0
 expect calendar_week_to_days_in_year(2, 2024) == 7
 
-# <---- numDaysSinceEpoch ---->
+# <---- num_days_since_epoch ---->
 expect num_days_since_epoch(from_ymd(2024, 1, 1)) == 19723 # Removed due to compiler bug with optional record fields
 expect num_days_since_epoch(from_ymd(1970, 12, 31)) == 365 - 1
 expect num_days_since_epoch(from_ymd(1971, 1, 2)) == 365 + 1
@@ -463,7 +462,7 @@ expect num_days_since_epoch(from_ymd(1969, 12, 30)) == -2
 expect num_days_since_epoch(from_ymd(1969, 1, 1)) == -365
 expect num_days_since_epoch(from_ymd(1968, 1, 1)) == -365 - 366
 
-# <---- numDaysSinceEpochToYear ---->
+# <---- num_days_since_epoch_until_year ---->
 expect num_days_since_epoch_until_year(1968) == -365 - 366
 expect num_days_since_epoch_until_year(1970) == 0
 expect num_days_since_epoch_until_year(1971) == 365
@@ -471,20 +470,20 @@ expect num_days_since_epoch_until_year(1972) == 365 + 365
 expect num_days_since_epoch_until_year(1973) == 365 + 365 + 366
 expect num_days_since_epoch_until_year(2024) == 19723
 
-# <---- fromYmd ---->
+# <---- from_ymd ---->
 expect from_ymd(1970, 1, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_ymd(1970, 12, 31) == { year: 1970, month: 12, day_of_month: 31, day_of_year: 365 }
 expect from_ymd(1972, 3, 1) == { year: 1972, month: 3, day_of_month: 1, day_of_year: 61 }
 
-# <---- fromYwd ---->
+# <---- from_ywd ---->
 expect from_ywd(1970, 1, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_ywd(1970, 52, 5) == { year: 1971, month: 1, day_of_month: 1, day_of_year: 1 }
 
-# <---- fromYw ---->
+# <---- from_yw ---->
 expect from_yw(1970, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_yw(1971, 1) == { year: 1971, month: 1, day_of_month: 4, day_of_year: 4 }
 
-# <---- fromNanosSinceEpoch ---->
+# <---- from_nanos_since_epoch ---->
 expect from_nanos_since_epoch(0) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_nanos_since_epoch((Const.nanos_per_day * 365)) == { year: 1971, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_nanos_since_epoch((Const.nanos_per_day * 365 * 2 + Const.nanos_per_day * 366)) == { year: 1973, month: 1, day_of_month: 1, day_of_year: 1 }
@@ -493,7 +492,7 @@ expect from_nanos_since_epoch(((-Const.nanos_per_day) * 365)) == { year: 1969, m
 expect from_nanos_since_epoch(((-Const.nanos_per_day) * 365 - Const.nanos_per_day * 366)) == { year: 1968, month: 1, day_of_month: 1, day_of_year: 1 }
 expect from_nanos_since_epoch(-1) == { year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }
 
-# <---- toNanosSinceEpoch ---->
+# <---- to_nanos_since_epoch ---->
 expect to_nanos_since_epoch({ year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }) == 0
 expect to_nanos_since_epoch({ year: 1970, month: 12, day_of_month: 31, day_of_year: 365 }) == Const.nanos_per_hour * 24 * 364
 expect to_nanos_since_epoch({ year: 1973, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * 365 * 2 + Const.nanos_per_hour * 24 * 366
@@ -501,15 +500,15 @@ expect to_nanos_since_epoch({ year: 1969, month: 12, day_of_month: 31, day_of_ye
 expect to_nanos_since_epoch({ year: 1969, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * -365
 expect to_nanos_since_epoch({ year: 1968, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * -365 - Const.nanos_per_hour * 24 * 366
 
-# <---- toIsoStr ---->
+# <---- to_iso_str ---->
 expect to_iso_str(unix_epoch) == "1970-01-01"
 
-# <---- addMonths ---->
+# <---- add_months ---->
 expect add_months(unix_epoch, 12) == from_ymd(1971, 1, 1)
 expect add_months(from_ymd(1970, 1, 31), 1) == from_ymd(1970, 2, 28)
 expect add_months(from_ymd(1972, 2, 29), 12) == from_ymd(1973, 2, 28)
 
-# <---- addDays ---->
+# <---- add_days ---->
 expect add_days(unix_epoch, 365) == from_ymd(1971, 1, 1)
 expect add_days(unix_epoch, (365 * 2)) == from_ymd(1972, 1, 1)
 expect add_days(unix_epoch, (365 * 2 + 366)) == from_ymd(1973, 1, 1)
@@ -518,8 +517,8 @@ expect add_days(unix_epoch, -365) == from_ymd(1969, 1, 1)
 expect add_days(unix_epoch, (-365 - 1)) == from_ymd(1968, 12, 31)
 expect add_days(unix_epoch, (-365 - 366)) == from_ymd(1968, 1, 1)
 
-# <---- addDateAndDuration ---->
-expect add_date_and_duration(unix_epoch, (from_days(1) |> unwrap("will not overflow"))) == from_ymd(1970, 1, 2)
+# <---- add_duration ---->
+expect add_duration(unix_epoch, (from_days(1) |> unwrap("will not overflow"))) == from_ymd(1970, 1, 2)
 
 # <---- ymdToDaysInYear ---->
 expect ymd_to_days_in_year(1970, 1, 1) == 1
@@ -532,7 +531,7 @@ expect weekday(1964, 10, 11) == 0
 expect weekday(1964, 10, 12) == 1
 expect weekday(2024, 10, 12) == 6
 
-# <---- daysInMonth ---->
+# <---- days_in_month ---->
 expect days_in_month(1969, 1) == 31
 expect days_in_month(1969, 2) == 28
 expect days_in_month(1969, 3) == 31
