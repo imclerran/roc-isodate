@@ -256,25 +256,25 @@ add_date_and_duration : Date, Duration -> Date
 add_date_and_duration = |date, duration| add_duration_and_date(duration, date)
 
 ## Compare two `Date` objects.
-## If the first is before the second, it returns -1.
-## If the first is after the second, it returns 1.
-## If the first and the second are the equal, it returns 0.
-compare : Date, Date -> I8
+## If the first is before the second, it returns LT.
+## If the first is after the second, it returns GT.
+## If the first and the second are the equal, it returns EQ.
+compare : Date, Date -> [LT, EQ, GT]
 compare = |a, b|
     compare_values a.year b.year
-    |> |result| if result != 0 then result else compare_values a.day_of_year b.day_of_year
+    |> |result| if result != EQ then result else compare_values a.day_of_year b.day_of_year
 
 ## Determine if the first `Date` falls after the second `Date`.
 after : Date, Date -> Bool
-after = |a, b| compare a b == 1
+after = |a, b| compare a b == GT
 
 ## Determine if the first `Date` falls before the second `Date`.
 before : Date, Date -> Bool
-before = |a, b| compare a b == -1
+before = |a, b| compare a b == LT
 
 ## Determine if the first `Date` equals the second `Date`.
 equal : Date, Date -> Bool
-equal = |a, b| compare a b == 0
+equal = |a, b| compare a b == EQ
 
 ## Convert the given `Date` to an ISO 8601 string.
 to_iso_str : Date -> Str

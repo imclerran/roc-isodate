@@ -203,25 +203,25 @@ from_iso_u8 = |bytes|
         _ -> Err(InvalidDateTimeFormat)
 
 ## Compare two `DateTime` objects.
-## If the first is before the second, it returns -1.
-## If the first is after the second, it returns 1.
-## If the first and the second are the equal, it returns 0.
-compare : DateTime, DateTime -> I8
+## If the first occurs before the second, it returns LT.
+## If the first and the second are equal, it returns EQ.
+## If the first occurs after the second, it returns GT.
+compare : DateTime, DateTime -> [LT, EQ, GT]
 compare = |a, b|
     Date.compare a.date b.date
-    |> |result| if result != 0 then result else Time.compare a.time b.time
+    |> |result| if result != EQ then result else Time.compare a.time b.time
 
 ## Determine if the first `DateTime` occurs after the second `DateTime`.
 after : DateTime, DateTime -> Bool
-after = |a, b| compare a b == 1
+after = |a, b| compare a b == GT
 
 ## Determine if the first `DateTime` occurs before the second `DateTime`.
 before : DateTime, DateTime -> Bool
-before = |a, b| compare a b == -1
+before = |a, b| compare a b == LT
 
 ## Determine if the first `DateTime` equals the second `DateTime`.
 equal : DateTime, DateTime -> Bool
-equal = |a, b| compare a b == 0
+equal = |a, b| compare a b == EQ
 
 # <==== TESTS ====>
 # <---- toIsoStr ---->

@@ -97,27 +97,27 @@ from_nanos_since_midnight = |nanos|
     { hour, minute, second, nanosecond }
 
 ## Compare two `Time` objects.
-## If the first is before the second, it returns -1.
-## If the first is after the second, it returns 1.
-## If the first and the second are the equal, it returns 0.
-compare : Time, Time -> I8
+## If the first occurs before the second, it returns LT.
+## If the first and the second are equal, it returns EQ.
+## If the first occurs after the second, it returns GT.
+compare : Time, Time -> [LT, EQ, GT]
 compare = |a, b|
     compare_values a.hour b.hour
-    |> |result| if result != 0 then result else compare_values a.minute b.minute
-    |> |result| if result != 0 then result else compare_values a.second b.second
-    |> |result| if result != 0 then result else compare_values a.nanosecond b.nanosecond
+    |> |result| if result != EQ then result else compare_values a.minute b.minute
+    |> |result| if result != EQ then result else compare_values a.second b.second
+    |> |result| if result != EQ then result else compare_values a.nanosecond b.nanosecond
 
 ## Determine if the first `Time` occurs before the second `Time`.
 before : Time, Time -> Bool
-before = |a, b| compare a b == -1
+before = |a, b| compare a b == LT
 
 ## Determine if the first `Time` occurs after the second `Time`.
 after : Time, Time -> Bool
-after = |a, b| compare a b == 1
+after = |a, b| compare a b == GT
 
 ## Determine if the first `Time` is equal to the second `Time`.
 equal : Time, Time -> Bool
-equal = |a, b| compare a b == 0
+equal = |a, b| compare a b == EQ
 
 ## Add nanoseconds to a `Time` object.
 add_nanoseconds : Time, Int * -> Time
