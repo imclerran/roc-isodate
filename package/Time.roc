@@ -8,6 +8,10 @@ module [
     add_nanoseconds,
     add_seconds,
     add_time_and_duration,
+    after,
+    before,
+    compare,
+    equal,
     from_hms,
     from_hmsn,
     from_iso_str,
@@ -30,6 +34,7 @@ import Const exposing [
 import Duration
 import Duration exposing [Duration]
 import Utils exposing [
+    compare_values,
     expand_int_with_zeros,
     utf8_to_frac,
     utf8_to_int_signed,
@@ -90,6 +95,29 @@ from_nanos_since_midnight = |nanos|
     nanosecond = nanos3 % nanos_per_second |> Num.to_u32
     hour = (nanos - Num.int_cast((Num.to_i64(minute) * nanos_per_minute + Num.to_i64(second) * nanos_per_second + Num.to_i64(nanosecond)))) // nanos_per_hour |> Num.to_i8 # % Const.hoursPerDay |> Num.toI8
     { hour, minute, second, nanosecond }
+
+## Compare two `Time` objects.
+## If the first occurs before the second, it returns LT.
+## If the first and the second are equal, it returns EQ.
+## If the first occurs after the second, it returns GT.
+compare : Time, Time -> [LT, EQ, GT]
+compare = |a, b|
+    compare_values a.hour b.hour
+    |> |result| if result != EQ then result else compare_values a.minute b.minute
+    |> |result| if result != EQ then result else compare_values a.second b.second
+    |> |result| if result != EQ then result else compare_values a.nanosecond b.nanosecond
+
+## Determine if the first `Time` occurs before the second `Time`.
+before : Time, Time -> Bool
+before = |a, b| compare a b == LT
+
+## Determine if the first `Time` occurs after the second `Time`.
+after : Time, Time -> Bool
+after = |a, b| compare a b == GT
+
+## Determine if the first `Time` is equal to the second `Time`.
+equal : Time, Time -> Bool
+equal = |a, b| compare a b == EQ
 
 ## Add nanoseconds to a `Time` object.
 add_nanoseconds : Time, Int * -> Time
@@ -385,3 +413,45 @@ expect from_nanos_since_midnight((25 * Const.nanos_per_hour)) == from_hms(25, 0,
 expect to_nanos_since_midnight({ hour: 12, minute: 34, second: 56, nanosecond: 5 }) == 12 * nanos_per_hour + 34 * nanos_per_minute + 56 * nanos_per_second + 5
 expect to_nanos_since_midnight(from_hmsn(12, 34, 56, 5)) == 12 * Const.nanos_per_hour + 34 * Const.nanos_per_minute + 56 * Const.nanos_per_second + 5
 expect to_nanos_since_midnight(from_hmsn(-1, 0, 0, 0)) == -1 * Const.nanos_per_hour
+
+# <---- before ---->
+expect
+    a = from_nanos_since_midnight 0
+    b = from_nanos_since_midnight 0
+    !(b |> before a)
+expect
+    a = from_nanos_since_midnight 0
+    b = from_nanos_since_midnight 1
+    !(b |> before a)
+expect
+    a = from_nanos_since_midnight 1
+    b = from_nanos_since_midnight 0
+    b |> before a
+
+# <---- after ---->
+expect
+    a = from_nanos_since_midnight 0
+    b = from_nanos_since_midnight 0
+    !(b |> after a)
+expect
+    a = from_nanos_since_midnight 0
+    b = from_nanos_since_midnight 1
+    b |> after a
+expect
+    a = from_nanos_since_midnight 1
+    b = from_nanos_since_midnight 0
+    !(b |> after a)
+
+# <---- equal ---->
+expect
+    a = from_nanos_since_midnight 0
+    b = from_nanos_since_midnight 0
+    b |> equal a
+expect
+    a = from_nanos_since_midnight 0
+    b = from_nanos_since_midnight 1
+    !(b |> equal a)
+expect
+    a = from_nanos_since_midnight 1
+    b = from_nanos_since_midnight 0
+    !(b |> equal a)
