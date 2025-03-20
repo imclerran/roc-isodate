@@ -37,7 +37,6 @@ import Duration
 import Duration exposing [Duration]
 import Time
 import Time exposing [Time]
-import rtils.Unsafe exposing [unwrap] # for unit testing only
 import rtils.ListUtils exposing [split_with_delims]
 
 ## ```
@@ -184,6 +183,13 @@ normalize = |date_time|
     }
     |> add_hours(date_time.time.hour)
 
+## Subtract two `DateTime` objects to get the `Duration` between them.
+sub : DateTime, DateTime -> Duration
+sub = |a, b|
+    a_nanos = to_nanos_since_epoch(a)
+    b_nanos = to_nanos_since_epoch(b)
+    a_nanos |> Num.sub_saturated(b_nanos) |> Duration.from_nanoseconds
+
 ## Convert a `DateTime` object to an ISO 8601 string.
 to_iso_str : DateTime -> Str
 to_iso_str = |date_time|
@@ -215,8 +221,8 @@ expect add_nanoseconds(from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0), -Const.nanos_per_da
 expect add_nanoseconds(from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0), ((-Const.nanos_per_day) - 1)) == from_ymdhmsn(1969, 12, 30, 23, 59, 59, (Const.nanos_per_second - 1))
 
 # <---- add_duration ---->
-expect add_duration(unix_epoch, (Duration.from_nanoseconds(-1) |> unwrap("will not overflow"))) == from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Const.nanos_per_second - 1))
-expect add_duration(unix_epoch, (Duration.from_days(365) |> unwrap("will not overflow"))) == from_ymdhmsn(1971, 1, 1, 0, 0, 0, 0)
+expect add_duration(unix_epoch, Duration.from_nanoseconds(-1)) == from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Const.nanos_per_second - 1))
+expect add_duration(unix_epoch, Duration.from_days(365)) == from_ymdhmsn(1971, 1, 1, 0, 0, 0, 0)
 
 # <--- after --->
 expect
@@ -268,6 +274,10 @@ expect from_nanos_since_epoch(-1) == from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Con
 expect normalize(from_ymdhmsn(1970, 1, 2, -12, 1, 2, 3)) == from_ymdhmsn(1970, 1, 1, 12, 1, 2, 3)
 expect normalize(from_ymdhmsn(1970, 1, 1, 12, 1, 2, 3)) == from_ymdhmsn(1970, 1, 1, 12, 1, 2, 3)
 expect normalize(from_ymdhmsn(1970, 1, 1, 36, 1, 2, 3)) == from_ymdhmsn(1970, 1, 2, 12, 1, 2, 3)
+
+# <--- sub --->
+expect sub(from_ymd(1970, 1, 1), from_ymdhmsn(1970, 1, 1, 0, 0, 0, 1)) == Duration.from_nanoseconds(-1)
+expect sub(from_ymdhmsn(1970, 1, 1, 1, 1, 1, 1), from_yd(1968, 1)) == Duration.from_nanoseconds(Const.nanos_per_day * 731 + Const.nanos_per_hour + Const.nanos_per_minute + Const.nanos_per_second + 1)
 
 # <---- to_iso_str ---->
 expect to_iso_str(unix_epoch) == "1970-01-01T00:00:00"

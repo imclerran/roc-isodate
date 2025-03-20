@@ -39,10 +39,9 @@ import Utils exposing [
     utf8_to_int_signed,
     validate_utf8_single_bytes,
 ]
-import rtils.Unsafe exposing [unwrap] # for unit testing only
 import rtils.ListUtils exposing [split_at_indices, split_with_delims]
 
-## Object representing a time of day. May be greater than 24 hours or less than 0 hours.
+## Object representing a time of day. Hours may be less than 0 or greater than 24.
 ## ```
 ## Time : {
 ##     hour : I8,
@@ -199,30 +198,27 @@ parse_whole_time = |bytes|
 
 parse_fractional_time : List U8, List U8 -> Result Time [InvalidTimeFormat]
 parse_fractional_time = |whole_bytes, fractional_bytes|
-    combine_duration_res_and_time = |duration_res, time|
-        when duration_res is
-            Ok(duration) -> Time.add_duration(time, duration) |> Ok
-            Err(_) -> Err(InvalidTimeFormat)
+    add_duration_and_time = |d, t| Time.add_duration(t, d)
     when (whole_bytes, utf8_to_frac(fractional_bytes)) is
         ([_, _], Ok(frac)) -> # hh
             time = parse_local_time_hour(whole_bytes)?
-            frac * Const.nanos_per_hour |> Num.round |> Duration.from_nanoseconds |> combine_duration_res_and_time(time)
+            frac * Const.nanos_per_hour |> Num.round |> Duration.from_nanoseconds |> add_duration_and_time(time) |> Ok
 
         ([_, _, _, _], Ok(frac)) -> # hhmm
             time = parse_local_time_minute_basic(whole_bytes)?
-            frac * Const.nanos_per_minute |> Num.round |> Duration.from_nanoseconds |> combine_duration_res_and_time(time)
+            frac * Const.nanos_per_minute |> Num.round |> Duration.from_nanoseconds |> add_duration_and_time(time) |> Ok
 
         ([_, _, ':', _, _], Ok(frac)) -> # hh:mm
             time = parse_local_time_minute_extended(whole_bytes)?
-            frac * Const.nanos_per_minute |> Num.round |> Duration.from_nanoseconds |> combine_duration_res_and_time(time)
+            frac * Const.nanos_per_minute |> Num.round |> Duration.from_nanoseconds |> add_duration_and_time(time) |> Ok
 
         ([_, _, _, _, _, _], Ok(frac)) -> # hhmmss
             time = parse_local_time_basic(whole_bytes)?
-            frac * Const.nanos_per_second |> Num.round |> Duration.from_nanoseconds |> combine_duration_res_and_time(time)
+            frac * Const.nanos_per_second |> Num.round |> Duration.from_nanoseconds |> add_duration_and_time(time) |> Ok
 
         ([_, _, ':', _, _, ':', _, _], Ok(frac)) -> # hh:mm:ss
             time = parse_local_time_extended(whole_bytes)?
-            frac * Const.nanos_per_second |> Num.round |> Duration.from_nanoseconds |> combine_duration_res_and_time(time)
+            frac * Const.nanos_per_second |> Num.round |> Duration.from_nanoseconds |> add_duration_and_time(time) |> Ok
 
         _ -> Err(InvalidTimeFormat)
 
@@ -256,7 +252,7 @@ parse_time_offset_help = |h1, h2, m1, m2, sign|
         (Ok(hour), Ok(minute)) ->
             offset_nanos = sign * (hour * Const.nanos_per_hour + minute * Const.nanos_per_minute)
             when is_valid_offset(offset_nanos) is
-                Valid -> Duration.from_nanoseconds(offset_nanos) |> Result.map_err(|_| InvalidTimeFormat)
+                Valid -> Duration.from_nanoseconds(offset_nanos) |> Ok
                 Invalid -> Err(InvalidTimeFormat)
 
         (_, _) -> Err(InvalidTimeFormat)
@@ -337,6 +333,14 @@ strip_t_and_z = |bytes|
         [.. as head, 'Z'] -> head
         _ -> bytes
 
+## Subtract two `Time` objects to get the `Duration` between them.
+sub : Time, Time -> Duration
+sub = |a, b|
+    a_nanos = to_nanos_since_midnight(a)
+    b_nanos = to_nanos_since_midnight(b)
+    duration_nanos = a_nanos - b_nanos
+    Duration.from_nanoseconds(duration_nanos)
+
 ## Convert a `Time` object to an ISO 8601 string.
 to_iso_str : Time -> Str
 to_iso_str = |time|
@@ -379,8 +383,10 @@ expect add_hours(from_hms(12, 34, 56), -1) == from_hms(11, 34, 56)
 expect add_hours(from_hms(12, 34, 56), 12) == from_hms(24, 34, 56)
 
 # <---- add_duration ---->
-expect
-    add_duration(from_hms(0, 0, 0), (Duration.from_hours(1) |> unwrap("will not overflow"))) == from_hms(1, 0, 0)
+expect 
+    duration = Duration.from_hours(1)
+    res = add_duration(from_hms(0, 0, 0), duration)
+    res == from_hms(1, 0, 0)
 
 # <---- from_nanos_since_midnight ---->
 expect from_nanos_since_midnight(-123) == from_hmsn(-1, 59, 59, 999_999_877)
@@ -406,6 +412,11 @@ expect from_nanos_since_midnight(-123) == from_hmsn(-1, 59, 59, 999_999_877)
 expect from_nanos_since_midnight(0) == midnight
 expect from_nanos_since_midnight((24 * Const.nanos_per_hour)) == from_hms(24, 0, 0)
 expect from_nanos_since_midnight((25 * Const.nanos_per_hour)) == from_hms(25, 0, 0)
+
+# <---- sub ---->
+expect sub(from_hms(12, 34, 56), from_hms(12, 34, 55)) == Duration.from_seconds(1)
+expect sub(from_hmsn(25, 0, 0, 1), from_hmsn(1, 1, 1, 2)) == Duration.from_nanoseconds(23 * Const.nanos_per_hour + 58 * Const.nanos_per_minute + 59 * Const.nanos_per_second - 1)
+expect sub(from_hms(-12, 34, 56), from_hms(12, 34, 55)) == Duration.from_nanoseconds(-1 * Const.nanos_per_hour * 24 + Const.nanos_per_second)
 
 # <---- to_nanos_since_midnight ---->
 expect to_nanos_since_midnight({ hour: 12, minute: 34, second: 56, nanosecond: 5 }) == 12 * nanos_per_hour + 34 * nanos_per_minute + 56 * nanos_per_second + 5
