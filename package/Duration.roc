@@ -1,7 +1,7 @@
 ## The duration modules provides the `Duration` type and associated functions for representing time durations and performing date/time arithmetic.
 module [
     Duration,
-    add_durations,
+    add,
     from_days,
     from_hours,
     from_minutes,
@@ -153,8 +153,8 @@ to_days : Duration -> I64
 to_days = |duration| duration.days
 
 ## Add two `Duration` objects.
-add_durations : Duration, Duration -> Duration
-add_durations = |d1, d2|
+add : Duration, Duration -> Duration
+add = |d1, d2|
     nanos1 = to_nanoseconds(d1)
     nanos2 = to_nanoseconds(d2)
     nanos1 |> Num.add_saturated(nanos2) |> from_nanoseconds
@@ -168,15 +168,15 @@ expect
     d1 = from_days(Num.max_i64 // 2)
     d2 = from_days(Num.max_i64 // 2)
     d3 = from_days((Num.max_i64 // 2) * 2)
-    add_durations(d1, d2) == d3
+    add(d1, d2) == d3
 
 expect
     d1 = from_days(Num.min_i64)
     d2 = from_days(Num.max_i64)
-    add_durations(d1, d2) == from_days(-1)
+    add(d1, d2) == from_days(-1)
 
 expect
     days = Num.max_i64
     duration = from_days(days)
-    add_durations(duration, duration) == from_days(days)
+    add(duration, duration) == from_days(days)
 
