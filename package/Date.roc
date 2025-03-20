@@ -12,6 +12,7 @@ module [
     before,
     compare,
     equal,
+    format,
     from_iso_str,
     from_iso_u8,
     from_nanos_since_epoch,
@@ -144,6 +145,37 @@ days_in_month = |year, month|
 ## Determine if the first `Date` equals the second `Date`.
 equal : Date, Date -> Bool
 equal = |a, b| compare a b == EQ
+
+## Format a `Time` object according to the given format string.
+## The following placeholders are supported:
+## - `{hh}`: 2-digit hour (00-23)
+## - `{h}`: hour (0-23)
+## - `{mm}`: 2-digit minute (00-59)
+## - `{m}`: minute (0-59)
+## - `{ss}`: 2-digit second (00-59)
+## - `{s}`: second (0-59)
+## - `{f}` or `{f:}`: fractional part of the second (in nanoseconds)
+## - `{n}`: nanosecond (0-999,999,999)
+## - `{f:x}`: fractional part of the second (in nanoseconds) with x digits
+
+
+## Format a `Date` object according to the given format string.
+## The following placeholders are supported:
+## - `{YYYY}`: 4-digit year
+## - `{YY}`: 2-digit year
+## - `{MM}`: 2-digit month (01-12)
+## - `{M}`: month (1-12)
+## - `{DD}`: 2-digit day of the month (01-31)
+## - `{D}`: day of the month (1-31)
+format : Date, Str -> Str
+format = |date, fmt|
+    fmt
+    |> Str.replace_first("{YYYY}", expand_int_with_zeros(date.year, 4))
+    |> Str.replace_first("{YY}", expand_int_with_zeros(date.year % 100, 2))
+    |> Str.replace_first("{MM}", expand_int_with_zeros(date.month, 2))
+    |> Str.replace_first("{M}", Num.to_str(date.month))
+    |> Str.replace_first("{DD}", expand_int_with_zeros(date.day_of_month, 2))
+    |> Str.replace_first("{D}", Num.to_str(date.day_of_month))
 
 ## Convert the given ISO 8601 string to a `Date`.
 from_iso_str : Str -> Result Date [InvalidDateFormat]
@@ -528,6 +560,23 @@ expect
     a = from_yd 2025 1
     b = from_yd 2025 2
     !(a |> equal b)
+
+# <---- format ---->
+expect 
+    date = from_ymd(2024, 12, 31)
+    format(date, "{YYYY}-{MM}-{DD}") == "2024-12-31" and
+    format(date, "{MM}/{DD}/{YYYY}") == "12/31/2024" and
+    format(date, "{YY}-{MM}-{DD}") == "24-12-31" and
+    format(date, "{M}/{D}/{YYYY}") == "12/31/2024" and
+    format(date, "{M}/{D}/{YY}") == "12/31/24"
+
+expect
+    date = unix_epoch
+    format(date, "{YYYY}-{MM}-{DD}") == "1970-01-01" and
+    format(date, "{MM}/{DD}/{YYYY}") == "01/01/1970" and
+    format(date, "{YY}-{MM}-{DD}") == "70-01-01" and
+    format(date, "{M}/{D}/{YYYY}") == "1/1/1970" and
+    format(date, "{M}/{D}/{YY}") == "1/1/70"
 
 # <---- from_nanos_since_epoch ---->
 expect from_nanos_since_epoch(0) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }

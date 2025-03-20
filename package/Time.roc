@@ -13,6 +13,7 @@ module [
     before,
     compare,
     equal,
+    format,
     from_hms,
     from_hmsn,
     from_iso_str,
@@ -42,6 +43,7 @@ import Utils exposing [
     validate_utf8_single_bytes,
 ]
 import rtils.ListUtils exposing [split_at_indices, split_with_delims]
+import parse.Parse as P
 
 ## Object representing a time of day. Hours may be less than 0 or greater than 24.
 ## ```
@@ -120,6 +122,69 @@ count_frac_width = |num, width|
 ## Determine if the first `Time` is equal to the second `Time`.
 equal : Time, Time -> Bool
 equal = |a, b| compare a b == EQ
+
+## Format a `Time` object according to the given format string.
+## The following placeholders are supported:
+## - `{hh}`: 2-digit hour (00-23)
+## - `{h}`: hour (0-23)
+## - `{mm}`: 2-digit minute (00-59)
+## - `{m}`: minute (0-59)
+## - `{ss}`: 2-digit second (00-59)
+## - `{s}`: second (0-59)
+## - `{f}` or `{f:}`: fractional part of the second (in nanoseconds)
+## - `{n}`: nanosecond (0-999,999,999)
+## - `{f:x}`: fractional part of the second (in nanoseconds) with x digits
+format : Time, Str -> Str
+format = |time, fmt|
+    fmt
+    |> Str.replace_first("{hh}", expand_int_with_zeros(time.hour, 2))
+    |> Str.replace_first("{h}", Num.to_str(time.hour))
+    |> Str.replace_first("{mm}", expand_int_with_zeros(time.minute, 2))
+    |> Str.replace_first("{m}", Num.to_str(time.minute))
+    |> Str.replace_first("{ss}", expand_int_with_zeros(time.second, 2))
+    |> Str.replace_first("{s}", Num.to_str(time.second))
+    |> Str.replace_first("{f}", nanos_to_frac_str(time.nanosecond) |> Str.drop_prefix(","))
+    |> replace_frac_count(time.nanosecond)
+    |> Str.replace_first("{n}", Num.to_str(time.nanosecond))
+
+replace_frac_count = |str, nanos|
+    frac_fmt = get_frac_format(str)
+    if frac_fmt == "" then
+        str
+    else
+        len = parse_frac_fmt(frac_fmt)
+        frac_str = nanos_to_frac_str(nanos) |> Str.drop_prefix(",") |> Str.to_utf8 |> List.take_first(len) |> Str.from_utf8_lossy
+        str |> Str.replace_first(frac_fmt, frac_str)
+
+get_frac_format = |str|
+    bytes = str |> Str.to_utf8
+    (first, last, _) = 
+        List.walk_with_index_until(
+            bytes,
+            (0, 0, Bool.false),
+            |(start, end, is_frac), c, i|
+                if c == '{' then
+                    when (List.get(bytes, i + 1), List.get(bytes, i + 2)) is
+                        (Ok('f'), Ok(':')) -> Continue((i, i, Bool.true))
+                        _ -> Continue((start, end, is_frac))
+                else if c == '}' and is_frac then
+                    Break((start, i, is_frac))
+                else
+                    Continue((start, end, is_frac)),
+        )
+    if first != last then
+        List.sublist(bytes, { start: first, len: last - first + 1 }) |> Str.from_utf8_lossy
+    else
+        ""
+
+parse_frac_fmt : Str -> U64
+parse_frac_fmt = |str|
+    open_brace = P.char |> P.filter(|c| c == '{')
+    close_brace = P.char |> P.filter(|c| c == '}')
+    f = P.char |> P.filter(|c| c == 'f')
+    colon = P.char |> P.filter(|c| c == ':')
+    parser = open_brace |> P.rhs(f) |> P.rhs(colon) |> P.rhs(P.integer) |> P.lhs(close_brace)
+    parser(str) |> P.finalize |> Result.with_default 9
 
 ## Create a `Time` object from the hour, minute, and second.
 from_hms : Int *, Int *, Int * -> Time
@@ -470,3 +535,21 @@ expect
     a = from_nanos_since_midnight 1
     b = from_nanos_since_midnight 0
     !(b |> equal a)
+
+# <---- format ---->
+expect 
+    res = format(from_hmsn(12, 34, 56, 5), "{h}:{m}:{s}.{f}")
+    res == "12:34:56.000000005"
+
+expect
+    res = format(from_hmsn(12, 34, 56, 123456789), "{h}:{m}:{s}.{f:3}")
+    res == "12:34:56.123"
+
+expect
+    res = format(from_hmsn(12, 34, 56, 1234567891), "0.{f:}s")
+    res == "0.123456789s"
+
+expect
+    time = from_hmsn(1, 2, 3, 4)
+    res = format(time, "{hh}:{mm}:{ss} + {n}ns") 
+    res == "01:02:03 + 4ns"
