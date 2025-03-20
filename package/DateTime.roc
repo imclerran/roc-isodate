@@ -16,6 +16,7 @@ module [
     before,
     compare,
     equal,
+    format,
     from_iso_str,
     from_iso_u8,
     from_nanos_since_epoch,
@@ -116,6 +117,28 @@ compare = |a, b|
 ## Determine if the first `DateTime` equals the second `DateTime`.
 equal : DateTime, DateTime -> Bool
 equal = |a, b| compare a b == EQ
+
+## Format a `DateTime` object according to the given format string.
+## The following placeholders are supported:
+## - `{YYYY}`: 4-digit year
+## - `{YY}`: 2-digit year
+## - `{MM}`: 2-digit month (01-12)
+## - `{M}`: month (1-12)
+## - `{DD}`: 2-digit day of the month (01-31)
+## - `{D}`: day of the month (1-31)
+## - `{hh}`: 2-digit hour (00-23)
+## - `{h}`: hour (0-23)
+## - `{mm}`: 2-digit minute (00-59)
+## - `{m}`: minute (0-59)
+## - `{ss}`: 2-digit second (00-59)
+## - `{s}`: second (0-59)
+## - `{f}` or `{f:}`: fractional part of the second (in nanoseconds)
+## - `{n}`: nanosecond (0-999,999,999)
+## - `{f:x}`: fractional part of the second (in nanoseconds) with x digits
+format : DateTime, Str -> Str
+format = |dt, fmt|
+    time_fmt = Date.format(dt.date, fmt)
+    Time.format(dt.time, time_fmt)
 
 ## Convert an ISO 8601 string to a `DateTime` object.
 from_iso_str : Str -> Result DateTime [InvalidDateTimeFormat]
@@ -271,6 +294,11 @@ expect
     a = from_nanos_since_epoch 1
     b = from_nanos_since_epoch 0
     !(a |> equal b)
+
+# <--- format --->
+expect 
+    res = format(from_ymdhmsn(1970, 1, 1, 1, 1, 1, 123456789), "{YYYY}-{MM}-{DD}T{hh}:{mm}:{ss}.{f:3}") 
+    res == "1970-01-01T01:01:01.123"
 
 # <--- from_nanos_since_epoch --->
 expect from_nanos_since_epoch((364 * 24 * Const.nanos_per_hour + 12 * Const.nanos_per_hour + 34 * Const.nanos_per_minute + 56 * Const.nanos_per_second + 5)) == from_ymdhmsn(1970, 12, 31, 12, 34, 56, 5)
