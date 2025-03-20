@@ -133,8 +133,8 @@ equal = |a, b| compare a b == EQ
 ## - `{ss}`: 2-digit second (00-59)
 ## - `{s}`: second (0-59)
 ## - `{f}` or `{f:}`: fractional part of the second (in nanoseconds)
+## - `{f:x}`: fractional part of the second with x digits
 ## - `{n}`: nanosecond (0-999,999,999)
-## - `{f:x}`: fractional part of the second (in nanoseconds) with x digits
 format : DateTime, Str -> Str
 format = |dt, fmt|
     time_fmt = Date.format(dt.date, fmt)
