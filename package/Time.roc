@@ -3,6 +3,7 @@
 ## These functions include functions for creating `Time` objects from various numeric values, converting `Time`s to and from ISO 8601 strings, and performing arithmetic operations on `Time`s.
 module [
     Time,
+    add,
     add_duration,
     add_hours,
     add_minutes,
@@ -53,7 +54,11 @@ import rtils.ListUtils exposing [split_at_indices, split_with_delims]
 ## ```
 Time : { hour : I8, minute : U8, second : U8, nanosecond : U32 }
 
-## Add a `Duration` object to a `Time` object.
+## Same as [`add_duration`](Time#add_duration)
+add : Time, Duration -> Time
+add = add_duration
+
+## Add a `Duration` object to a `Time` object. (May be deprecated in favor of [`add`](Time#add) in the future.)
 add_duration : Time, Duration -> Time
 add_duration = |time, duration|
     duration_nanos = Duration.to_nanoseconds(duration)
