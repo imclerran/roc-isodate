@@ -131,9 +131,9 @@ equal = |a, b| compare a b == EQ
 ## - `{m}`: minute (0-59)
 ## - `{ss}`: 2-digit second (00-59)
 ## - `{s}`: second (0-59)
-## - `{f}` or `{f:}`: fractional part of the second (in nanoseconds)
+## - `{f}` or `{f:}`: fractional part of the second
+## - `{f:x}`: fractional part of the second with x digits
 ## - `{n}`: nanosecond (0-999,999,999)
-## - `{f:x}`: fractional part of the second (in nanoseconds) with x digits
 format : Time, Str -> Str
 format = |time, fmt|
     fmt
