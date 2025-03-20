@@ -19,6 +19,7 @@ module [
     from_nanos_since_midnight,
     midnight,
     normalize,
+    sub,
     to_iso_str,
     to_iso_u8,
     to_nanos_since_midnight,
