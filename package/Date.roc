@@ -19,6 +19,7 @@ module [
     from_yw,
     from_ywd,
     is_leap,
+    sub,
     to_iso_str,
     to_iso_u8,
     to_nanos_since_epoch,
@@ -34,7 +35,6 @@ import Utils exposing [
     utf8_to_int_signed,
     validate_utf8_single_bytes,
 ]
-import rtils.Unsafe exposing [unwrap] # for unit testing only
 import rtils.ListUtils exposing [split_at_indices]
 
 ## ```
@@ -384,6 +384,13 @@ parse_week_date_reduced_extended = |bytes|
 
         _ -> Err(InvalidDateFormat)
 
+## Subtract two `Date` objects to get the `Duration` between them.
+sub : Date, Date -> Duration
+sub = |a, b|
+    a_nanos = to_nanos_since_epoch(a) |> Num.to_i128
+    b_nanos = to_nanos_since_epoch(b) |> Num.to_i128
+    duration_nanos = a_nanos - b_nanos
+    Duration.from_nanoseconds(duration_nanos)
 
 ## Convert the given `Date` to an ISO 8601 string.
 to_iso_str : Date -> Str
@@ -434,80 +441,6 @@ ymd_to_days_in_year = |year, month, day|
     |> Num.to_u16
 
 # <==== TESTS ====>
-# <---- from_yd ---->
-expect from_yd(1970, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_yd(1970, 31) == { year: 1970, month: 1, day_of_month: 31, day_of_year: 31 }
-expect from_yd(1970, 32) == { year: 1970, month: 2, day_of_month: 1, day_of_year: 32 }
-expect from_yd(1970, 60) == { year: 1970, month: 3, day_of_month: 1, day_of_year: 60 }
-expect from_yd(1972, 61) == { year: 1972, month: 3, day_of_month: 1, day_of_year: 61 }
-
-# <---- calendar_week_to_days_in_year ---->
-expect calendar_week_to_days_in_year(1, 1965) == 3
-expect calendar_week_to_days_in_year(1, 1964) == 0
-expect calendar_week_to_days_in_year(1, 1970) == 0
-expect calendar_week_to_days_in_year(1, 1971) == 3
-expect calendar_week_to_days_in_year(1, 1972) == 2
-expect calendar_week_to_days_in_year(1, 1973) == 0
-expect calendar_week_to_days_in_year(2, 2024) == 7
-
-# <---- num_days_since_epoch ---->
-expect num_days_since_epoch(from_ymd(2024, 1, 1)) == 19723 # Removed due to compiler bug with optional record fields
-expect num_days_since_epoch(from_ymd(1970, 12, 31)) == 365 - 1
-expect num_days_since_epoch(from_ymd(1971, 1, 2)) == 365 + 1
-expect num_days_since_epoch(from_ymd(2024, 1, 1)) == 19723
-expect num_days_since_epoch(from_ymd(2024, 2, 1)) == 19723 + 31
-expect num_days_since_epoch(from_ymd(2024, 12, 31)) == 19723 + 366 - 1
-expect num_days_since_epoch(from_ymd(1969, 12, 31)) == -1
-expect num_days_since_epoch(from_ymd(1969, 12, 30)) == -2
-expect num_days_since_epoch(from_ymd(1969, 1, 1)) == -365
-expect num_days_since_epoch(from_ymd(1968, 1, 1)) == -365 - 366
-
-# <---- num_days_since_epoch_until_year ---->
-expect num_days_since_epoch_until_year(1968) == -365 - 366
-expect num_days_since_epoch_until_year(1970) == 0
-expect num_days_since_epoch_until_year(1971) == 365
-expect num_days_since_epoch_until_year(1972) == 365 + 365
-expect num_days_since_epoch_until_year(1973) == 365 + 365 + 366
-expect num_days_since_epoch_until_year(2024) == 19723
-
-# <---- from_ymd ---->
-expect from_ymd(1970, 1, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_ymd(1970, 12, 31) == { year: 1970, month: 12, day_of_month: 31, day_of_year: 365 }
-expect from_ymd(1972, 3, 1) == { year: 1972, month: 3, day_of_month: 1, day_of_year: 61 }
-
-# <---- from_ywd ---->
-expect from_ywd(1970, 1, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_ywd(1970, 52, 5) == { year: 1971, month: 1, day_of_month: 1, day_of_year: 1 }
-
-# <---- from_yw ---->
-expect from_yw(1970, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_yw(1971, 1) == { year: 1971, month: 1, day_of_month: 4, day_of_year: 4 }
-
-# <---- from_nanos_since_epoch ---->
-expect from_nanos_since_epoch(0) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_nanos_since_epoch((Const.nanos_per_day * 365)) == { year: 1971, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_nanos_since_epoch((Const.nanos_per_day * 365 * 2 + Const.nanos_per_day * 366)) == { year: 1973, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_nanos_since_epoch(-Const.nanos_per_day) == { year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }
-expect from_nanos_since_epoch(((-Const.nanos_per_day) * 365)) == { year: 1969, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_nanos_since_epoch(((-Const.nanos_per_day) * 365 - Const.nanos_per_day * 366)) == { year: 1968, month: 1, day_of_month: 1, day_of_year: 1 }
-expect from_nanos_since_epoch(-1) == { year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }
-
-# <---- to_nanos_since_epoch ---->
-expect to_nanos_since_epoch({ year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }) == 0
-expect to_nanos_since_epoch({ year: 1970, month: 12, day_of_month: 31, day_of_year: 365 }) == Const.nanos_per_hour * 24 * 364
-expect to_nanos_since_epoch({ year: 1973, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * 365 * 2 + Const.nanos_per_hour * 24 * 366
-expect to_nanos_since_epoch({ year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }) == Const.nanos_per_hour * 24 * -1
-expect to_nanos_since_epoch({ year: 1969, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * -365
-expect to_nanos_since_epoch({ year: 1968, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * -365 - Const.nanos_per_hour * 24 * 366
-
-# <---- to_iso_str ---->
-expect to_iso_str(unix_epoch) == "1970-01-01"
-
-# <---- add_months ---->
-expect add_months(unix_epoch, 12) == from_ymd(1971, 1, 1)
-expect add_months(from_ymd(1970, 1, 31), 1) == from_ymd(1970, 2, 28)
-expect add_months(from_ymd(1972, 2, 29), 12) == from_ymd(1973, 2, 28)
-
 # <---- add_days ---->
 expect add_days(unix_epoch, 365) == from_ymd(1971, 1, 1)
 expect add_days(unix_epoch, (365 * 2)) == from_ymd(1972, 1, 1)
@@ -518,33 +451,12 @@ expect add_days(unix_epoch, (-365 - 1)) == from_ymd(1968, 12, 31)
 expect add_days(unix_epoch, (-365 - 366)) == from_ymd(1968, 1, 1)
 
 # <---- add_duration ---->
-expect add_duration(unix_epoch, (from_days(1) |> unwrap("will not overflow"))) == from_ymd(1970, 1, 2)
+expect add_duration(unix_epoch, from_days(1)) == from_ymd(1970, 1, 2)
 
-# <---- ymdToDaysInYear ---->
-expect ymd_to_days_in_year(1970, 1, 1) == 1
-expect ymd_to_days_in_year(1970, 12, 31) == 365
-expect ymd_to_days_in_year(1972, 3, 1) == 61
-
-# <---- weekday ---->
-expect weekday(1964, 10, 10) == 6
-expect weekday(1964, 10, 11) == 0
-expect weekday(1964, 10, 12) == 1
-expect weekday(2024, 10, 12) == 6
-
-# <---- days_in_month ---->
-expect days_in_month(1969, 1) == 31
-expect days_in_month(1969, 2) == 28
-expect days_in_month(1969, 3) == 31
-expect days_in_month(1969, 4) == 30
-expect days_in_month(1969, 5) == 31
-expect days_in_month(1969, 6) == 30
-expect days_in_month(1969, 7) == 31
-expect days_in_month(1969, 8) == 31
-expect days_in_month(1969, 9) == 30
-expect days_in_month(1969, 10) == 31
-expect days_in_month(1969, 11) == 30
-expect days_in_month(1969, 12) == 31
-expect days_in_month(2024, 2) == 29
+# <---- add_months ---->
+expect add_months(unix_epoch, 12) == from_ymd(1971, 1, 1)
+expect add_months(from_ymd(1970, 1, 31), 1) == from_ymd(1970, 2, 28)
+expect add_months(from_ymd(1972, 2, 29), 12) == from_ymd(1973, 2, 28)
 
 # <---- after ---->
 expect
@@ -574,6 +486,30 @@ expect
     b = from_yd 2025 1
     !(a |> before b)
 
+# <---- calendar_week_to_days_in_year ---->
+expect calendar_week_to_days_in_year(1, 1965) == 3
+expect calendar_week_to_days_in_year(1, 1964) == 0
+expect calendar_week_to_days_in_year(1, 1970) == 0
+expect calendar_week_to_days_in_year(1, 1971) == 3
+expect calendar_week_to_days_in_year(1, 1972) == 2
+expect calendar_week_to_days_in_year(1, 1973) == 0
+expect calendar_week_to_days_in_year(2, 2024) == 7
+
+# <---- days_in_month ---->
+expect days_in_month(1969, 1) == 31
+expect days_in_month(1969, 2) == 28
+expect days_in_month(1969, 3) == 31
+expect days_in_month(1969, 4) == 30
+expect days_in_month(1969, 5) == 31
+expect days_in_month(1969, 6) == 30
+expect days_in_month(1969, 7) == 31
+expect days_in_month(1969, 8) == 31
+expect days_in_month(1969, 9) == 30
+expect days_in_month(1969, 10) == 31
+expect days_in_month(1969, 11) == 30
+expect days_in_month(1969, 12) == 31
+expect days_in_month(2024, 2) == 29
+
 # <---- equal ---->
 expect
     a = from_yd 2025 1
@@ -587,3 +523,79 @@ expect
     a = from_yd 2025 1
     b = from_yd 2025 2
     !(a |> equal b)
+
+# <---- from_nanos_since_epoch ---->
+expect from_nanos_since_epoch(0) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_nanos_since_epoch((Const.nanos_per_day * 365)) == { year: 1971, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_nanos_since_epoch((Const.nanos_per_day * 365 * 2 + Const.nanos_per_day * 366)) == { year: 1973, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_nanos_since_epoch(-Const.nanos_per_day) == { year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }
+expect from_nanos_since_epoch(((-Const.nanos_per_day) * 365)) == { year: 1969, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_nanos_since_epoch(((-Const.nanos_per_day) * 365 - Const.nanos_per_day * 366)) == { year: 1968, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_nanos_since_epoch(-1) == { year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }
+
+# <---- from_yd ---->
+expect from_yd(1970, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_yd(1970, 31) == { year: 1970, month: 1, day_of_month: 31, day_of_year: 31 }
+expect from_yd(1970, 32) == { year: 1970, month: 2, day_of_month: 1, day_of_year: 32 }
+expect from_yd(1970, 60) == { year: 1970, month: 3, day_of_month: 1, day_of_year: 60 }
+expect from_yd(1972, 61) == { year: 1972, month: 3, day_of_month: 1, day_of_year: 61 }
+
+# <---- from_ymd ---->
+expect from_ymd(1970, 1, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_ymd(1970, 12, 31) == { year: 1970, month: 12, day_of_month: 31, day_of_year: 365 }
+expect from_ymd(1972, 3, 1) == { year: 1972, month: 3, day_of_month: 1, day_of_year: 61 }
+
+# <---- from_yw ---->
+expect from_yw(1970, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_yw(1971, 1) == { year: 1971, month: 1, day_of_month: 4, day_of_year: 4 }
+
+# <---- from_ywd ---->
+expect from_ywd(1970, 1, 1) == { year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }
+expect from_ywd(1970, 52, 5) == { year: 1971, month: 1, day_of_month: 1, day_of_year: 1 }
+
+# <---- num_days_since_epoch ---->
+expect num_days_since_epoch(from_ymd(2024, 1, 1)) == 19723 # Removed due to compiler bug with optional record fields
+expect num_days_since_epoch(from_ymd(1970, 12, 31)) == 365 - 1
+expect num_days_since_epoch(from_ymd(1971, 1, 2)) == 365 + 1
+expect num_days_since_epoch(from_ymd(2024, 1, 1)) == 19723
+expect num_days_since_epoch(from_ymd(2024, 2, 1)) == 19723 + 31
+expect num_days_since_epoch(from_ymd(2024, 12, 31)) == 19723 + 366 - 1
+expect num_days_since_epoch(from_ymd(1969, 12, 31)) == -1
+expect num_days_since_epoch(from_ymd(1969, 12, 30)) == -2
+expect num_days_since_epoch(from_ymd(1969, 1, 1)) == -365
+expect num_days_since_epoch(from_ymd(1968, 1, 1)) == -365 - 366
+
+# <---- num_days_since_epoch_until_year ---->
+expect num_days_since_epoch_until_year(1968) == -365 - 366
+expect num_days_since_epoch_until_year(1970) == 0
+expect num_days_since_epoch_until_year(1971) == 365
+expect num_days_since_epoch_until_year(1972) == 365 + 365
+expect num_days_since_epoch_until_year(1973) == 365 + 365 + 366
+expect num_days_since_epoch_until_year(2024) == 19723
+
+# <---- sub ---->
+expect sub(from_ymd(2025, 1, 1), from_ymd(2025, 1, 2)) == from_days(-1)
+expect sub(from_ymd(1970, 1, 1), from_ymd(1968, 1, 1)) == from_days(731)
+
+# <---- to_nanos_since_epoch ---->
+expect to_nanos_since_epoch({ year: 1970, month: 1, day_of_month: 1, day_of_year: 1 }) == 0
+expect to_nanos_since_epoch({ year: 1970, month: 12, day_of_month: 31, day_of_year: 365 }) == Const.nanos_per_hour * 24 * 364
+expect to_nanos_since_epoch({ year: 1973, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * 365 * 2 + Const.nanos_per_hour * 24 * 366
+expect to_nanos_since_epoch({ year: 1969, month: 12, day_of_month: 31, day_of_year: 365 }) == Const.nanos_per_hour * 24 * -1
+expect to_nanos_since_epoch({ year: 1969, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * -365
+expect to_nanos_since_epoch({ year: 1968, month: 1, day_of_month: 1, day_of_year: 1 }) == Const.nanos_per_hour * 24 * -365 - Const.nanos_per_hour * 24 * 366
+
+# <---- to_iso_str ---->
+expect to_iso_str(unix_epoch) == "1970-01-01"
+
+# <---- weekday ---->
+expect weekday(1964, 10, 10) == 6
+expect weekday(1964, 10, 11) == 0
+expect weekday(1964, 10, 12) == 1
+expect weekday(2024, 10, 12) == 6
+
+# <---- ymd_to_days_in_year ---->
+expect ymd_to_days_in_year(1970, 1, 1) == 1
+expect ymd_to_days_in_year(1970, 12, 31) == 365
+expect ymd_to_days_in_year(1972, 3, 1) == 61
+
