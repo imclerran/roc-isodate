@@ -197,6 +197,27 @@ expect
     duration = from_days(days)
     add(duration, duration) == from_days(days)
 
+# <---- from_hmsn ---->
+expect 
+    res = from_hmsn(Num.max_i64, 0, 0, 0) 
+    res == from_days(384307168202282325) |> add(from_hours(7))
+
+expect
+    res = from_hmsn(0, Num.max_i64, 0, 0)
+    res == from_days(6405119470038038) |> add(from_hours(18)) |> add(from_minutes(7))
+
+expect
+    res = from_hmsn(0, 0, Num.max_i64, 0)
+    res == from_days(106751991167300) |> add(from_hours(15)) |> add(from_minutes(30)) |> add(from_seconds(7))
+
+expect
+    res = from_hmsn(0, 0, 0, Num.max_i64)
+    res == from_days(106751) |> add(from_hours(23)) |> add(from_minutes(47)) |> add(from_seconds(16)) |> add(from_nanoseconds(854775807))
+
+expect
+    res = from_hmsn(Num.max_i64, Num.max_i64, Num.max_i64, Num.max_i64)
+    res == from_days(390819039663594414) |> add(from_hours(63)) |> add(from_minutes(84)) |> add(from_seconds(23)) |> add(from_nanoseconds(854775807))
+
 # <---- sub ---->
 expect 
     d = from_days(Num.max_i64)
