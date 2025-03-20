@@ -16,6 +16,7 @@ module [
 
 import Const
 
+## An object representing a time duration. Constructing a duration or performing math which would overflow the limits of the `Duration` will result in the value being saturated to the maximum or minimum value.
 ## ```
 ## Duration : {
 ##     days : I64,
