@@ -3,6 +3,7 @@
 ## These functions include functions for creating dates from varioius numeric values, converting dates to and from ISO 8601 strings, and performing arithmetic operations on dates.
 module [
     Date,
+    add,
     add_days,
     add_duration,
     add_months,
@@ -52,6 +53,10 @@ Date : {
     day_of_year : U16,
 }
 
+## Same as [`add_duration`](Date#add_duration).
+add : Date, Duration -> Date
+add = add_duration
+
 ## Add the given number of days to the given `Date`.
 add_days : Date, Int * -> Date
 add_days = |date, days|
@@ -70,7 +75,7 @@ add_days_helper = |date, days|
     else
         from_yd(date.year, new_day_of_year)
 
-## Add the given `Date` and `Duration`.
+## Add the given `Date` and `Duration`. (May be deprecated in favor of [`add`](Date#add) in the future.)
 add_duration : Date, Duration -> Date
 add_duration = |date, duration| 
     duration_nanos = to_nanoseconds(duration)

@@ -3,6 +3,7 @@
 ## These functions include functions for creating `DateTime` objects from various numeric values, converting `DateTime`s to and from ISO 8601 strings, and performing arithmetic operations on `DateTime`s.
 module [
     DateTime,
+    add,
     add_days,
     add_duration,
     add_hours,
@@ -45,11 +46,15 @@ import rtils.ListUtils exposing [split_with_delims]
 ## ```
 DateTime : { date : Date, time : Time }
 
+## Same as [`add_duration`](DateTime#add_duration)
+add : DateTime, Duration -> DateTime
+add = add_duration
+
 ## Add days to a `DateTime` object.
 add_days : DateTime, Int * -> DateTime
 add_days = |date_time, days| { date: Date.add_days(date_time.date, days), time: date_time.time }
 
-## Add a `Duration` object to a `DateTime` object.
+## Add a `Duration` object to a `DateTime` object. (May be deprecated in favor of [`add`](DateTime#add) in the future.)
 add_duration : DateTime, Duration -> DateTime
 add_duration = |date_time, duration|
     duration_nanos = Duration.to_nanoseconds(duration)
