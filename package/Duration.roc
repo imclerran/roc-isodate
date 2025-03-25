@@ -42,7 +42,6 @@ add = |d1, d2|
 
 ## Format a `Time` object according to the given format string.
 ## The following placeholders are supported:
-## - `{dd}`: 2-digit day (00-99)
 ## - `{d}`: day (0-Num.max_i64)
 ## - `{hh}`: 2-digit hour (00-23)
 ## - `{h}`: hour (0-23)
@@ -56,7 +55,6 @@ add = |d1, d2|
 format : Duration, Str -> Str
 format = |d, fmt|
     fmt
-    |> Str.replace_first("{dd}", Utils.expand_int_with_zeros(d.days, 2))
     |> Str.replace_first("{d}", Num.to_str(d.days))
     |> Str.replace_first("{hh}", Utils.expand_int_with_zeros(d.hours, 2))
     |> Str.replace_first("{h}", Num.to_str(d.hours))
