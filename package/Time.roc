@@ -43,7 +43,6 @@ import Utils exposing [
     validate_utf8_single_bytes,
 ]
 import rtils.ListUtils exposing [split_at_indices, split_with_delims]
-import parse.Parse as P
 
 ## Object representing a time of day. Hours may be less than 0 or greater than 24.
 ## ```
@@ -110,15 +109,6 @@ compare = |a, b|
     |> |result| if result != EQ then result else compare_values a.second b.second
     |> |result| if result != EQ then result else compare_values a.nanosecond b.nanosecond
 
-count_frac_width : U32, Int _ -> Int _
-count_frac_width = |num, width|
-    if num == 0 then
-        0
-    else if num % 10 == 0 then
-        count_frac_width((num // 10), (width - 1))
-    else
-        width
-
 ## Determine if the first `Time` is equal to the second `Time`.
 equal : Time, Time -> Bool
 equal = |a, b| compare a b == EQ
@@ -143,48 +133,9 @@ format = |time, fmt|
     |> Str.replace_first("{m}", Num.to_str(time.minute))
     |> Str.replace_first("{ss}", expand_int_with_zeros(time.second, 2))
     |> Str.replace_first("{s}", Num.to_str(time.second))
-    |> Str.replace_first("{f}", nanos_to_frac_str(time.nanosecond) |> Str.drop_prefix(","))
-    |> replace_frac_count(time.nanosecond)
+    |> Str.replace_first("{f}", Utils.nanos_to_frac_str(time.nanosecond) |> Str.drop_prefix(","))
+    |> Utils.replace_fx_format(time.nanosecond)
     |> Str.replace_first("{n}", Num.to_str(time.nanosecond))
-
-replace_frac_count = |str, nanos|
-    frac_fmt = get_frac_format(str)
-    if frac_fmt == "" then
-        str
-    else
-        len = parse_frac_fmt(frac_fmt)
-        frac_str = nanos_to_frac_str(nanos) |> Str.drop_prefix(",") |> Str.to_utf8 |> List.take_first(len) |> Str.from_utf8_lossy
-        str |> Str.replace_first(frac_fmt, frac_str)
-
-get_frac_format = |str|
-    bytes = str |> Str.to_utf8
-    (first, last, _) = 
-        List.walk_with_index_until(
-            bytes,
-            (0, 0, Bool.false),
-            |(start, end, is_frac), c, i|
-                if c == '{' then
-                    when (List.get(bytes, i + 1), List.get(bytes, i + 2)) is
-                        (Ok('f'), Ok(':')) -> Continue((i, i, Bool.true))
-                        _ -> Continue((start, end, is_frac))
-                else if c == '}' and is_frac then
-                    Break((start, i, is_frac))
-                else
-                    Continue((start, end, is_frac)),
-        )
-    if first != last then
-        List.sublist(bytes, { start: first, len: last - first + 1 }) |> Str.from_utf8_lossy
-    else
-        ""
-
-parse_frac_fmt : Str -> U64
-parse_frac_fmt = |str|
-    open_brace = P.char |> P.filter(|c| c == '{')
-    close_brace = P.char |> P.filter(|c| c == '}')
-    f = P.char |> P.filter(|c| c == 'f')
-    colon = P.char |> P.filter(|c| c == ':')
-    parser = open_brace |> P.rhs(f) |> P.rhs(colon) |> P.rhs(P.integer) |> P.lhs(close_brace)
-    parser(str) |> P.finalize |> Result.with_default 9
 
 ## Create a `Time` object from the hour, minute, and second.
 from_hms : Int *, Int *, Int * -> Time
@@ -242,14 +193,6 @@ from_nanos_since_midnight = |nanos|
 ## `Time` object representing 00:00:00.
 midnight : Time
 midnight = { hour: 0, minute: 0, second: 0, nanosecond: 0 }
-
-nanos_to_frac_str : U32 -> Str
-nanos_to_frac_str = |nanos|
-    length = count_frac_width(nanos, 9)
-    untrimmed_str = (if nanos == 0 then "" else Str.concat(",", expand_int_with_zeros(nanos, length)))
-    when untrimmed_str |> Str.to_utf8 |> List.take_first((length + 1)) |> Str.from_utf8 is
-        Ok(str) -> str
-        Err(_) -> untrimmed_str
 
 ## Normalize a `Time` object to ensure that the hour is between 0 and 23.
 normalize : Time -> Time
@@ -420,7 +363,7 @@ to_iso_str = |time|
     |> Str.concat(expand_int_with_zeros(time.minute, 2))
     |> Str.concat(":")
     |> Str.concat(expand_int_with_zeros(time.second, 2))
-    |> Str.concat(nanos_to_frac_str(time.nanosecond))
+    |> Str.concat(Utils.nanos_to_frac_str(time.nanosecond))
 
 ## Convert a `Time` object to an ISO 8601 list of UTF-8 bytes.
 to_iso_u8 : Time -> List U8
