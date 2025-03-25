@@ -16,7 +16,7 @@ import parse.Parse as P
 nanos_to_frac_str : Int _ -> Str
 nanos_to_frac_str = |nanos|
     length = count_frac_width(nanos)
-    num_str = trim_to_last_sig_fig(nanos) |> StrUtils.pad_left_ascii('0', length)
+    num_str = trim_to_last_sig_fig(nanos) |> Str.drop_prefix("-") |> StrUtils.pad_left_ascii('0', length)
     untrimmed_str = (if nanos == 0 then "" else Str.concat(",", num_str))
     untrimmed_str |> Str.to_utf8 |> List.take_first((length + 1)) |> Str.from_utf8_lossy
 
