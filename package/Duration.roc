@@ -3,6 +3,7 @@ module [
     Duration,
     add,
     format,
+    format_unsigned,
     from_days,
     from_hms,
     from_hmsn,
@@ -65,6 +66,33 @@ format = |d, fmt|
     |> Str.replace_first("{f}", Utils.nanos_to_frac_str(d.nanoseconds) |> Str.drop_prefix(","))
     |> Utils.replace_fx_format(d.nanoseconds)
     |> Str.replace_first("{n}", Num.to_str(d.nanoseconds))
+
+## Format a `Time` object according to the given format string. Negative numbers will not include a minus sign.
+## The following placeholders are supported:
+## - `{d}`: day (0-Num.max_i64)
+## - `{hh}`: 2-digit hour (00-23)
+## - `{h}`: hour (0-23)
+## - `{mm}`: 2-digit minute (00-59)
+## - `{m}`: minute (0-59)
+## - `{ss}`: 2-digit second (00-59)
+## - `{s}`: second (0-59)
+## - `{f}` or `{f:}`: fractional part of the second
+## - `{f:x}`: fractional part of the second with x digits
+## - `{n}`: nanosecond (0-999,999,999)
+format_unsigned : Duration, Str -> Str
+format_unsigned = |d, fmt|
+    fmt
+    |> Str.replace_first("{d}", Num.to_str(d.days))
+    |> Str.replace_first("{hh}", Utils.expand_int_with_zeros(d.hours, 2))
+    |> Str.replace_first("{h}", Num.to_str(d.hours))
+    |> Str.replace_first("{mm}", Utils.expand_int_with_zeros(d.minutes, 2))
+    |> Str.replace_first("{m}", Num.to_str(d.minutes))
+    |> Str.replace_first("{ss}", Utils.expand_int_with_zeros(d.seconds, 2))
+    |> Str.replace_first("{s}", Num.to_str(d.seconds))
+    |> Str.replace_first("{f}", Utils.nanos_to_frac_str(d.nanoseconds) |> Str.drop_prefix(","))
+    |> Utils.replace_fx_format(d.nanoseconds)
+    |> Str.replace_first("{n}", Num.to_str(d.nanoseconds))
+    |> Str.replace_each("-", "")
 
 ## Create a `Duration` object from days.
 from_days : Int * -> Duration
