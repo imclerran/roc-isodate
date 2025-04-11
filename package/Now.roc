@@ -1,3 +1,10 @@
+## A small effectful module to get the current date/time as Date, Time, or DateTime objects in a single call.
+## ```
+## import dt.Now {
+##     now!: Utc.now!,
+##     now_to_nanos: Utc.to_nanos_since_epoch,
+## }
+## ```
 module { now!, now_to_nanos } -> [date_time!, date!, time!]
 
 import Const
