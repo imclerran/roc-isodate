@@ -3,20 +3,16 @@ app [main!] {
     dt: "../package/main.roc"
 }
 
-import cli.Sleep
 import cli.Stdout
 import cli.Utc
-import dt.Duration
-import dt.Time
+import dt.DateTime
 import dt.Now {
     now!: Utc.now!,
     now_to_nanos: Utc.to_nanos_since_epoch,
 }
 
 main! = |_args|
-    start = Now.time!({})
-    Sleep.millis!(1000)
-    end = Now.time!({})
-    duration = Time.sub(end, start)
-    Duration.format(duration, "Slept for {s}.{f} seconds")
+    Now.date_time!({})
+    |> DateTime.format("{MM}/{DD}/{YY} | {hh}:{mm}:{ss}")
     |> Stdout.line!
+
