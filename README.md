@@ -45,10 +45,10 @@ main! = |_|
     response = Http.send!(req)?
     if response.status >= 200 and response.status <= 299 then
         iso_str = get_iso_str(response.body)?
-        dt_now = DateTime.from_iso_str(iso_str)?
+        dt_now = DT.from_iso_str(iso_str)?
 
-        time_str = "${Num.to_str dt_now.time.hour}:${Num.to_str dt_now.time.minute}:${Num.to_str dt_now.time.second}"
-        date_str = "${Num.to_str dt_now.date.year}-${Num.to_str dt_now.date.month}-${Num.to_str dt_now.date.day_of_month}"
+        date_str = dt_now |> DT.format("{YYYY}-{MM}-{DD}")
+        time_str = dt_now |> DT.format("{hh}:{mm}:{ss}")
         "The current Zulu date is: ${date_str}" |> Stdout.line!()?
         "The current Zulu time is: ${time_str}"|> Stdout.line!()
     else
