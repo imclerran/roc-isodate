@@ -9,7 +9,7 @@ Roc-IsoDate is a universal date and time package for Roc. It Features several us
 
 ## Implementation
 
-Roc IsoDate's API revolves around its types, primarily `Date`, `Time`, and `DateTime`. These types provide useful functions for such as `fromIsoStr`, `fromIsoStr`, as well as functions for parsing directly from a list of Utf8 bytes. The types are based on records containing some of the most common data fields a user might want for working with dates and times in a human friendly manner, IE: `year`, `month`, `dayOfMonth`, `dayOfYear`, `hour`, `minute`, `second` and `nanosecond`. It also provides functions for performing math operations on these dates, as well as various constructors, and functions to convert to and from nanoseconds since the epoch for dates or since midnght for time.
+Roc IsoDate's API revolves around its types, primarily `Date`, `Time`, and `DateTime`. These types provide useful functions for such as `from_iso_str`, `to_iso_str`, as well as functions for parsing directly from a list of Utf8 bytes. The types are based on records containing some of the most common data fields a user might want for working with dates and times in a human friendly manner, IE: `year`, `month`, `day_of_month`, `day_of_year`, `hour`, `minute`, `second` and `nanosecond`. It also provides functions for performing math operations on these dates, as well as various constructors, and functions to convert to and from nanoseconds since the epoch for dates or since midnght for time.
 
 Note that due to the expense of purchasing the ISO 8601-2:2019 standard document, my implementation of ISO string parsing is based on a [2016 pre-release][iso_8601_doc] copy of the 8601-1 standard, so my implementation may not fully conform to the latest revision to the standard.
 
@@ -22,10 +22,10 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Can Parse from `Str` or from a `List U8` of Utf-8 bytes.
 - Unify API around `Date`/`Time`/`DateTime` types
   - This means converting to and from ISO strings is as simple as:
-  - `DateTime.fromIsoStr str` or `Time.toIsoStr date`
+  - `DateTime.from_iso_str(str)` or `Time.to_iso_str(date)`
   - Similarly, converting to and from `Utc` is easy:
-  - `Date.toNanosSinceEpoch date |> Utc.fromNanosSinceEpoch` or
-    `DateTime.toNanosSinceEpoch utc |> Utc.fromNanosSinceEpoch`
+  - `Date.to_nanos_since_epoch(date) |> Utc.from_nanos_since_epoch` or
+    `Utc.to_nanos_since_epoch(utc) |> DateTime.from_nanos_since_epoch`
 
 ## Future Plans
 
