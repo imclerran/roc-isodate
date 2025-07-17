@@ -49,8 +49,8 @@ main! = |_|
 
         date_str = dt_now |> DT.format("{YYYY}-{MM}-{DD}")
         time_str = dt_now |> DT.format("{hh}:{mm}:{ss}")
-        "The current Zulu date is: ${date_str}" |> Stdout.line!()?
-        "The current Zulu time is: ${time_str}"|> Stdout.line!()
+        "The current Zulu date is: ${date_str}" |> Stdout.line!?
+        "The current Zulu time is: ${time_str}"|> Stdout.line!
     else
         Err FailedToGetServerResponse(response.status)
 ```
