@@ -31,6 +31,7 @@ module [
     to_iso_u8,
     to_nanos_since_epoch,
     unix_epoch,
+    weekday,
 ]
 
 import Const
@@ -239,6 +240,10 @@ to_nanos_since_epoch = |date_time|
 ## `DateTime` object representing the Unix epoch (1970-01-01T00:00:00).
 unix_epoch : DateTime
 unix_epoch = { date: Date.unix_epoch, time: Time.midnight }
+
+## Get the day of the week for a `DateTime` object (0 = Sunday, 6 = Saturday).
+weekday : DateTime -> U8
+weekday = |dt| Date.weekday(dt.date)
 
 # <==== TESTS ====>
 # <---- add_nanoseconds ---->
