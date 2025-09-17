@@ -26,6 +26,7 @@ module [
     to_iso_u8,
     to_nanos_since_epoch,
     unix_epoch,
+    weekday,
 ]
 
 import Const
@@ -460,9 +461,13 @@ walk_until_month_func = |state, curr_month_days|
     else
         Continue({ days_remaining: state.days_remaining - Num.to_u16(curr_month_days), month: state.month + 1 })
 
+## Get the day of the week for a `Date` object (0 = Sunday, 6 = Saturday).
+weekday : Date -> U8
+weekday = |date| weekday_help(date.year, date.month, date.day_of_month)
+
 ## Return the day of the week, from 0=Sunday to 6=Saturday
-weekday : I64, U8, U8 -> U8
-weekday = |year, month, day|
+weekday_help : I64, U8, U8 -> U8
+weekday_help = |year, month, day|
     year2xxx = (year % 400) + 2400 # to handle years before the epoch
     date = Date.from_ymd(year2xxx, month, day)
     days_since_epoch = Date.to_nanos_since_epoch(date) // Const.nanos_per_day
@@ -642,11 +647,11 @@ expect to_nanos_since_epoch({ year: 1968, month: 1, day_of_month: 1, day_of_year
 # <---- to_iso_str ---->
 expect to_iso_str(unix_epoch) == "1970-01-01"
 
-# <---- weekday ---->
-expect weekday(1964, 10, 10) == 6
-expect weekday(1964, 10, 11) == 0
-expect weekday(1964, 10, 12) == 1
-expect weekday(2024, 10, 12) == 6
+# <---- weekday_help ---->
+expect weekday_help(1964, 10, 10) == 6
+expect weekday_help(1964, 10, 11) == 0
+expect weekday_help(1964, 10, 12) == 1
+expect weekday_help(2024, 10, 12) == 6
 
 # <---- ymd_to_days_in_year ---->
 expect ymd_to_days_in_year(1970, 1, 1) == 1
