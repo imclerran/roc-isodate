@@ -1,24 +1,4 @@
 ## The duration modules provides the `Duration` type and associated functions for representing time durations and performing date/time arithmetic.
-module [
-    Duration,
-    add,
-    format,
-    format_unsigned,
-    from_days,
-    from_hms,
-    from_hmsn,
-    from_hours,
-    from_minutes,
-    from_nanoseconds,
-    from_seconds,
-    sub,
-    to_days,
-    to_hours,
-    to_minutes,
-    to_nanoseconds,
-    to_seconds,
-]
-
 import Const
 import Utils
 
@@ -32,266 +12,458 @@ import Utils
 ##     nanoseconds : I32
 ## }
 ## ```
-Duration : { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : I32 }
+Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : I32 }.{
 
-## Add two `Duration` objects.
-add : Duration, Duration -> Duration
-add = |d1, d2|
-    nanos1 = to_nanoseconds(d1)
-    nanos2 = to_nanoseconds(d2)
-    nanos1 |> Num.add_saturated(nanos2) |> from_nanoseconds
+	## Are two Durations equal?
+	is_eq : _
 
-## Format a `Time` object according to the given format string.
-## The following placeholders are supported:
-## - `{d}`: day (0-Num.max_i64)
-## - `{hh}`: 2-digit hour (00-23)
-## - `{h}`: hour (0-23)
-## - `{mm}`: 2-digit minute (00-59)
-## - `{m}`: minute (0-59)
-## - `{ss}`: 2-digit second (00-59)
-## - `{s}`: second (0-59)
-## - `{f}` or `{f:}`: fractional part of the second
-## - `{f:x}`: fractional part of the second with x digits
-## - `{n}`: nanosecond (0-999,999,999)
-format : Duration, Str -> Str
-format = |d, fmt|
-    fmt
-    |> Str.replace_first("{d}", Num.to_str(d.days))
-    |> Str.replace_first("{hh}", Utils.expand_int_with_zeros(d.hours, 2))
-    |> Str.replace_first("{h}", Num.to_str(d.hours))
-    |> Str.replace_first("{mm}", Utils.expand_int_with_zeros(d.minutes, 2))
-    |> Str.replace_first("{m}", Num.to_str(d.minutes))
-    |> Str.replace_first("{ss}", Utils.expand_int_with_zeros(d.seconds, 2))
-    |> Str.replace_first("{s}", Num.to_str(d.seconds))
-    |> Str.replace_first("{f}", Utils.nanos_to_frac_str(d.nanoseconds) |> Str.drop_prefix(","))
-    |> Utils.replace_fx_format(d.nanoseconds)
-    |> Str.replace_first("{n}", Num.to_str(d.nanoseconds))
+	## Add two `Duration` objects.
+	add : Duration, Duration -> Duration
+	add = |d1, d2| {
+		nanos1 = to_nanoseconds(d1)
+		nanos2 = to_nanoseconds(d2)
+		nanos1 |> add_saturated_i128(nanos2) |> from_nanoseconds
+	}
 
-## Format a `Time` object according to the given format string. Negative numbers will not include a minus sign.
-## The following placeholders are supported:
-## - `{d}`: day (0-Num.max_i64)
-## - `{hh}`: 2-digit hour (00-23)
-## - `{h}`: hour (0-23)
-## - `{mm}`: 2-digit minute (00-59)
-## - `{m}`: minute (0-59)
-## - `{ss}`: 2-digit second (00-59)
-## - `{s}`: second (0-59)
-## - `{f}` or `{f:}`: fractional part of the second
-## - `{f:x}`: fractional part of the second with x digits
-## - `{n}`: nanosecond (0-999,999,999)
-format_unsigned : Duration, Str -> Str
-format_unsigned = |d, fmt|
-    fmt
-    |> Str.replace_first("{d}", Num.to_str(d.days))
-    |> Str.replace_first("{hh}", Utils.expand_int_with_zeros(d.hours, 2))
-    |> Str.replace_first("{h}", Num.to_str(d.hours))
-    |> Str.replace_first("{mm}", Utils.expand_int_with_zeros(d.minutes, 2))
-    |> Str.replace_first("{m}", Num.to_str(d.minutes))
-    |> Str.replace_first("{ss}", Utils.expand_int_with_zeros(d.seconds, 2))
-    |> Str.replace_first("{s}", Num.to_str(d.seconds))
-    |> Str.replace_first("{f}", Utils.nanos_to_frac_str(d.nanoseconds) |> Str.drop_prefix(","))
-    |> Utils.replace_fx_format(d.nanoseconds)
-    |> Str.replace_first("{n}", Num.to_str(d.nanoseconds))
-    |> Str.replace_each("-", "")
+	## Format a `Time` object according to the given format string.
+	## The following placeholders are supported:
+	## - `{d}`: day (0-I64.highest)
+	## - `{hh}`: 2-digit hour (00-23)
+	## - `{h}`: hour (0-23)
+	## - `{mm}`: 2-digit minute (00-59)
+	## - `{m}`: minute (0-59)
+	## - `{ss}`: 2-digit second (00-59)
+	## - `{s}`: second (0-59)
+	## - `{f}` or `{f:}`: fractional part of the second
+	## - `{f:x}`: fractional part of the second with x digits
+	## - `{n}`: nanosecond (0-999,999,999)
+	format : Duration, Str -> Str
+	format = |d, fmt| {
+		(
+			fmt
+				.replace_first("{d}", d.days.to_str())
+				.replace_first("{hh}", Utils.expand_int_with_zeros(d.hours.to_i64(), 2))
+				.replace_first("{h}", d.hours.to_str())
+				.replace_first("{mm}", Utils.expand_int_with_zeros(d.minutes.to_i64(), 2))
+				.replace_first("{m}", d.minutes.to_str())
+				.replace_first("{ss}", Utils.expand_int_with_zeros(d.seconds.to_i64(), 2))
+				.replace_first("{s}", d.seconds.to_str())
+				.replace_first("{f}", Utils.nanos_to_frac_str(d.nanoseconds).drop_prefix(","))
+				|> Utils.replace_fx_format(d.nanoseconds),
+		).replace_first("{n}", d.nanoseconds.to_str())
+	}
 
-## Create a `Duration` object from days.
-from_days : Int * -> Duration
-from_days = |days| 
-    days_saturated = 
-        if (Num.to_i128(days)) > (Num.max_i64 |> Num.to_i128) then
-            Num.max_i64 |> Num.to_i128
-        else if (Num.to_i128(days)) < (Num.min_i64 |> Num.to_i128) then
-            Num.min_i64 |> Num.to_i128
-        else
-            days |> Num.to_i128
-    {
-        days: days_saturated |> Num.to_i64,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        nanoseconds: 0,
-    }
+	## Format a `Time` object according to the given format string. Negative numbers will not include a minus sign.
+	## The following placeholders are supported:
+	## - `{d}`: day (0-I64.highest)
+	## - `{hh}`: 2-digit hour (00-23)
+	## - `{h}`: hour (0-23)
+	## - `{mm}`: 2-digit minute (00-59)
+	## - `{m}`: minute (0-59)
+	## - `{ss}`: 2-digit second (00-59)
+	## - `{s}`: second (0-59)
+	## - `{f}` or `{f:}`: fractional part of the second
+	## - `{f:x}`: fractional part of the second with x digits
+	## - `{n}`: nanosecond (0-999,999,999)
+	format_unsigned : Duration, Str -> Str
+	format_unsigned = |d, fmt| {
+		(
+			fmt
+				.replace_first("{d}", d.days.to_str())
+				.replace_first("{hh}", Utils.expand_int_with_zeros(d.hours.to_i64(), 2))
+				.replace_first("{h}", d.hours.to_str())
+				.replace_first("{mm}", Utils.expand_int_with_zeros(d.minutes.to_i64(), 2))
+				.replace_first("{m}", d.minutes.to_str())
+				.replace_first("{ss}", Utils.expand_int_with_zeros(d.seconds.to_i64(), 2))
+				.replace_first("{s}", d.seconds.to_str())
+				.replace_first("{f}", Utils.nanos_to_frac_str(d.nanoseconds).drop_prefix(","))
+				|> Utils.replace_fx_format(d.nanoseconds),
+		).replace_first("{n}", d.nanoseconds.to_str())
+			.replace_each("-", "")
+	}
 
-from_hms : Int *, Int *, Int * -> Duration
-from_hms = |hours, minutes, seconds|
-    from_hours(hours) |> add(from_minutes(minutes)) |> add(from_seconds(seconds))
+	## Create a `Duration` object from days.
+	from_days : I128 -> Duration
+	from_days = |days| {
+		days_saturated =
+			if days > I64.highest.to_i128() {
+				I64.highest.to_i128()
+			} else if days < I64.lowest.to_i128() {
+				I64.lowest.to_i128()
+			} else {
+				days
+			}
+		{
+			days: days_saturated.to_i64_try() ?? {
+				crash "Unreachable"
+			},
+			hours: 0,
+			minutes: 0,
+			seconds: 0,
+			nanoseconds: 0,
+		}
+	}
 
-from_hmsn : Int *, Int *, Int *, Int * -> Duration
-from_hmsn = |hours, minutes, seconds, nanoseconds|
-    from_hours(hours) |> add(from_minutes(minutes)) |> add(from_seconds(seconds)) |> add(from_nanoseconds(nanoseconds))
+	from_hms : I64, I8, I8 -> Duration
+	from_hms = |hours, minutes, seconds| {
+		from_hours(hours.to_i128()) |> add(from_minutes(minutes.to_i128())) |> add(from_seconds(seconds.to_i128()))
+	}
 
-## Create a `Duration` object from hours.
-from_hours : Int * -> Duration
-from_hours = |hours|
-    hours_saturated = 
-        if (Num.to_i128(hours) // (24)) > (Num.max_i64 |> Num.to_i128) then
-            (Num.max_i64 |> Num.to_i128) * (24)
-        else if (Num.to_i128(hours) // (24)) < (Num.min_i64 |> Num.to_i128) then
-            (Num.min_i64 |> Num.to_i128) * (24)
-        else
-            hours |> Num.to_i128
-    {
-        days: hours_saturated // 24 |> Num.to_i64,
-        hours: hours_saturated % 24 |> Num.to_i8,
-        minutes: 0,
-        seconds: 0,
-        nanoseconds: 0,
-    }
+	from_hmsn : I64, I8, I8, I32 -> Duration
+	from_hmsn = |hours, minutes, seconds, nanoseconds| {
+		from_hours(hours.to_i128()) |> add(from_minutes(minutes.to_i128())) |> add(from_seconds(seconds.to_i128())) |> add(from_nanoseconds(nanoseconds.to_i128()))
+	}
 
-## Create a `Duration` object from minutes.
-from_minutes : Int * -> Duration
-from_minutes = |minutes| 
-    minutes_saturated = 
-        if (Num.to_i128(minutes) // (Const.minutes_per_day)) > (Num.max_i64 |> Num.to_i128) then
-            (Num.max_i64 |> Num.to_i128) * (Const.minutes_per_day)
-        else if (Num.to_i128(minutes) // (Const.minutes_per_day)) < (Num.min_i64 |> Num.to_i128) then
-            (Num.min_i64 |> Num.to_i128) * (Const.minutes_per_day)
-        else
-            minutes |> Num.to_i128
-    {
-        days: minutes_saturated // (Const.minutes_per_day) |> Num.to_i64,
-        hours: (minutes_saturated % (Const.minutes_per_day)) // Const.minutes_per_hour |> Num.to_i8,
-        minutes: minutes_saturated % Const.minutes_per_hour |> Num.to_i8,
-        seconds: 0,
-        nanoseconds: 0,
-    }
+	## Create a `Duration` object from hours.
+	from_hours : I128 -> Duration
+	from_hours = |hours| {
+		hours_saturated =
+			if (hours // 24) > I64.highest.to_i128() {
+				I64.highest.to_i128() * 24
+			} else if (hours // 24) < I64.lowest.to_i128() {
+				I64.lowest.to_i128() * 24
+			} else {
+				hours
+			}
+		{
+			days: (hours_saturated // 24).to_i64_try() ?? {
+				crash "Unreachable"
+			},
+			hours: (hours_saturated % 24).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			minutes: 0,
+			seconds: 0,
+			nanoseconds: 0,
+		}
+	}
 
-## Create a `Duration` object from nanoseconds.
-from_nanoseconds : Int * -> Duration
-from_nanoseconds = |nanos| 
-    nanos_saturated =
-        if (Num.to_i128(nanos) // Const.nanos_per_day) > (Num.max_i64 |> Num.to_i128) then
-            (Num.max_i64 |> Num.to_i128) * Const.nanos_per_day
-        else if (Num.to_i128(nanos) // Const.nanos_per_day) < (Num.min_i64 |> Num.to_i128) then
-            (Num.min_i64 |> Num.to_i128) * Const.nanos_per_day
-        else
-            nanos |> Num.to_i128
-    {
-        days: nanos_saturated // (Const.nanos_per_day) |> Num.to_i64,
-        hours: (nanos_saturated % (Const.nanos_per_day)) // Const.nanos_per_hour |> Num.to_i8,
-        minutes: (nanos_saturated % Const.nanos_per_hour) // Const.nanos_per_minute |> Num.to_i8,
-        seconds: (nanos_saturated % Const.nanos_per_minute) // Const.nanos_per_second |> Num.to_i8,
-        nanoseconds: nanos_saturated % Const.nanos_per_second |> Num.to_i32,
-    }
+	## Create a `Duration` object from minutes.
+	from_minutes : I128 -> Duration
+	from_minutes = |minutes| {
+		minutes_saturated =
+			if (minutes.to_i128() // Const.minutes_per_day.to_i128()) > I64.highest.to_i128() {
+				I64.highest.to_i128() * Const.minutes_per_day.to_i128()
+			} else if (minutes.to_i128() // Const.minutes_per_day.to_i128()) < I64.lowest.to_i128() {
+				I64.lowest.to_i128() * Const.minutes_per_day.to_i128()
+			} else {
+				minutes.to_i128()
+			}
+		{
+			days: (minutes_saturated // Const.minutes_per_day.to_i128()).to_i64_try() ?? {
+				crash "Unreachable"
+			},
+			hours: ((minutes_saturated % Const.minutes_per_day.to_i128()) // Const.minutes_per_hour.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			minutes: (minutes_saturated % Const.minutes_per_hour.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			seconds: 0,
+			nanoseconds: 0,
+		}
+	}
 
-## Create a `Duration` object from seconds.
-from_seconds : Int * -> Duration
-from_seconds = |seconds| 
-    seconds_saturated = 
-        if (Num.to_i128(seconds) // (Const.seconds_per_day)) > (Num.max_i64 |> Num.to_i128) then
-            (Num.max_i64 |> Num.to_i128) * (Const.seconds_per_day)
-        else if (Num.to_i128(seconds) // (Const.seconds_per_day)) < (Num.min_i64 |> Num.to_i128) then
-            (Num.min_i64 |> Num.to_i128) * (Const.seconds_per_day)
-        else
-            seconds |> Num.to_i128
-    {
-        days: seconds_saturated // (Const.seconds_per_day) |> Num.to_i64,
-        hours: (seconds_saturated % (Const.seconds_per_day)) // Const.seconds_per_hour |> Num.to_i8,
-        minutes: (seconds_saturated % Const.seconds_per_hour) // Const.seconds_per_minute |> Num.to_i8,
-        seconds: seconds_saturated % Const.seconds_per_minute |> Num.to_i8,
-        nanoseconds: 0,
-    }
+	## Create a `Duration` object from nanoseconds.
+	from_nanoseconds : I128 -> Duration
+	from_nanoseconds = |nanos| {
+		days = nanos // Const.nanos_per_day.to_i128()
+		nanos_saturated =
+			if days > I64.highest.to_i128() {
+				I64.highest.to_i128() * Const.nanos_per_day.to_i128()
+			} else if days < I64.lowest.to_i128() {
+				I64.lowest.to_i128() * Const.nanos_per_day.to_i128()
+			} else {
+				nanos
+			}
+		{
+			days: (nanos_saturated // Const.nanos_per_day.to_i128()).to_i64_try() ?? {
+				crash "Unreachable"
+			},
+			hours: ((nanos_saturated % Const.nanos_per_day.to_i128()) // Const.nanos_per_hour.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			minutes: ((nanos_saturated % Const.nanos_per_hour.to_i128()) // Const.nanos_per_minute.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			seconds: ((nanos_saturated % Const.nanos_per_minute.to_i128()) // Const.nanos_per_second.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			nanoseconds: (nanos_saturated % Const.nanos_per_second.to_i128()).to_i32_try() ?? {
+				crash "Unreachable"
+			},
+		}
+	}
 
-## Subtract two `Duration` objects.
-sub : Duration, Duration -> Duration
-sub = |d1, d2| 
-    nanos1 = to_nanoseconds(d1)
-    nanos2 = to_nanoseconds(d2)
-    nanos1 |> Num.sub_saturated(nanos2) |> from_nanoseconds
+	## Create a `Duration` object from seconds.
+	from_seconds : I128 -> Duration
+	from_seconds = |seconds| {
+		seconds_saturated =
+			if (seconds.to_i128() // Const.seconds_per_day.to_i128()) > I64.highest.to_i128() {
+				I64.highest.to_i128() * Const.seconds_per_day.to_i128()
+			} else if (seconds.to_i128() // Const.seconds_per_day.to_i128()) < I64.lowest.to_i128() {
+				I64.lowest.to_i128() * Const.seconds_per_day.to_i128()
+			} else {
+				seconds.to_i128()
+			}
+		{
+			days: (seconds_saturated // Const.seconds_per_day.to_i128()).to_i64_try() ?? {
+				crash "Unreachable"
+			},
+			hours: ((seconds_saturated % Const.seconds_per_day.to_i128()) // Const.seconds_per_hour.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			minutes: ((seconds_saturated % Const.seconds_per_hour.to_i128()) // Const.seconds_per_minute.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			seconds: (seconds_saturated % Const.seconds_per_minute.to_i128()).to_i8_try() ?? {
+				crash "Unreachable"
+			},
+			nanoseconds: 0,
+		}
+	}
 
-## Convert a `Duration` object to days (truncates hours and lower).
-to_days : Duration -> I64
-to_days = |duration| duration.days
+	## Subtract two `Duration` objects.
+	sub : Duration, Duration -> Duration
+	sub = |d1, d2| {
+		nanos1 = to_nanoseconds(d1)
+		nanos2 = to_nanoseconds(d2)
+		nanos1 |> sub_saturated_i128(nanos2) |> from_nanoseconds
+	}
 
-## Convert a `Duration` object to hours (truncates minutes and lower).
-to_hours : Duration -> I64
-to_hours = |duration|
-    (Num.to_i64(duration.hours))
-    |> Num.add_saturated((Num.to_i64(duration.days)) |> Num.mul_saturated(24))
+	## Convert a `Duration` object to days (truncates hours and lower).
+	to_days : Duration -> I64
+	to_days = |duration| duration.days
 
-## Convert a `Duration` object to minutes (truncates seconds and lower).
-to_minutes : Duration -> I64
-to_minutes = |duration|
-    (Num.to_i64(duration.minutes))
-    |> Num.add_saturated((Num.to_i64(duration.hours)) |> Num.mul_saturated(Const.minutes_per_hour))
-    |> Num.add_saturated((duration.days) |> Num.mul_saturated(Const.minutes_per_day))
+	## Convert a `Duration` object to hours (truncates minutes and lower).
+	to_hours : Duration -> I64
+	to_hours = |duration| {
+		duration.hours.to_i64()
+			|> add_saturated_i64(duration.days.to_i64() |> mul_saturated_i64(24))
+	}
 
-## Convert a `Duration` object to nanoseconds.
-to_nanoseconds : Duration -> I128
-to_nanoseconds = |duration|
-    (Num.to_i128(duration.nanoseconds))
-    |> Num.add_saturated((Num.to_i128(duration.seconds)) |> Num.mul_saturated(Const.nanos_per_second))
-    |> Num.add_saturated((Num.to_i128(duration.minutes)) |> Num.mul_saturated(Const.nanos_per_minute))
-    |> Num.add_saturated((Num.to_i128(duration.hours)) |> Num.mul_saturated(Const.nanos_per_hour))
-    |> Num.add_saturated((Num.to_i128(duration.days)) |> Num.mul_saturated(Const.nanos_per_day))
+	## Convert a `Duration` object to minutes (truncates seconds and lower).
+	to_minutes : Duration -> I64
+	to_minutes = |duration| {
+		duration.minutes.to_i64()
+			|> add_saturated_i64(duration.hours.to_i64() |> mul_saturated_i64(Const.minutes_per_hour.to_i64()))
+			|> add_saturated_i64(duration.days |> mul_saturated_i64(Const.minutes_per_day.to_i64()))
+	}
 
+	## Convert a `Duration` object to nanoseconds.
+	to_nanoseconds : Duration -> I128
+	to_nanoseconds = |duration| {
+		duration.nanoseconds.to_i128()
+			|> add_saturated_i128(duration.seconds.to_i128() |> mul_saturated_i128(Const.nanos_per_second.to_i128()))
+			|> add_saturated_i128(duration.minutes.to_i128() |> mul_saturated_i128(Const.nanos_per_minute.to_i128()))
+			|> add_saturated_i128(duration.hours.to_i128() |> mul_saturated_i128(Const.nanos_per_hour.to_i128()))
+			|> add_saturated_i128(duration.days.to_i128() |> mul_saturated_i128(Const.nanos_per_day.to_i128()))
+	}
 
+	## Convert a `Duration` object to seconds (truncates nanoseconds).
+	to_seconds : Duration -> I64
+	to_seconds = |duration| {
+		duration.seconds.to_i64()
+			|> add_saturated_i64(duration.minutes.to_i64() |> mul_saturated_i64(Const.seconds_per_minute.to_i64()))
+			|> add_saturated_i64(duration.hours.to_i64() |> mul_saturated_i64(Const.seconds_per_hour.to_i64()))
+			|> add_saturated_i64(duration.days |> mul_saturated_i64(Const.seconds_per_day.to_i64()))
+	}
+}
 
-## Convert a `Duration` object to seconds (truncates nanoseconds).
-to_seconds : Duration -> I64
-to_seconds = |duration|
-    (Num.to_i64(duration.seconds)) 
-    |> Num.add_saturated((Num.to_i64(duration.minutes)) |> Num.mul_saturated(Const.seconds_per_minute))
-    |> Num.add_saturated((Num.to_i64(duration.hours)) |> Num.mul_saturated(Const.seconds_per_hour))
-    |> Num.add_saturated((duration.days) |> Num.mul_saturated(Const.seconds_per_day))
+add_saturated_i64 = |a, b| {
+	if b > 0 and a > I64.highest - b {
+		I64.highest
+	} else if b < 0 and a < I64.lowest - b {
+		I64.lowest
+	} else {
+		a + b
+	}
+}
 
-# <==== TESTS ====>
+mul_saturated_i64 = |a, b| {
+	if a == 0 or b == 0 {
+		0
+	} else if a > 0 {
+		if b > 0 {
+			if a > I64.highest // b {
+				I64.highest
+			} else {
+				a * b
+			}
+		} else {
+			if b < I64.lowest // a {
+				I64.lowest
+			} else {
+				a * b
+			}
+		}
+	} else {
+		if b > 0 {
+			if a < I64.lowest // b {
+				I64.lowest
+			} else {
+				a * b
+			}
+		} else {
+			if a < I64.highest // b {
+				I64.highest
+			} else {
+				a * b
+			}
+		}
+	}
+}
+
+add_saturated_i128 = |a, b| {
+	max_i128 = I128.highest
+	min_i128 = I128.lowest
+	if b > 0 and a > max_i128 - b {
+		max_i128
+	} else if b < 0 and a < min_i128 - b {
+		min_i128
+	} else {
+		a + b
+	}
+}
+
+sub_saturated_i128 = |a, b| {
+	max_i128 = I128.highest
+	min_i128 = I128.lowest
+	if b < 0 and a > max_i128 + b {
+		max_i128
+	} else if b > 0 and a < min_i128 + b {
+		min_i128
+	} else {
+		a - b
+	}
+}
+
+mul_saturated_i128 = |a, b| {
+	max_i128 = I128.highest
+	min_i128 = I128.lowest
+	if a == 0 or b == 0 {
+		0
+	} else if a > 0 {
+		if b > 0 {
+			if a > max_i128 // b {
+				max_i128
+			} else {
+				a * b
+			}
+		} else {
+			if b < min_i128 // a {
+				min_i128
+			} else {
+				a * b
+			}
+		}
+	} else {
+		if b > 0 {
+			if a < min_i128 // b {
+				min_i128
+			} else {
+				a * b
+			}
+		} else {
+			if a < max_i128 // b {
+				max_i128
+			} else {
+				a * b
+			}
+		}
+	}
+}
+
+# <===== TESTS ====>
 # <---- add ---->
-expect
-    d1 = from_days(Num.max_i64 // 2)
-    d2 = from_days(Num.max_i64 // 2)
-    d3 = from_days((Num.max_i64 // 2) * 2)
-    add(d1, d2) == d3
+expect {
+	d1 = Duration.from_days(I64.highest.to_i128() // 2)
+	d2 = Duration.from_days(I64.highest.to_i128() // 2)
+	d3 = Duration.from_days((I64.highest.to_i128() // 2) * 2)
+	Duration.add(d1, d2) == d3
+}
 
-expect
-    d1 = from_days(Num.min_i64)
-    d2 = from_days(Num.max_i64)
-    add(d1, d2) == from_days(-1)
+expect {
+	d1 = Duration.from_days(I64.lowest.to_i128())
+	d2 = Duration.from_days(I64.highest.to_i128())
+	Duration.add(d1, d2) == Duration.from_days(-1.I128)
+}
 
-expect
-    days = Num.max_i64
-    duration = from_days(days)
-    add(duration, duration) == from_days(days)
+expect {
+	days = I64.highest
+	duration = Duration.from_days(days.to_i128())
+	Duration.add(duration, duration) == Duration.from_days(days.to_i128())
+}
 
 # <---- from_hmsn ---->
-expect 
-    res = from_hmsn(Num.max_i64, 0, 0, 0) 
-    res == from_days(384307168202282325) |> add(from_hours(7))
+expect {
+	res = Duration.from_hmsn(I64.highest, 0, 0, 0)
+	res == Duration.from_days(384307168202282325) |> Duration.add(Duration.from_hours(7))
+}
 
-expect
-    res = from_hmsn(0, Num.max_i64, 0, 0)
-    res == from_days(6405119470038038) |> add(from_hours(18)) |> add(from_minutes(7))
+expect {
+	res = Duration.from_hmsn(0, 127, 0, 0)
+	res == Duration.from_hours(2) |> Duration.add(Duration.from_minutes(7))
+}
 
-expect
-    res = from_hmsn(0, 0, Num.max_i64, 0)
-    res == from_days(106751991167300) |> add(from_hours(15)) |> add(from_minutes(30)) |> add(from_seconds(7))
+expect {
+	res = Duration.from_hmsn(0, 0, 127, 0)
+	res == Duration.from_minutes(2) |> Duration.add(Duration.from_seconds(7))
+}
 
-expect
-    res = from_hmsn(0, 0, 0, Num.max_i64)
-    res == from_days(106751) |> add(from_hours(23)) |> add(from_minutes(47)) |> add(from_seconds(16)) |> add(from_nanoseconds(854775807))
+expect {
+	res = Duration.from_hmsn(0, 0, 0, I32.highest)
+	res == Duration.from_seconds(2) |> Duration.add(Duration.from_nanoseconds(147483647))
+}
 
-expect
-    res = from_hmsn(Num.max_i64, Num.max_i64, Num.max_i64, Num.max_i64)
-    res == from_days(390819039663594414) |> add(from_hours(63)) |> add(from_minutes(84)) |> add(from_seconds(23)) |> add(from_nanoseconds(854775807))
+expect {
+	res = Duration.from_hmsn(I64.highest, 127, 127, I32.highest)
+	res == Duration.from_days(384307168202282325) |> Duration.add(Duration.from_hours(9)) |> Duration.add(Duration.from_minutes(9)) |> Duration.add(Duration.from_seconds(9)) |> Duration.add(Duration.from_nanoseconds(147483647))
+}
 
 # <---- sub ---->
-expect 
-    d = from_days(Num.max_i64)
-    sub(d, d) == from_days(0)
+expect {
+	d = Duration.from_days(I64.highest.to_i128())
+	Duration.sub(d, d) == Duration.from_days(0)
+}
 
-expect
-    d = from_days(Num.min_i64)
-    sub(d, d) == from_days(0)
+expect {
+	d = Duration.from_days(I64.lowest.to_i128())
+	Duration.sub(d, d) == Duration.from_days(0)
+}
 
-expect
-    d1 = from_days(1)
-    d2 = from_days(2)
-    sub(d1, d2) == from_days(-1)
-
+expect {
+	d1 = Duration.from_days(1)
+	d2 = Duration.from_days(2)
+	Duration.sub(d1, d2) == Duration.from_days(-1.I128)
+}
 
 # <---- saturation test ---->
-expect
-    days_over = Num.max_i64 |> Num.to_i128 |> Num.add(1)
-    duration = from_days(days_over)
-    duration |> to_days == Num.max_i64
+expect {
+	days_over = I64.highest.to_i128() + 1
+	duration = Duration.from_days(days_over)
+	duration.to_days() == I64.highest
+}
 
+expect {
+	days_under = I64.lowest.to_i128() - 1
+	duration = Duration.from_days(days_under)
+	duration.to_days() == I64.lowest
+}
+
+# <---- format & format_unsigned ---->
+expect {
+	d = Duration.from_hmsn(1, 2, 3, 456000000)
+	Duration.format(d, "{d}d {hh}:{mm}:{ss}.{f:3}") == "0d 01:02:03.456"
+}
+
+expect {
+	d = Duration.from_seconds(-90)
+	Duration.format_unsigned(d, "{m}:{ss}") == "1:30"
+}
+
+# <---- to_* conversions ---->
+expect {
+	d = Duration.from_hms(1, 30, 0)
+	d.to_hours() == 1 and d.to_minutes() == 90 and d.to_seconds() == 5400
+}

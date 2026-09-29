@@ -1,0 +1,45 @@
+on: 
+  pull_request:
+  workflow_dispatch:
+
+# this cancels workflows currently in progress if you start a new one
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Do not add permissions here! Configure them at the job level!
+permissions: {}
+
+jobs:
+  test-examples:
+    name: Test examples (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+    
+      - uses: roc-lang/setup-roc@cbe782d6f165b89c87d99f50a59ac4f5f73b4427
+        with:
+          version: nightly-new-compiler
+          nightly-tag: nightly-2026-July-03-c562054
+
+      - run: roc version
+
+      # expect for testing
+      - if: runner.os == 'Linux'
+        run: sudo apt install -y expect
+
+      - if: runner.os == 'Linux'
+        run: expect -v
+
+      # Run all tests 
+      - run: ROC=roc ./ci/all_tests.sh

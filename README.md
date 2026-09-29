@@ -19,13 +19,13 @@ Note that due to the expense of purchasing the ISO 8601-2:2019 standard document
 - Full support for parseing local time representations.
 - Full support for offset from UTC time representations.
 - Full support for combined date/time representations.
-- Can Parse from `Str` or from a `List U8` of Utf-8 bytes.
+- Can Parse from `Str` or from a `List(U8)` of Utf-8 bytes.
 - Unify API around `Date`/`Time`/`DateTime` types
   - This means converting to and from ISO strings is as simple as:
   - `DateTime.from_iso_str(str)` or `Time.to_iso_str(date)`
   - Similarly, converting to and from `Utc` is easy:
-  - `Date.to_nanos_since_epoch(date) |> Utc.from_nanos_since_epoch` or
-    `Utc.to_nanos_since_epoch(utc) |> DateTime.from_nanos_since_epoch`
+  - `Date.to_nanos_since_epoch(date) -> Utc.from_nanos_since_epoch()` or
+    `Utc.to_nanos_since_epoch(utc) -> DateTime.from_nanos_since_epoch()`
 
 ## Future Plans
 
@@ -40,19 +40,44 @@ To extend functionality and simplify the API, library _now_ simply provides a co
 Thus, an application might look like the following:
 
 ```roc
-main! = |_|
-    req = format_request("America/Chicago")
-    response = Http.send!(req)?
-    if response.status >= 200 and response.status <= 299 then
-        iso_str = get_iso_str(response.body)?
-        dt_now = DT.from_iso_str(iso_str)?
+app [main!] {
+	pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.23.0/GNN5tt2gKdX4dhawg4915C4YB193woHFdcCkz31fhGxv.tar.zst",
+	http: "https://github.com/roc-lang/http/releases/download/2.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst",
+	dt: "../package/main.roc",
+}
 
-        date_str = dt_now |> DT.format("{YYYY}-{MM}-{DD}")
-        time_str = dt_now |> DT.format("{hh}:{mm}:{ss}")
-        "The current Zulu date is: ${date_str}" |> Stdout.line!?
-        "The current Zulu time is: ${time_str}"|> Stdout.line!
-    else
-        Err FailedToGetServerResponse(response.status)
+import pf.Stdout
+import pf.Http
+import http.Method
+import http.Request
+import dt.DateTime as DT
+
+main! = |_| {
+	timezone = "Europe/Paris"
+	request = Request.from_method(GET)
+		.with_uri("https://timeapi.io/api/v1/timezone/zone?timeZone=${timezone}")
+		.with_timeout(TimeoutMilliseconds(3000))
+	response = Http.send!(request)?
+	if response.status() >= 200 and response.status() <= 299 {
+		iso_str = get_iso_str(response.body())?
+		dt_now = DT.from_iso_str(iso_str)?
+		date_str = dt_now.format("{YYYY}-{MM}-{DD}")
+		time_str = dt_now.format("{hh}:{mm}:{ss}")
+		_ = Stdout.line!("The current Zulu date is: ${date_str}")
+		_ = Stdout.line!("The current Zulu time is: ${time_str}")
+		Ok({})
+	} else {
+		Err(FailedToGetServerResponse(response.status()))
+	}
+}
+
+get_iso_str : List(U8) -> Try(Str, _)
+get_iso_str = |bytes| {
+	str = bytes->Str.from_utf8()?
+	response : { local_time : Str }
+	response = Json.parse(str)?
+	Ok(response.local_time)
+}
 ```
 
 This is just a small sample of the available functionality, but meant to demonstrate the general design of the API. Moving to and from computer-friendly representations like `Utc`, web-friendly representations like ISO `Str`s, and human friendly representations like `DateTime` are all just a single function call away. `Durations` and `TimeInterval`s also add quality of life functionality for easily manipulating dates and times.

@@ -1,42 +1,38 @@
 app [main!] {
-    cli: platform "https://github.com/roc-lang/basic-cli/releases/download/0.19.0/Hj-J_zxz7V9YurCSTFcFdu6cQJie4guzsPMUi5kBYUk.tar.br",
-    dt: "../package/main.roc",
+	pf: platform "https://github.com/roc-lang/basic-cli/releases/download/0.23.0/GNN5tt2gKdX4dhawg4915C4YB193woHFdcCkz31fhGxv.tar.zst",
+	http: "https://github.com/roc-lang/http/releases/download/2.0.0/6ZUwqYhCS8PU9Mo6MF7oV82ET2o7KYb57CLKDq4cq4sS.tar.zst",
+	dt: "../package/main.roc",
 }
 
-import cli.Http
-import cli.Stdout
+import pf.Stdout
+import pf.Http
+import http.Method
+import http.Request
 import dt.DateTime as DT
 
-main! = |_|
-    req = format_request("America/Chicago")
-    response = Http.send!(req)?
-    if response.status >= 200 and response.status <= 299 then
-        iso_str = get_iso_str(response.body)?
-        dt_now = DT.from_iso_str(iso_str)?
-
-        date_str = dt_now |> DT.format("{YYYY}-{MM}-{DD}")
-        time_str = dt_now |> DT.format("{hh}:{mm}:{ss}")
-        "The current Zulu date is: ${date_str}" |> Stdout.line!()?
-        "The current Zulu time is: ${time_str}"|> Stdout.line!()
-    else
-        Err FailedToGetServerResponse(response.status)
-
-format_request = |timezone| {
-    method: GET,
-    headers: [],
-    uri: "http://worldtimeapi.org/api/timezone/${timezone}.txt",
-    body: [],
-    timeout_ms: TimeoutMilliseconds 3000,
+main! = |_| {
+	timezone = "Europe/Paris"
+	request = Request.from_method(GET)
+		.with_uri("https://timeapi.io/api/v1/timezone/zone?timeZone=${timezone}")
+		.with_timeout(TimeoutMilliseconds(3000))
+	response = Http.send!(request)?
+	if response.status() >= 200 and response.status() <= 299 {
+		iso_str = get_iso_str(response.body())?
+		dt_now = DT.from_iso_str(iso_str)?
+		date_str = dt_now.format("{YYYY}-{MM}-{DD}")
+		time_str = dt_now.format("{hh}:{mm}:{ss}")
+		_ = Stdout.line!("The current Zulu date is: ${date_str}")
+		_ = Stdout.line!("The current Zulu time is: ${time_str}")
+		Ok({})
+	} else {
+		Err(FailedToGetServerResponse(response.status()))
+	}
 }
 
-get_iso_str : List U8 -> Result Str _
-get_iso_str = |bytes|
-    body = Str.from_utf8(bytes) ? |_| FailedToParseResponse
-    line =
-        List.find_first(
-            Str.split_on(body, "\n"),
-            |ln| Str.starts_with(ln, "datetime:"),
-        )
-        ? |_| FailedToFindDatetime
-    { after } = Str.split_first(line, ":") ? |_| FailedToFindColon
-    after |> Str.trim |> Ok
+get_iso_str : List(U8) -> Try(Str, _)
+get_iso_str = |bytes| {
+	str = bytes |> Str.from_utf8()?
+	response : { local_time : Str }
+	response = Json.parse(str)?
+	Ok(response.local_time)
+}
