@@ -16,12 +16,11 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
       - name: Install Roc
-        uses: hasnep/setup-roc@v0.5.0
+        uses: roc-lang/setup-roc@f5a74bf90aa694b43ab4a7cbfdb19273bc6aa697
         with:
-          roc-version: nightly
-          testing: "auto"
+          version: nightly-new-compiler
       - name: Bundle and release the library
-        uses: hasnep/bundle-roc-library@main
+        uses: hasnep/bundle-roc-library@v0.3.0
         with:
           library: package/main.roc # Path to the library's entrypoint
           token: ${{ github.token }}

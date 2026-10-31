@@ -21,10 +21,9 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
       - name: Install Roc
-        uses: hasnep/setup-roc@v0.5.0
+        uses: roc-lang/setup-roc@f5a74bf90aa694b43ab4a7cbfdb19273bc6aa697
         with:
-          roc-version: nightly
-          testing: "auto"
+          version: nightly-new-compiler
       - name: Run roc check on package
         run: roc check ./package/main.roc
       - name: Test the library
