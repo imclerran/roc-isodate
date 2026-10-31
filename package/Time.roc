@@ -40,30 +40,25 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 	add = add_duration
 
 	## Add a `Duration` object to a `Time` object. (May be deprecated in favor of [`add`](Time#add) in the future.)
+	## The result saturates at [`lowest`](Time#lowest) and [`highest`](Time#highest).
 	add_duration : Time, Duration -> Time
-	add_duration = |time, duration| {
-		duration_nanos = duration.to_nanoseconds()
-		time_nanos = to_nanos_since_midnight(time).to_i128()
-		from_nanos_since_midnight((duration_nanos + time_nanos).to_i64_wrap())
-	}
+	add_duration = |time, duration| add_nanos_i128(time, duration.to_nanoseconds())
 
 	## Add hours to a `Time` object.
 	add_hours : Time, I64 -> Time
-	add_hours = |time, hours| add_nanoseconds(time, hours * Const.nanos_per_hour)
+	add_hours = |time, hours| add_nanos_i128(time, hours.to_i128() * Const.nanos_per_hour.to_i128())
 
 	## Add minutes to a `Time` object.
 	add_minutes : Time, I64 -> Time
-	add_minutes = |time, minutes| add_nanoseconds(time, minutes * Const.nanos_per_minute)
+	add_minutes = |time, minutes| add_nanos_i128(time, minutes.to_i128() * Const.nanos_per_minute.to_i128())
 
-	## Add nanoseconds to a `Time` object.
+	## Add nanoseconds to a `Time` object. The result saturates at [`lowest`](Time#lowest) and [`highest`](Time#highest).
 	add_nanoseconds : Time, I64 -> Time
-	add_nanoseconds = |time, nanos| {
-		from_nanos_since_midnight(to_nanos_since_midnight(time) + nanos)
-	}
+	add_nanoseconds = |time, nanos| add_nanos_i128(time, nanos.to_i128())
 
 	## Add seconds to a `Time` object.
 	add_seconds : Time, I64 -> Time
-	add_seconds = |time, seconds| add_nanoseconds(time, seconds * Const.nanos_per_second)
+	add_seconds = |time, seconds| add_nanos_i128(time, seconds.to_i128() * Const.nanos_per_second.to_i128())
 
 	## Determine if the first `Time` occurs after the second `Time`.
 	after : Time, Time -> Bool
@@ -173,9 +168,11 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 		}
 	}
 
-	## Convert nanoseconds since midnight to a `Time` object.
+	## Convert nanoseconds since midnight to a `Time` object. Values outside the range of
+	## [`lowest`](Time#lowest) to [`highest`](Time#highest) saturate to that bound.
 	from_nanos_since_midnight : I64 -> Time
-	from_nanos_since_midnight = |nanos| {
+	from_nanos_since_midnight = |unclamped| {
+		nanos = clamp_nanos(unclamped.to_i128())
 		nanos1 = ((nanos % Const.nanos_per_day + Const.nanos_per_day) % Const.nanos_per_day).to_u64_wrap()
 		nanos2 = nanos1.to_i64_wrap() % Const.nanos_per_hour
 		m = (nanos2 // Const.nanos_per_minute).to_u8_wrap()
@@ -190,6 +187,16 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 	## `Time` object representing 00:00:00.
 	midnight : Time
 	midnight = { hour: 0, minute: 0, second: 0, nanosecond: 0 }
+
+	## The latest `Time` that can be represented: 127:59:59.999999999.
+	## Time arithmetic that would go past it saturates here.
+	highest : Time
+	highest = { hour: I8.highest, minute: 59, second: 59, nanosecond: 999_999_999 }
+
+	## The earliest `Time` that can be represented: -128:00:00.
+	## Time arithmetic that would go before it saturates here.
+	lowest : Time
+	lowest = { hour: I8.lowest, minute: 0, second: 0, nanosecond: 0 }
 
 	## Normalize a `Time` object to ensure that the hour is between 0 and 23.
 	normalize : Time -> Time
@@ -230,6 +237,31 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 		nanos = time.nanosecond.to_i64()
 		h_nanos + m_nanos + s_nanos + nanos
 	}
+}
+
+## Nanoseconds since midnight of `Time.lowest` and `Time.highest`.
+lowest_nanos : I128
+lowest_nanos = I8.lowest.to_i128() * Const.nanos_per_hour.to_i128()
+
+highest_nanos : I128
+highest_nanos = (I8.highest.to_i128() + 1) * Const.nanos_per_hour.to_i128() - 1
+
+## Clamp a nanosecond count into the range `Time` can represent.
+clamp_nanos : I128 -> I64
+clamp_nanos = |nanos| {
+	if nanos < lowest_nanos {
+		lowest_nanos.to_i64_wrap()
+	} else if nanos > highest_nanos {
+		highest_nanos.to_i64_wrap()
+	} else {
+		nanos.to_i64_wrap()
+	}
+}
+
+## Add nanoseconds to a `Time`, saturating at `Time.lowest` and `Time.highest`.
+add_nanos_i128 : Time, I128 -> Time
+add_nanos_i128 = |time, nanos| {
+	Time.from_nanos_since_midnight(clamp_nanos(Time.to_nanos_since_midnight(time).to_i128().plus_saturated(nanos)))
 }
 
 combine_time_and_offset_results = |time_res, offset_res| {
@@ -601,3 +633,29 @@ expect {
 	res = Time.format(time, "{hh}:{mm}:{ss} + {n}ns")
 	res == "01:02:03 + 4ns"
 }
+
+# <---- lowest / highest / saturation ---->
+expect Time.to_nanos_since_midnight(Time.highest) == 128 * Const.nanos_per_hour - 1
+expect Time.to_nanos_since_midnight(Time.lowest) == -128 * Const.nanos_per_hour
+expect Time.from_nanos_since_midnight(I64.highest) == Time.highest
+expect Time.from_nanos_since_midnight(I64.lowest) == Time.lowest
+expect Time.midnight.add_hours(127) == Time.from_hms(127, 0, 0)
+expect Time.midnight.add_hours(128) == Time.highest
+expect Time.midnight.add_hours(-128) == Time.lowest
+expect Time.midnight.add_hours(-129) == Time.lowest
+expect Time.midnight.add_hours(I64.highest) == Time.highest
+expect Time.midnight.add_hours(I64.lowest) == Time.lowest
+expect Time.midnight.add_minutes(I64.lowest) == Time.lowest
+expect Time.midnight.add_seconds(I64.highest) == Time.highest
+expect Time.midnight.add_nanoseconds(I64.highest) == Time.highest
+expect Time.from_hms(1, 0, 0).add_nanoseconds(I64.highest) == Time.highest
+expect Time.highest.add_nanoseconds(1) == Time.highest
+expect Time.highest.add_nanoseconds(-1) == Time.from_hmsn(127, 59, 59, 999_999_998)
+expect Time.lowest.add_nanoseconds(-1) == Time.lowest
+expect Time.lowest.add_nanoseconds(1) == Time.from_hmsn(-128, 0, 0, 1)
+expect Time.midnight.add(Duration.from_days(106_752)) == Time.highest
+expect Time.midnight.add(Duration.from_days(200_000)) == Time.highest
+expect Time.midnight.add(Duration.from_days(-200_000)) == Time.lowest
+expect Time.midnight.add(Duration.from_days(I64.highest.to_i128())) == Time.highest
+expect Time.midnight.add(Duration.from_days(I64.lowest.to_i128())) == Time.lowest
+expect Time.from_hms(23, 0, 0).add(Duration.from_hours(2)) == Time.from_hms(25, 0, 0)

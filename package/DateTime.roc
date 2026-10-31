@@ -42,7 +42,7 @@ DateTime :: { date : Date, time : Time }.{
 
 	## Add minutes to a `DateTime` object.
 	add_minutes : DateTime, I64 -> DateTime
-	add_minutes = |date_time, minutes| add_nanoseconds(date_time, minutes * Const.nanos_per_minute)
+	add_minutes = |date_time, minutes| add_nanos_i128(date_time, minutes.to_i128() * Const.nanos_per_minute.to_i128())
 
 	## Add months to a `DateTime` object.
 	add_months : DateTime, I64 -> DateTime
@@ -50,31 +50,15 @@ DateTime :: { date : Date, time : Time }.{
 
 	## Add hours to a `DateTime` object.
 	add_hours : DateTime, I64 -> DateTime
-	add_hours = |date_time, hours| add_nanoseconds(date_time, hours * Const.nanos_per_hour)
+	add_hours = |date_time, hours| add_nanos_i128(date_time, hours.to_i128() * Const.nanos_per_hour.to_i128())
 
 	## Add nanoseconds to a `DateTime` object.
 	add_nanoseconds : DateTime, I64 -> DateTime
-	add_nanoseconds = |date_time, nanos| {
-		# new_time = Time.add_nanoseconds(date_time.time, nanos)
-		time_nanos = Time.to_nanos_since_midnight(date_time.time) + nanos
-		days =
-			if time_nanos >= 0 {
-				time_nanos // Const.nanos_per_day.to_i64()
-			} else {
-				(time_nanos // Const.nanos_per_day.to_i64()) + (
-					if time_nanos % Const.nanos_per_day.to_i64() < 0 {
-						-1
-					} else {
-						0
-					}
-				)
-			}
-		{ date: Date.add_days(date_time.date, days), time: Time.from_nanos_since_midnight(time_nanos) |> Time.normalize }
-	}
+	add_nanoseconds = |date_time, nanos| add_nanos_i128(date_time, nanos.to_i128())
 
 	## Add seconds to a `DateTime` object.
 	add_seconds : DateTime, I64 -> DateTime
-	add_seconds = |date_time, seconds| add_nanoseconds(date_time, seconds * Const.nanos_per_second)
+	add_seconds = |date_time, seconds| add_nanos_i128(date_time, seconds.to_i128() * Const.nanos_per_second.to_i128())
 
 	## Add years to a `DateTime` object.
 	add_years : DateTime, I64 -> DateTime
@@ -250,6 +234,18 @@ DateTime :: { date : Date, time : Time }.{
 	}
 }
 
+## Add nanoseconds to a `DateTime`, carrying whole days into the date so the
+## time of day always stays within a single day. Computed in I128 so no
+## intermediate step can overflow; the date saturates at its own bounds.
+add_nanos_i128 : DateTime, I128 -> DateTime
+add_nanos_i128 = |date_time, nanos| {
+	day = Const.nanos_per_day.to_i128()
+	total = Time.to_nanos_since_midnight(date_time.time).to_i128() + nanos
+	days = total.div_floor_by(day)
+	time_nanos = total - days * day
+	{ date: Date.add_days(date_time.date, days.to_i64_wrap()), time: Time.from_nanos_since_midnight(time_nanos.to_i64_wrap()) }
+}
+
 # <==== TESTS ====>
 # <---- date / time ---->
 expect {
@@ -359,3 +355,43 @@ expect DateTime.to_iso_u8(DateTime.unix_epoch) == Str.to_utf8("1970-01-01T00:00:
 
 # <--- to_nanos_since_epoch --->
 expect DateTime.to_nanos_since_epoch(DateTime.from_ymdhmsn(1970, Dec, 31, 12, 34, 56, 5)?) == 364 * Const.nanos_per_day.to_i128() + 12 * Const.nanos_per_hour.to_i128() + 34 * Const.nanos_per_minute.to_i128() + 56 * Const.nanos_per_second.to_i128() + 5
+
+# <---- add_hours / add_minutes / add_nanoseconds past the 127-hour boundary ---->
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_hours(127) == DateTime.from_ymdhms(2024, Jan, 6, 7, 0, 0)?
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_hours(128) == DateTime.from_ymdhms(2024, Jan, 6, 8, 0, 0)?
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_hours(130) == DateTime.from_ymdhms(2024, Jan, 6, 10, 0, 0)?
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_hours(-130) == DateTime.from_ymdhms(2023, Dec, 26, 14, 0, 0)?
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_minutes(130 * 60) == DateTime.from_ymdhms(2024, Jan, 6, 10, 0, 0)?
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_hours(3_000_000) == base.add_days(125_000)
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_nanoseconds(I64.highest) == base.add_duration(Duration.from_nanoseconds(I64.highest.to_i128()))
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 0, 0, 0)?
+	base.add_nanoseconds(I64.lowest) == base.add_duration(Duration.from_nanoseconds(I64.lowest.to_i128()))
+}
+expect {
+	base = DateTime.from_ymdhms(2024, Jan, 1, 12, 0, 0)?
+	# I64.highest hours is 7 hours past a whole number of days, I64.lowest is 16 hours short of one.
+	base.add_hours(I64.highest) == { date: Date.highest, time: Time.from_hms(19, 0, 0) }
+		and base.add_hours(I64.lowest) == { date: Date.lowest, time: Time.from_hms(4, 0, 0) }
+}
