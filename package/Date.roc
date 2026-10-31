@@ -100,6 +100,22 @@ Date :: {
 	before : Date, Date -> Bool
 	before = |a, b| a.order_relative_to(b) == Before
 
+	## Whether the first `Date` is before the second. This is what the `<` operator uses.
+	is_lt : Date, Date -> Bool
+	is_lt = |a, b| a.order_relative_to(b) == Before
+
+	## Whether the first `Date` is after the second. This is what the `>` operator uses.
+	is_gt : Date, Date -> Bool
+	is_gt = |a, b| a.order_relative_to(b) == After
+
+	## Whether the first `Date` is before or the same as the second. This is what the `<=` operator uses.
+	is_lte : Date, Date -> Bool
+	is_lte = |a, b| a.order_relative_to(b) != After
+
+	## Whether the first `Date` is after or the same as the second. This is what the `>=` operator uses.
+	is_gte : Date, Date -> Bool
+	is_gte = |a, b| a.order_relative_to(b) != Before
+
 	## Convert the given calendar week and year to the day of the year.
 	calendar_week_to_days_in_year : U8, I64 -> I64
 	calendar_week_to_days_in_year = |week, y| {
@@ -124,6 +140,7 @@ Date :: {
 	## If the first is before the second, it returns Before.
 	## If the first is after the second, it returns After.
 	## If the first and the second are equal, it returns Same.
+	## This is what `List.sort` and `List.sort_by` use.
 	order_relative_to : Date, Date -> [Before, Same, After]
 	order_relative_to = |a, b| {
 		match a.year.order_relative_to(b.year) {
@@ -960,3 +977,19 @@ expect ymd_to_days_in_year(2024, Dec, 31) == 366
 expect ymd_to_days_in_year(2023, Dec, 31) == 365
 expect ymd_to_days_in_year(2024, Mar, 1) == 61
 expect ymd_to_days_in_year(2023, Mar, 1) == 60
+
+# <---- comparison operators and sorting ---->
+expect Date.from_ymd(2024, Jan, 1)? < Date.from_ymd(2024, Jan, 2)?
+expect Date.from_ymd(2024, Jan, 2)? > Date.from_ymd(2024, Jan, 1)?
+expect Date.from_ymd(2024, Jan, 1)? <= Date.from_ymd(2024, Jan, 1)?
+expect Date.from_ymd(2024, Jan, 1)? <= Date.from_ymd(2024, Jan, 2)?
+expect Date.from_ymd(2024, Jan, 1)? >= Date.from_ymd(2024, Jan, 1)?
+expect Date.from_ymd(2024, Jan, 2)? >= Date.from_ymd(2024, Jan, 1)?
+expect !(Date.from_ymd(2024, Jan, 2)? < Date.from_ymd(2024, Jan, 1)?)
+expect !(Date.from_ymd(2024, Jan, 1)? > Date.from_ymd(2024, Jan, 1)?)
+expect Date.from_ymd(2023, Dec, 31)? < Date.from_ymd(2024, Jan, 1)?
+expect Date.lowest < Date.unix_epoch and Date.unix_epoch < Date.highest
+expect {
+	sorted = [Date.from_ymd(2024, Mar, 1)?, Date.from_ymd(2023, Jan, 1)?, Date.from_ymd(2024, Jan, 15)?].sort()
+	sorted == [Date.from_ymd(2023, Jan, 1)?, Date.from_ymd(2024, Jan, 15)?, Date.from_ymd(2024, Mar, 1)?]
+}

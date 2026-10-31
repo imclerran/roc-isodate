@@ -72,10 +72,27 @@ DateTime :: { date : Date, time : Time }.{
 	before : DateTime, DateTime -> Bool
 	before = |a, b| a.order_relative_to(b) == Before
 
+	## Whether the first `DateTime` is before the second. This is what the `<` operator uses.
+	is_lt : DateTime, DateTime -> Bool
+	is_lt = |a, b| a.order_relative_to(b) == Before
+
+	## Whether the first `DateTime` is after the second. This is what the `>` operator uses.
+	is_gt : DateTime, DateTime -> Bool
+	is_gt = |a, b| a.order_relative_to(b) == After
+
+	## Whether the first `DateTime` is before or the same as the second. This is what the `<=` operator uses.
+	is_lte : DateTime, DateTime -> Bool
+	is_lte = |a, b| a.order_relative_to(b) != After
+
+	## Whether the first `DateTime` is after or the same as the second. This is what the `>=` operator uses.
+	is_gte : DateTime, DateTime -> Bool
+	is_gte = |a, b| a.order_relative_to(b) != Before
+
 	## Compare two `DateTime` objects.
 	## If the first occurs before the second, it returns Before.
 	## If the first and the second are equal, it returns Same.
 	## If the first occurs after the second, it returns After.
+	## This is what `List.sort` and `List.sort_by` use.
 	order_relative_to : DateTime, DateTime -> [Before, Same, After]
 	order_relative_to = |a, b| {
 		match a.date.order_relative_to(b.date) {
@@ -394,4 +411,18 @@ expect {
 	# I64.highest hours is 7 hours past a whole number of days, I64.lowest is 16 hours short of one.
 	base.add_hours(I64.highest) == { date: Date.highest, time: Time.from_hms(19, 0, 0) }
 		and base.add_hours(I64.lowest) == { date: Date.lowest, time: Time.from_hms(4, 0, 0) }
+}
+
+# <---- comparison operators and sorting ---->
+expect {
+	a = DateTime.from_ymdhms(2024, Jan, 1, 8, 0, 0)?
+	b = DateTime.from_ymdhms(2024, Jan, 1, 9, 0, 0)?
+	c = DateTime.from_ymdhms(2024, Jan, 2, 0, 0, 0)?
+	a < b and b < c and c > a and a <= a and a >= a and b <= c and c >= b and !(b < a) and !(a > b)
+}
+expect {
+	a = DateTime.from_ymdhms(2024, Jan, 1, 8, 0, 0)?
+	b = DateTime.from_ymdhms(2024, Jan, 1, 9, 0, 0)?
+	c = DateTime.from_ymdhms(2024, Jan, 2, 0, 0, 0)?
+	[c, a, b].sort() == [a, b, c]
 }

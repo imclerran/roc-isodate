@@ -68,10 +68,27 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 	before : Time, Time -> Bool
 	before = |a, b| a.order_relative_to(b) == Before
 
+	## Whether the first `Time` is before the second. This is what the `<` operator uses.
+	is_lt : Time, Time -> Bool
+	is_lt = |a, b| a.order_relative_to(b) == Before
+
+	## Whether the first `Time` is after the second. This is what the `>` operator uses.
+	is_gt : Time, Time -> Bool
+	is_gt = |a, b| a.order_relative_to(b) == After
+
+	## Whether the first `Time` is before or the same as the second. This is what the `<=` operator uses.
+	is_lte : Time, Time -> Bool
+	is_lte = |a, b| a.order_relative_to(b) != After
+
+	## Whether the first `Time` is after or the same as the second. This is what the `>=` operator uses.
+	is_gte : Time, Time -> Bool
+	is_gte = |a, b| a.order_relative_to(b) != Before
+
 	## Compare two `Time` objects.
 	## If the first occurs before the second, it returns Before.
 	## If the first and the second are equal, it returns Same.
 	## If the first occurs after the second, it returns After.
+	## This is what `List.sort` and `List.sort_by` use.
 	order_relative_to : Time, Time -> [Before, Same, After]
 	order_relative_to = |a, b| {
 		a.hour.order_relative_to(b.hour)
@@ -659,3 +676,14 @@ expect Time.midnight.add(Duration.from_days(-200_000)) == Time.lowest
 expect Time.midnight.add(Duration.from_days(I64.highest.to_i128())) == Time.highest
 expect Time.midnight.add(Duration.from_days(I64.lowest.to_i128())) == Time.lowest
 expect Time.from_hms(23, 0, 0).add(Duration.from_hours(2)) == Time.from_hms(25, 0, 0)
+
+# <---- comparison operators and sorting ---->
+expect Time.from_hms(1, 0, 0) < Time.from_hms(2, 0, 0)
+expect Time.from_hms(2, 0, 0) > Time.from_hms(1, 0, 0)
+expect Time.from_hms(1, 0, 0) <= Time.from_hms(1, 0, 0)
+expect Time.from_hms(1, 0, 0) >= Time.from_hms(1, 0, 0)
+expect Time.from_hmsn(1, 0, 0, 1) > Time.from_hms(1, 0, 0)
+expect !(Time.from_hms(2, 0, 0) < Time.from_hms(1, 0, 0))
+expect Time.from_hms(-1, 0, 0) < Time.midnight
+expect Time.lowest < Time.midnight and Time.midnight < Time.highest
+expect [Time.from_hms(5, 0, 0), Time.from_hms(1, 0, 0), Time.from_hmsn(1, 0, 0, 1)].sort() == [Time.from_hms(1, 0, 0), Time.from_hmsn(1, 0, 0, 1), Time.from_hms(5, 0, 0)]
