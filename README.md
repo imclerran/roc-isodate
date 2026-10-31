@@ -73,7 +73,7 @@ main! = |_| {
 
 get_iso_str : List(U8) -> Try(Str, _)
 get_iso_str = |bytes| {
-	str = bytes->Str.from_utf8()?
+	str = bytes |> Str.from_utf8()?
 	response : { local_time : Str }
 	response = Json.parse(str)?
 	Ok(response.local_time)
