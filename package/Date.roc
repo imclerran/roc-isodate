@@ -149,10 +149,6 @@ Date :: {
 		}
 	}
 
-	## Determine if the first `Date` equals the second `Date`.
-	equal : Date, Date -> Bool
-	equal = |a, b| a.year == b.year and a.day_of_year == b.day_of_year
-
 	## Format a `Date` object according to the given format string.
 	## The following placeholders are supported:
 	## - `{YYYY}`: 4-digit year
@@ -450,11 +446,8 @@ num_days_since_epoch = |date| {
 	days_to_start_of_year =
 		(date.year - Const.epoch_year) * 365 + signed_leap_years_since_epoch(date.year)
 
-	is_leap = is_leap_year(date.year)
-	days_in_prior_months = months_before(date.month).map(
-		|m| m.days({ is_leap: is_leap }).to_i64(),
-	).sum()
-	days_to_start_of_year + days_in_prior_months + date.day_of_month.to_i64() - 1
+	# day_of_year already accounts for the months before this one.
+	days_to_start_of_year + date.day_of_year.to_i64() - 1
 }
 
 ## Calculate the number of days since the epoch until the given year.
@@ -801,21 +794,21 @@ expect Date.weeks_in_year(2024) == 52
 expect Date.weeks_in_year(2025) == 52
 expect Date.weeks_in_year(1970) == 53 # starts on a Thursday
 
-# <---- equal ---->
+# <---- is_eq (==) ---->
 expect {
 	a = Date.from_yd(2025, 1)?
 	b = Date.from_yd(2025, 1)?
-	a.equal(b)
+	a == b
 }
 expect {
 	a = Date.from_yd(2025, 2)?
 	b = Date.from_yd(2025, 1)?
-	!(a.equal(b))
+	a != b
 }
 expect {
 	a = Date.from_yd(2025, 1)?
 	b = Date.from_yd(2025, 2)?
-	!(a.equal(b))
+	a != b
 }
 
 # <---- format ---->

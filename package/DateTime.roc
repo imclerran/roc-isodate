@@ -101,10 +101,6 @@ DateTime :: { date : Date, time : Time }.{
 		}
 	}
 
-	## Determine if the first `DateTime` equals the second `DateTime`.
-	equal : DateTime, DateTime -> Bool
-	equal = |a, b| a.order_relative_to(b) == Same
-
 	## Format a `DateTime` object according to the given format string.
 	## The following placeholders are supported:
 	## - `{YYYY}`: 4-digit year
@@ -325,21 +321,21 @@ expect {
 	!(a.before(b))
 }
 
-# <--- equal --->
+# <---- is_eq (==) ---->
 expect {
 	a = DateTime.from_nanos_since_epoch(0.I128)
 	b = DateTime.from_nanos_since_epoch(0.I128)
-	a.equal(b)
+	a == b
 }
 expect {
 	a = DateTime.from_nanos_since_epoch(0.I128)
 	b = DateTime.from_nanos_since_epoch(1.I128)
-	!(a.equal(b))
+	a != b
 }
 expect {
 	a = DateTime.from_nanos_since_epoch(1.I128)
 	b = DateTime.from_nanos_since_epoch(0.I128)
-	!(a.equal(b))
+	a != b
 }
 
 # <--- format --->

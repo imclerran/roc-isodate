@@ -109,10 +109,6 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 			})
 	}
 
-	## Determine if the first `Time` is equal to the second `Time`.
-	equal : Time, Time -> Bool
-	equal = |a, b| a.order_relative_to(b) == Same
-
 	## Format a `Time` object according to the given format string.
 	## The following placeholders are supported:
 	## - `{hh}`: 2-digit hour (00-23)
@@ -612,21 +608,21 @@ expect {
 	!(b.after(a))
 }
 
-# <---- equal ---->
+# <---- is_eq (==) ---->
 expect {
 	a = Time.from_nanos_since_midnight(0)
 	b = Time.from_nanos_since_midnight(0)
-	b.equal(a)
+	b == a
 }
 expect {
 	a = Time.from_nanos_since_midnight(0)
 	b = Time.from_nanos_since_midnight(1)
-	!(b.equal(a))
+	b != a
 }
 expect {
 	a = Time.from_nanos_since_midnight(1)
 	b = Time.from_nanos_since_midnight(0)
-	!(b.equal(a))
+	b != a
 }
 
 # <---- format ---->
