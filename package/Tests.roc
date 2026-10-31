@@ -3,6 +3,7 @@ Tests :: {}.{}
 import Const
 import Date
 import DateTime
+import Month
 import Time
 import Utils
 
@@ -10,36 +11,36 @@ import Utils
 # <---- parseDate ---->
 # parseCalendarDateCentury
 # 1
-expect Date.from_iso_str("20") == Ok(Date.from_ymd(2000, 1, 1))
+expect Date.from_iso_str("20") == Ok(Date.from_ymd(2000, Jan, 1)?)
 expect Date.from_iso_str("20")? |> Date.to_nanos_since_epoch == 10_957.I128 * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 2
-expect Date.from_iso_str("19") == Ok(Date.from_ymd(1900, 1, 1))
+expect Date.from_iso_str("19") == Ok(Date.from_ymd(1900, Jan, 1)?)
 expect Date.from_iso_str("19")? |> Date.to_nanos_since_epoch == (-25_567.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 3
 expect Date.from_iso_str("ab") == Err(InvalidDateFormat)
 
 # parseCalendarDateYear
 # 4
-expect Date.from_iso_str("2024") == Ok(Date.from_ymd(2024, 1, 1))
+expect Date.from_iso_str("2024") == Ok(Date.from_ymd(2024, Jan, 1)?)
 expect Date.from_iso_str("2024")? |> Date.to_nanos_since_epoch == 19_723.I128 * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 5
-expect Date.from_iso_str("1970") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970")? |> Date.to_nanos_since_epoch == 0.I128
 # 6
-expect Date.from_iso_str("1968") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 7
 expect Date.from_iso_str("202f") == Err(InvalidDateFormat)
 
 # parseWeekDateReducedBasic
 # 8
-expect Date.from_iso_str("2024W04") == Ok(Date.from_ymd(2024, 1, 22))
+expect Date.from_iso_str("2024W04") == Ok(Date.from_ymd(2024, Jan, 22)?)
 expect Date.from_iso_str("2024W04")? |> Date.to_nanos_since_epoch == (19_723.I128 + 21) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 9
-expect Date.from_iso_str("1970W01") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970W01") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970W01")? |> Date.to_nanos_since_epoch == 0.I128
 # 10
-expect Date.from_iso_str("1968W01") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968W01") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968W01")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 11
 expect Date.from_iso_str("2024W53") == Err(InvalidDateFormat)
@@ -50,13 +51,13 @@ expect Date.from_iso_str("2024Www") == Err(InvalidDateFormat)
 
 # parseCalendarDateMonth
 # 14
-expect Date.from_iso_str("2024-02") == Ok(Date.from_ymd(2024, 2, 1))
+expect Date.from_iso_str("2024-02") == Ok(Date.from_ymd(2024, Feb, 1)?)
 expect Date.from_iso_str("2024-02")? |> Date.to_nanos_since_epoch == (19_723.I128 + 31) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 15
-expect Date.from_iso_str("1970-01") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970-01") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970-01")? |> Date.to_nanos_since_epoch == 0.I128
 # 16
-expect Date.from_iso_str("1968-01") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968-01") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968-01")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 17
 expect Date.from_iso_str("2024-13") == Err(InvalidDateFormat)
@@ -67,13 +68,13 @@ expect Date.from_iso_str("2024-0a") == Err(InvalidDateFormat)
 
 # parseOrdinalDateBasic
 # 20
-expect Date.from_iso_str("2024023") == Ok(Date.from_ymd(2024, 1, 23))
+expect Date.from_iso_str("2024023") == Ok(Date.from_ymd(2024, Jan, 23)?)
 expect Date.from_iso_str("2024023")? |> Date.to_nanos_since_epoch == (19_723.I128 + 22) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 21
-expect Date.from_iso_str("1970001") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970001") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970001")? |> Date.to_nanos_since_epoch == 0.I128
 # 22
-expect Date.from_iso_str("1968001") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968001") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968001")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 23
 expect Date.from_iso_str("2024000") == Err(InvalidDateFormat)
@@ -84,13 +85,13 @@ expect Date.from_iso_str("2024a23") == Err(InvalidDateFormat)
 
 # parseWeekDateReducedExtended
 # 26
-expect Date.from_iso_str("2024-W04") == Ok(Date.from_ymd(2024, 1, 22))
+expect Date.from_iso_str("2024-W04") == Ok(Date.from_ymd(2024, Jan, 22)?)
 expect Date.from_iso_str("2024-W04")? |> Date.to_nanos_since_epoch == (19_723.I128 + 21) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 27
-expect Date.from_iso_str("1970-W01") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970-W01") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970-W01")? |> Date.to_nanos_since_epoch == 0.I128
 # 28
-expect Date.from_iso_str("1968-W01") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968-W01") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968-W01")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 29
 expect Date.from_iso_str("2024-W53") == Err(InvalidDateFormat)
@@ -101,19 +102,19 @@ expect Date.from_iso_str("2024-Ww1") == Err(InvalidDateFormat)
 
 # parseWeekDateBasic
 # 32
-expect Date.from_iso_str("2024W042") == Ok(Date.from_ymd(2024, 1, 23))
+expect Date.from_iso_str("2024W042") == Ok(Date.from_ymd(2024, Jan, 23)?)
 expect Date.from_iso_str("2024W042")? |> Date.to_nanos_since_epoch == (19_723.I128 + 22) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 33
-expect Date.from_iso_str("1970W011") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970W011") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970W011")? |> Date.to_nanos_since_epoch == 0.I128
 # 34
-expect Date.from_iso_str("1970W524") == Ok(Date.from_ymd(1970, 12, 31))
+expect Date.from_iso_str("1970W524") == Ok(Date.from_ymd(1970, Dec, 31)?)
 expect Date.from_iso_str("1970W524")? |> Date.to_nanos_since_epoch == 364.I128 * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 35
-expect Date.from_iso_str("1970W525") == Ok(Date.from_ymd(1971, 1, 1))
+expect Date.from_iso_str("1970W525") == Ok(Date.from_ymd(1971, Jan, 1)?)
 expect Date.from_iso_str("1970W525")? |> Date.to_nanos_since_epoch == 365.I128 * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 36
-expect Date.from_iso_str("1968W011") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968W011") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968W011")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 37
 expect Date.from_iso_str("2024W001") == Err(InvalidDateFormat)
@@ -128,13 +129,13 @@ expect Date.from_iso_str("2024W0a2") == Err(InvalidDateFormat)
 
 # parseOrdinalDateExtended
 # 42
-expect Date.from_iso_str("2024-023") == Ok(Date.from_ymd(2024, 1, 23))
+expect Date.from_iso_str("2024-023") == Ok(Date.from_ymd(2024, Jan, 23)?)
 expect Date.from_iso_str("2024-023")? |> Date.to_nanos_since_epoch == (19_723.I128 + 22) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 43
-expect Date.from_iso_str("1970-001") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970-001") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970-001")? |> Date.to_nanos_since_epoch == 0.I128
 # 44
-expect Date.from_iso_str("1968-001") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968-001") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968-001")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 45
 expect Date.from_iso_str("2024-000") == Err(InvalidDateFormat)
@@ -145,13 +146,13 @@ expect Date.from_iso_str("2024-0a3") == Err(InvalidDateFormat)
 
 # parseCalendarDateBasic
 # 48
-expect Date.from_iso_str("20240123") == Ok(Date.from_ymd(2024, 1, 23))
+expect Date.from_iso_str("20240123") == Ok(Date.from_ymd(2024, Jan, 23)?)
 expect Date.from_iso_str("20240123")? |> Date.to_nanos_since_epoch == (19_723.I128 + 22) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 49
-expect Date.from_iso_str("19700101") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("19700101") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("19700101")? |> Date.to_nanos_since_epoch == 0.I128
 # 50
-expect Date.from_iso_str("19680101") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("19680101") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("19680101")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 51
 expect Date.from_iso_str("20240100") == Err(InvalidDateFormat)
@@ -166,13 +167,13 @@ expect Date.from_iso_str("2024a123") == Err(InvalidDateFormat)
 
 # parseWeekDateExtended
 # 56
-expect Date.from_iso_str("2024-W04-2") == Ok(Date.from_ymd(2024, 1, 23))
+expect Date.from_iso_str("2024-W04-2") == Ok(Date.from_ymd(2024, Jan, 23)?)
 expect Date.from_iso_str("2024-W04-2")? |> Date.to_nanos_since_epoch == (19_723.I128 + 22) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 57
-expect Date.from_iso_str("1970-W01-1") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970-W01-1") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970-W01-1")? |> Date.to_nanos_since_epoch == 0.I128
 # 58
-expect Date.from_iso_str("1968-W01-1") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968-W01-1") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968-W01-1")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 59
 expect Date.from_iso_str("2024-W53-1") == Err(InvalidDateFormat)
@@ -187,13 +188,13 @@ expect Date.from_iso_str("2024-Ww1-1") == Err(InvalidDateFormat)
 
 # parseCalendarDateExtended
 # 64
-expect Date.from_iso_str("2024-01-23") == Ok(Date.from_ymd(2024, 1, 23))
+expect Date.from_iso_str("2024-01-23") == Ok(Date.from_ymd(2024, Jan, 23)?)
 expect Date.from_iso_str("2024-01-23")? |> Date.to_nanos_since_epoch == (19_723.I128 + 22) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 65
-expect Date.from_iso_str("1970-01-01") == Ok(Date.from_ymd(1970, 1, 1))
+expect Date.from_iso_str("1970-01-01") == Ok(Date.from_ymd(1970, Jan, 1)?)
 expect Date.from_iso_str("1970-01-01")? |> Date.to_nanos_since_epoch == 0.I128
 # 66
-expect Date.from_iso_str("1968-01-01") == Ok(Date.from_ymd(1968, 1, 1))
+expect Date.from_iso_str("1968-01-01") == Ok(Date.from_ymd(1968, Jan, 1)?)
 expect Date.from_iso_str("1968-01-01")? |> Date.to_nanos_since_epoch == (-731.I128) * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128()
 # 71
 expect Date.from_iso_str("2024-01-00") == Err(InvalidDateFormat)
@@ -205,6 +206,53 @@ expect Date.from_iso_str("2024-00-01") == Err(InvalidDateFormat)
 expect Date.from_iso_str("2024-13-01") == Err(InvalidDateFormat)
 # 71
 expect Date.from_iso_str("2024-0a-01") == Err(InvalidDateFormat)
+
+# <---- month boundaries ---->
+# Month 12 is the last valid month in every calendar format
+expect Date.from_iso_str("2024-12") == Ok(Date.from_ymd(2024, Dec, 1)?)
+expect Date.from_iso_str("20241231") == Ok(Date.from_ymd(2024, Dec, 31)?)
+expect Date.from_iso_str("2024-12-31") == Ok(Date.from_ymd(2024, Dec, 31)?)
+# Months beyond 12 are rejected rather than wrapping or crashing
+expect Date.from_iso_str("2024-14") == Err(InvalidDateFormat)
+expect Date.from_iso_str("20241401") == Err(InvalidDateFormat)
+expect Date.from_iso_str("2024-14-01") == Err(InvalidDateFormat)
+expect Date.from_iso_str("2024-99") == Err(InvalidDateFormat)
+expect Date.from_iso_str("20249901") == Err(InvalidDateFormat)
+expect Date.from_iso_str("2024-99-01") == Err(InvalidDateFormat)
+# Day of month is checked against the month, not just 1..31
+expect Date.from_iso_str("2024-02-30") == Err(InvalidDateFormat)
+expect Date.from_iso_str("20230229") == Err(InvalidDateFormat)
+expect Date.from_iso_str("2023-04-31") == Err(InvalidDateFormat)
+expect Date.from_iso_str("20240430") == Ok(Date.from_ymd(2024, Apr, 30)?)
+# Day of year is checked against the year length
+expect Date.from_iso_str("2023366") == Err(InvalidDateFormat)
+expect Date.from_iso_str("2024-366") == Ok(Date.from_ymd(2024, Dec, 31)?)
+expect Date.from_iso_str("2024-367") == Err(InvalidDateFormat)
+# Week 53 is accepted only in 53-week years
+expect Date.from_iso_str("2020-W53-1") == Ok(Date.from_ymd(2020, Dec, 28)?)
+expect Date.from_iso_str("2020W53") == Ok(Date.from_ymd(2020, Dec, 28)?)
+expect Date.from_iso_str("2021-W53-1") == Err(InvalidDateFormat)
+# Leap day parses in a leap year
+expect Date.from_iso_str("20240229") == Ok(Date.from_ymd(2024, Feb, 29)?)
+expect Date.from_iso_str("2024-02-29") == Ok(Date.from_ymd(2024, Feb, 29)?)
+# Every month round-trips through an ISO string
+expect {
+	dates = [
+		Date.from_ymd(2023, Jan, 15)?,
+		Date.from_ymd(2023, Feb, 15)?,
+		Date.from_ymd(2023, Mar, 15)?,
+		Date.from_ymd(2023, Apr, 15)?,
+		Date.from_ymd(2023, May, 15)?,
+		Date.from_ymd(2023, Jun, 15)?,
+		Date.from_ymd(2023, Jul, 15)?,
+		Date.from_ymd(2023, Aug, 15)?,
+		Date.from_ymd(2023, Sep, 15)?,
+		Date.from_ymd(2023, Oct, 15)?,
+		Date.from_ymd(2023, Nov, 15)?,
+		Date.from_ymd(2023, Dec, 15)?,
+	]
+	dates.map(|d| d.to_iso_str() |> Date.from_iso_str) == dates.map(|d| Ok(d))
+}
 
 # <==== Time.roc ====>
 # <---- parseTime ---->
@@ -389,19 +437,19 @@ expect Time.from_iso_str("T24+1200Z") == Err(InvalidTimeFormat)
 # <==== DateTime.roc ====>
 # parseDateTime
 # 131
-expect DateTime.from_iso_str("20240223T120000Z") == Ok(DateTime.from_ymdhms(2024, 2, 23, 12, 0, 0))
+expect DateTime.from_iso_str("20240223T120000Z") == Ok(DateTime.from_ymdhms(2024, Feb, 23, 12, 0, 0)?)
 expect DateTime.from_iso_str("20240223T120000Z")? |> DateTime.to_nanos_since_epoch == 19_776.I128 * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128().to_i128() + 12 * Const.nanos_per_hour.to_i128()
 # 132
-expect DateTime.from_iso_str("2024-02-23T12:00:00+00:00") == Ok(DateTime.from_ymdhms(2024, 2, 23, 12, 0, 0))
+expect DateTime.from_iso_str("2024-02-23T12:00:00+00:00") == Ok(DateTime.from_ymdhms(2024, Feb, 23, 12, 0, 0)?)
 expect DateTime.from_iso_str("2024-02-23T12:00:00+00:00")? |> DateTime.to_nanos_since_epoch == 19_776.I128 * Const.seconds_per_day.to_i128() * Const.nanos_per_second.to_i128().to_i128() + 12 * Const.nanos_per_hour.to_i128()
 # 133
-expect DateTime.from_iso_str("2024-02-23T00:00:00+14") == Ok(DateTime.from_ymdhms(2024, 2, 22, 10, 0, 0))
+expect DateTime.from_iso_str("2024-02-23T00:00:00+14") == Ok(DateTime.from_ymdhms(2024, Feb, 22, 10, 0, 0)?)
 expect DateTime.from_iso_str("2024-02-23T00:00:00+14")? |> DateTime.to_nanos_since_epoch == 19_776.I128 * Const.nanos_per_day.to_i128() - 14.I128 * Const.nanos_per_hour.to_i128()
 # 134
-expect DateTime.from_iso_str("2024-02-23T23:59:59-12") == Ok(DateTime.from_ymdhms(2024, 2, 24, 11, 59, 59))
+expect DateTime.from_iso_str("2024-02-23T23:59:59-12") == Ok(DateTime.from_ymdhms(2024, Feb, 24, 11, 59, 59)?)
 expect DateTime.from_iso_str("2024-02-23T23:59:59-12")? |> DateTime.to_nanos_since_epoch == 19_776.I128 * Const.nanos_per_day.to_i128() + (Const.nanos_per_day.to_i128() - 1.I128 * Const.nanos_per_second.to_i128()) + 12 * Const.nanos_per_hour.to_i128()
 # 135
-expect DateTime.from_iso_str("2024-02-23T12:00:00+01:30") == Ok(DateTime.from_ymdhms(2024, 2, 23, 10, 30, 0))
+expect DateTime.from_iso_str("2024-02-23T12:00:00+01:30") == Ok(DateTime.from_ymdhms(2024, Feb, 23, 10, 30, 0)?)
 expect DateTime.from_iso_str("2024-02-23T12:00:00+01:30")? |> DateTime.to_nanos_since_epoch == 19_776.I128 * Const.nanos_per_day.to_i128() + 10 * Const.nanos_per_hour.to_i128() + 30 * Const.nanos_per_minute.to_i128()
 
 # <==== Utils.roc ====>

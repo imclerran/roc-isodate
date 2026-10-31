@@ -17,12 +17,32 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	## Are two Durations equal?
 	is_eq : _
 
+	## The whole-days component of the `Duration`. See [`to_days`](Duration#to_days) for the total.
+	days : Duration -> I64
+	days = |duration| duration.days
+
+	## The hours component of the `Duration`, from -23 to 23. See [`to_hours`](Duration#to_hours) for the total.
+	hours : Duration -> I8
+	hours = |duration| duration.hours
+
+	## The minutes component of the `Duration`, from -59 to 59. See [`to_minutes`](Duration#to_minutes) for the total.
+	minutes : Duration -> I8
+	minutes = |duration| duration.minutes
+
+	## The seconds component of the `Duration`, from -59 to 59. See [`to_seconds`](Duration#to_seconds) for the total.
+	seconds : Duration -> I8
+	seconds = |duration| duration.seconds
+
+	## The nanoseconds component of the `Duration`, from -999,999,999 to 999,999,999. See [`to_nanoseconds`](Duration#to_nanoseconds) for the total.
+	nanoseconds : Duration -> I32
+	nanoseconds = |duration| duration.nanoseconds
+
 	## Add two `Duration` objects.
 	add : Duration, Duration -> Duration
 	add = |d1, d2| {
 		nanos1 = to_nanoseconds(d1)
 		nanos2 = to_nanoseconds(d2)
-		nanos1 |> add_saturated_i128(nanos2) |> from_nanoseconds
+		nanos1.plus_saturated(nanos2) |> from_nanoseconds
 	}
 
 	## Format a `Time` object according to the given format string.
@@ -84,14 +104,14 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 
 	## Create a `Duration` object from days.
 	from_days : I128 -> Duration
-	from_days = |days| {
+	from_days = |n| {
 		days_saturated =
-			if days > I64.highest.to_i128() {
+			if n > I64.highest.to_i128() {
 				I64.highest.to_i128()
-			} else if days < I64.lowest.to_i128() {
+			} else if n < I64.lowest.to_i128() {
 				I64.lowest.to_i128()
 			} else {
-				days
+				n
 			}
 		{
 			days: days_saturated.to_i64_try() ?? {
@@ -105,25 +125,25 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	}
 
 	from_hms : I64, I8, I8 -> Duration
-	from_hms = |hours, minutes, seconds| {
-		from_hours(hours.to_i128()) |> add(from_minutes(minutes.to_i128())) |> add(from_seconds(seconds.to_i128()))
+	from_hms = |h, m, s| {
+		from_hours(h.to_i128()) |> add(from_minutes(m.to_i128())) |> add(from_seconds(s.to_i128()))
 	}
 
 	from_hmsn : I64, I8, I8, I32 -> Duration
-	from_hmsn = |hours, minutes, seconds, nanoseconds| {
-		from_hours(hours.to_i128()) |> add(from_minutes(minutes.to_i128())) |> add(from_seconds(seconds.to_i128())) |> add(from_nanoseconds(nanoseconds.to_i128()))
+	from_hmsn = |h, m, s, n| {
+		from_hours(h.to_i128()) |> add(from_minutes(m.to_i128())) |> add(from_seconds(s.to_i128())) |> add(from_nanoseconds(n.to_i128()))
 	}
 
 	## Create a `Duration` object from hours.
 	from_hours : I128 -> Duration
-	from_hours = |hours| {
+	from_hours = |n| {
 		hours_saturated =
-			if (hours // 24) > I64.highest.to_i128() {
+			if (n // 24) > I64.highest.to_i128() {
 				I64.highest.to_i128() * 24
-			} else if (hours // 24) < I64.lowest.to_i128() {
+			} else if (n // 24) < I64.lowest.to_i128() {
 				I64.lowest.to_i128() * 24
 			} else {
-				hours
+				n
 			}
 		{
 			days: (hours_saturated // 24).to_i64_try() ?? {
@@ -140,14 +160,14 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 
 	## Create a `Duration` object from minutes.
 	from_minutes : I128 -> Duration
-	from_minutes = |minutes| {
+	from_minutes = |n| {
 		minutes_saturated =
-			if (minutes.to_i128() // Const.minutes_per_day.to_i128()) > I64.highest.to_i128() {
+			if (n.to_i128() // Const.minutes_per_day.to_i128()) > I64.highest.to_i128() {
 				I64.highest.to_i128() * Const.minutes_per_day.to_i128()
-			} else if (minutes.to_i128() // Const.minutes_per_day.to_i128()) < I64.lowest.to_i128() {
+			} else if (n.to_i128() // Const.minutes_per_day.to_i128()) < I64.lowest.to_i128() {
 				I64.lowest.to_i128() * Const.minutes_per_day.to_i128()
 			} else {
-				minutes.to_i128()
+				n.to_i128()
 			}
 		{
 			days: (minutes_saturated // Const.minutes_per_day.to_i128()).to_i64_try() ?? {
@@ -167,11 +187,11 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	## Create a `Duration` object from nanoseconds.
 	from_nanoseconds : I128 -> Duration
 	from_nanoseconds = |nanos| {
-		days = nanos // Const.nanos_per_day.to_i128()
+		whole_days = nanos // Const.nanos_per_day.to_i128()
 		nanos_saturated =
-			if days > I64.highest.to_i128() {
+			if whole_days > I64.highest.to_i128() {
 				I64.highest.to_i128() * Const.nanos_per_day.to_i128()
-			} else if days < I64.lowest.to_i128() {
+			} else if whole_days < I64.lowest.to_i128() {
 				I64.lowest.to_i128() * Const.nanos_per_day.to_i128()
 			} else {
 				nanos
@@ -197,14 +217,14 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 
 	## Create a `Duration` object from seconds.
 	from_seconds : I128 -> Duration
-	from_seconds = |seconds| {
+	from_seconds = |n| {
 		seconds_saturated =
-			if (seconds.to_i128() // Const.seconds_per_day.to_i128()) > I64.highest.to_i128() {
+			if (n.to_i128() // Const.seconds_per_day.to_i128()) > I64.highest.to_i128() {
 				I64.highest.to_i128() * Const.seconds_per_day.to_i128()
-			} else if (seconds.to_i128() // Const.seconds_per_day.to_i128()) < I64.lowest.to_i128() {
+			} else if (n.to_i128() // Const.seconds_per_day.to_i128()) < I64.lowest.to_i128() {
 				I64.lowest.to_i128() * Const.seconds_per_day.to_i128()
 			} else {
-				seconds.to_i128()
+				n.to_i128()
 			}
 		{
 			days: (seconds_saturated // Const.seconds_per_day.to_i128()).to_i64_try() ?? {
@@ -228,7 +248,7 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	sub = |d1, d2| {
 		nanos1 = to_nanoseconds(d1)
 		nanos2 = to_nanoseconds(d2)
-		nanos1 |> sub_saturated_i128(nanos2) |> from_nanoseconds
+		nanos1.minus_saturated(nanos2) |> from_nanoseconds
 	}
 
 	## Convert a `Duration` object to days (truncates hours and lower).
@@ -239,142 +259,52 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	to_hours : Duration -> I64
 	to_hours = |duration| {
 		duration.hours.to_i64()
-			|> add_saturated_i64(duration.days.to_i64() |> mul_saturated_i64(24))
+			.plus_saturated(duration.days.to_i64().times_saturated(24))
 	}
 
 	## Convert a `Duration` object to minutes (truncates seconds and lower).
 	to_minutes : Duration -> I64
 	to_minutes = |duration| {
 		duration.minutes.to_i64()
-			|> add_saturated_i64(duration.hours.to_i64() |> mul_saturated_i64(Const.minutes_per_hour.to_i64()))
-			|> add_saturated_i64(duration.days |> mul_saturated_i64(Const.minutes_per_day.to_i64()))
+			.plus_saturated(duration.hours.to_i64().times_saturated(Const.minutes_per_hour.to_i64()))
+			.plus_saturated(duration.days.times_saturated(Const.minutes_per_day.to_i64()))
 	}
 
 	## Convert a `Duration` object to nanoseconds.
 	to_nanoseconds : Duration -> I128
 	to_nanoseconds = |duration| {
 		duration.nanoseconds.to_i128()
-			|> add_saturated_i128(duration.seconds.to_i128() |> mul_saturated_i128(Const.nanos_per_second.to_i128()))
-			|> add_saturated_i128(duration.minutes.to_i128() |> mul_saturated_i128(Const.nanos_per_minute.to_i128()))
-			|> add_saturated_i128(duration.hours.to_i128() |> mul_saturated_i128(Const.nanos_per_hour.to_i128()))
-			|> add_saturated_i128(duration.days.to_i128() |> mul_saturated_i128(Const.nanos_per_day.to_i128()))
+			.plus_saturated(duration.seconds.to_i128().times_saturated(Const.nanos_per_second.to_i128()))
+			.plus_saturated(duration.minutes.to_i128().times_saturated(Const.nanos_per_minute.to_i128()))
+			.plus_saturated(duration.hours.to_i128().times_saturated(Const.nanos_per_hour.to_i128()))
+			.plus_saturated(duration.days.to_i128().times_saturated(Const.nanos_per_day.to_i128()))
 	}
 
 	## Convert a `Duration` object to seconds (truncates nanoseconds).
 	to_seconds : Duration -> I64
 	to_seconds = |duration| {
 		duration.seconds.to_i64()
-			|> add_saturated_i64(duration.minutes.to_i64() |> mul_saturated_i64(Const.seconds_per_minute.to_i64()))
-			|> add_saturated_i64(duration.hours.to_i64() |> mul_saturated_i64(Const.seconds_per_hour.to_i64()))
-			|> add_saturated_i64(duration.days |> mul_saturated_i64(Const.seconds_per_day.to_i64()))
-	}
-}
-
-add_saturated_i64 = |a, b| {
-	if b > 0 and a > I64.highest - b {
-		I64.highest
-	} else if b < 0 and a < I64.lowest - b {
-		I64.lowest
-	} else {
-		a + b
-	}
-}
-
-mul_saturated_i64 = |a, b| {
-	if a == 0 or b == 0 {
-		0
-	} else if a > 0 {
-		if b > 0 {
-			if a > I64.highest // b {
-				I64.highest
-			} else {
-				a * b
-			}
-		} else {
-			if b < I64.lowest // a {
-				I64.lowest
-			} else {
-				a * b
-			}
-		}
-	} else {
-		if b > 0 {
-			if a < I64.lowest // b {
-				I64.lowest
-			} else {
-				a * b
-			}
-		} else {
-			if a < I64.highest // b {
-				I64.highest
-			} else {
-				a * b
-			}
-		}
-	}
-}
-
-add_saturated_i128 = |a, b| {
-	max_i128 = I128.highest
-	min_i128 = I128.lowest
-	if b > 0 and a > max_i128 - b {
-		max_i128
-	} else if b < 0 and a < min_i128 - b {
-		min_i128
-	} else {
-		a + b
-	}
-}
-
-sub_saturated_i128 = |a, b| {
-	max_i128 = I128.highest
-	min_i128 = I128.lowest
-	if b < 0 and a > max_i128 + b {
-		max_i128
-	} else if b > 0 and a < min_i128 + b {
-		min_i128
-	} else {
-		a - b
-	}
-}
-
-mul_saturated_i128 = |a, b| {
-	max_i128 = I128.highest
-	min_i128 = I128.lowest
-	if a == 0 or b == 0 {
-		0
-	} else if a > 0 {
-		if b > 0 {
-			if a > max_i128 // b {
-				max_i128
-			} else {
-				a * b
-			}
-		} else {
-			if b < min_i128 // a {
-				min_i128
-			} else {
-				a * b
-			}
-		}
-	} else {
-		if b > 0 {
-			if a < min_i128 // b {
-				min_i128
-			} else {
-				a * b
-			}
-		} else {
-			if a < max_i128 // b {
-				max_i128
-			} else {
-				a * b
-			}
-		}
+			.plus_saturated(duration.minutes.to_i64().times_saturated(Const.seconds_per_minute.to_i64()))
+			.plus_saturated(duration.hours.to_i64().times_saturated(Const.seconds_per_hour.to_i64()))
+			.plus_saturated(duration.days.times_saturated(Const.seconds_per_day.to_i64()))
 	}
 }
 
 # <===== TESTS ====>
+# <---- days / hours / minutes / seconds / nanoseconds ---->
+expect {
+	d = Duration.from_days(2).add(Duration.from_hmsn(3, 4, 5, 6))
+	d.days() == 2 and d.hours() == 3 and d.minutes() == 4 and d.seconds() == 5 and d.nanoseconds() == 6
+}
+expect {
+	d = Duration.from_hours(25)
+	d.days() == 1 and d.hours() == 1 and d.minutes() == 0 and d.seconds() == 0 and d.nanoseconds() == 0
+}
+expect {
+	d = Duration.from_nanoseconds(-1)
+	d.days() == 0 and d.hours() == 0 and d.minutes() == 0 and d.seconds() == 0 and d.nanoseconds() == -1
+}
+
 # <---- add ---->
 expect {
 	d1 = Duration.from_days(I64.highest.to_i128() // 2)

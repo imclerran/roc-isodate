@@ -4,6 +4,7 @@
 import Const
 import Date
 import Duration
+import Month
 import Time
 import Utils
 
@@ -13,6 +14,14 @@ import Utils
 DateTime :: { date : Date, time : Time }.{
 	is_eq : _
 	Interval : { start : DateTime, end : DateTime }
+
+	## The `Date` part of the `DateTime`.
+	date : DateTime -> Date
+	date = |date_time| date_time.date
+
+	## The `Time` part of the `DateTime`.
+	time : DateTime -> Time
+	time = |date_time| date_time.time
 
 	## Same as [`add_duration`](DateTime#add_duration)
 	add : DateTime, Duration -> DateTime
@@ -129,16 +138,16 @@ DateTime :: { date : Date, time : Time }.{
 			[date_bytes, ['T'], time_bytes] => {
 				# TODO: currently cannot support timezone offsets which exceed or precede the current day
 				match (Date.from_iso_u8(date_bytes), Time.from_iso_u8(time_bytes)) {
-					(Ok(date), Ok(time)) => {
-						normalize({ date, time }) |> Ok
+					(Ok(d), Ok(t)) => {
+						normalize({ date: d, time: t }) |> Ok
 					}
 					_ => Err(InvalidDateTimeFormat)
 				}
 			}
 			[date_bytes] => {
 				match Date.from_iso_u8(date_bytes) {
-					Ok(date) => {
-						{ date, time: Time.from_hms(0, 0, 0) } |> Ok
+					Ok(d) => {
+						{ date: d, time: Time.from_hms(0, 0, 0) } |> Ok
 					}
 					_ => Err(InvalidDateTimeFormat)
 				}
@@ -156,38 +165,40 @@ DateTime :: { date : Date, time : Time }.{
 			} else {
 				nanos % Const.nanos_per_day.to_i128()
 			}
-		date_nanos = nanos - time_nanos
-		date = Date.from_nanos_since_epoch(date_nanos)
-		time = Time.from_nanos_since_midnight(time_nanos.to_i64_wrap())
-		{ date, time }
+		date_nanos = nanos.minus_saturated(time_nanos)
+		d = Date.from_nanos_since_epoch(date_nanos)
+		t = Time.from_nanos_since_midnight(time_nanos.to_i64_wrap())
+		{ date: d, time: t }
 	}
 
-	## Create a `DateTime` object from the year and day of the year.
-	from_yd : I64, I64 -> DateTime
-	from_yd = |year, day| { date: Date.from_yd(year, day.to_u16_wrap()), time: Time.midnight }
+	## Create a `DateTime` object at midnight from the year and day of the year. See [`Date.from_yd`](Date#from_yd) for the errors.
+	from_yd : I64, U16 -> Try(DateTime, [YearOutOfRange, InvalidDayOfYear])
+	from_yd = |year, day| Ok({ date: Date.from_yd(year, day)?, time: Time.midnight })
 
-	## Create a `DateTime` object from the year, month, and day.
-	from_ymd : I64, I64, I64 -> DateTime
-	from_ymd = |year, month, day| { date: Date.from_ymd(year, month.to_u8_wrap(), day.to_u8_wrap()), time: Time.midnight }
+	## Create a `DateTime` object at midnight from the year, month, and day. See [`Date.from_ymd`](Date#from_ymd) for the errors.
+	from_ymd : I64, Month, U8 -> Try(DateTime, [YearOutOfRange, InvalidDayOfMonth])
+	from_ymd = |year, month, day| Ok({ date: Date.from_ymd(year, month, day)?, time: Time.midnight })
 
-	## Create a `DateTime` object from the year and week.
-	from_yw : I64, I64 -> DateTime
-	from_yw = |year, week| { date: Date.from_yw(year, week.to_u8_wrap()), time: Time.midnight }
+	## Create a `DateTime` object at midnight from the year and ISO week. See [`Date.from_yw`](Date#from_yw) for the errors.
+	from_yw : I64, U8 -> Try(DateTime, [YearOutOfRange, InvalidWeek])
+	from_yw = |year, week| Ok({ date: Date.from_yw(year, week)?, time: Time.midnight })
 
-	## Create a `DateTime` object from the year, week, and day of the week.
-	from_ywd : I64, I64, I64 -> DateTime
-	from_ywd = |year, week, day| { date: Date.from_ywd(year, week.to_u8_wrap(), day.to_u8_wrap()), time: Time.midnight }
+	## Create a `DateTime` object at midnight from the year, ISO week, and day of the week. See [`Date.from_ywd`](Date#from_ywd) for the errors.
+	from_ywd : I64, U8, U8 -> Try(DateTime, [YearOutOfRange, InvalidWeek, InvalidWeekday])
+	from_ywd = |year, week, day| Ok({ date: Date.from_ywd(year, week, day)?, time: Time.midnight })
 
 	## Create a `DateTime` object from the year, month, day, hour, minute, and second.
-	from_ymdhms : I64, I64, I64, I64, I64, I64 -> DateTime
+	## The date part is validated like [`Date.from_ymd`](Date#from_ymd); the time part is built like [`Time.from_hms`](Time#from_hms).
+	from_ymdhms : I64, Month, U8, I64, I64, I64 -> Try(DateTime, [YearOutOfRange, InvalidDayOfMonth])
 	from_ymdhms = |year, month, day, hour, minute, second| {
-		{ date: Date.from_ymd(year, month.to_u8_wrap(), day.to_u8_wrap()), time: Time.from_hms(hour, minute, second) }
+		Ok({ date: Date.from_ymd(year, month, day)?, time: Time.from_hms(hour, minute, second) })
 	}
 
 	## Create a `DateTime` object from the year, month, day, hour, minute, second, and nanosecond.
-	from_ymdhmsn : I64, I64, I64, I64, I64, I64, I64 -> DateTime
+	## The date part is validated like [`Date.from_ymd`](Date#from_ymd); the time part is built like [`Time.from_hmsn`](Time#from_hmsn).
+	from_ymdhmsn : I64, Month, U8, I64, I64, I64, I64 -> Try(DateTime, [YearOutOfRange, InvalidDayOfMonth])
 	from_ymdhmsn = |year, month, day, hour, minute, second, nanosecond| {
-		{ date: Date.from_ymd(year, month.to_u8_wrap(), day.to_u8_wrap()), time: Time.from_hmsn(hour, minute, second, nanosecond) }
+		Ok({ date: Date.from_ymd(year, month, day)?, time: Time.from_hmsn(hour, minute, second, nanosecond) })
 	}
 
 	## Subtract two `DateTime` objects to get the `Duration` between them.
@@ -232,25 +243,40 @@ DateTime :: { date : Date, time : Time }.{
 		DateTime.add_hours(
 			{
 				date: date_time.date,
-				time: Time.from_hmsn(0, Time.get_minute(date_time.time).to_i64(), Time.get_second(date_time.time).to_i64(), Time.get_nanosecond(date_time.time).to_i64()),
+				time: Time.from_hmsn(0, Time.minute(date_time.time).to_i64(), Time.second(date_time.time).to_i64(), Time.nanosecond(date_time.time).to_i64()),
 			},
-			Time.get_hour(date_time.time).to_i64(),
+			Time.hour(date_time.time).to_i64(),
 		)
 	}
 }
 
 # <==== TESTS ====>
+# <---- date / time ---->
+expect {
+	dt = DateTime.from_ymdhmsn(2024, Jul, 4, 12, 30, 15, 500)?
+	dt.date() == Date.from_ymd(2024, Jul, 4)? and dt.time() == Time.from_hmsn(12, 30, 15, 500)
+}
+expect DateTime.unix_epoch.date() == Date.unix_epoch and DateTime.unix_epoch.time() == Time.midnight
+
+# <---- from_ymd / from_ymdhmsn errors ---->
+expect DateTime.from_ymd(2023, Feb, 29) == Err(InvalidDayOfMonth)
+expect DateTime.from_ymdhmsn(2024, Apr, 31, 0, 0, 0, 0) == Err(InvalidDayOfMonth)
+expect DateTime.from_yd(2023, 366) == Err(InvalidDayOfYear)
+expect DateTime.from_ywd(2024, 53, 1) == Err(InvalidWeek)
+expect DateTime.from_ywd(2024, 1, 8) == Err(InvalidWeekday)
+expect DateTime.from_ymd(Const.max_year + 1, Jan, 1) == Err(YearOutOfRange)
+
 # <---- add_nanoseconds ---->
-expect DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0).add_nanoseconds(1) == DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 1)
-expect DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0).add_nanoseconds(Const.nanos_per_second) == DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 1, 0)
-expect DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0).add_nanoseconds(Const.nanos_per_day) == DateTime.from_ymdhmsn(1970, 1, 2, 0, 0, 0, 0)
-expect DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0).add_nanoseconds(-1) == DateTime.from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Const.nanos_per_second - 1))
-expect DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0).add_nanoseconds(-Const.nanos_per_day) == DateTime.from_ymdhmsn(1969, 12, 31, 0, 0, 0, 0)
-expect DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 0).add_nanoseconds(((-Const.nanos_per_day) - 1)) == DateTime.from_ymdhmsn(1969, 12, 30, 23, 59, 59, (Const.nanos_per_second - 1))
+expect DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 0)?.add_nanoseconds(1) == DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 1)?
+expect DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 0)?.add_nanoseconds(Const.nanos_per_second) == DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 1, 0)?
+expect DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 0)?.add_nanoseconds(Const.nanos_per_day) == DateTime.from_ymdhmsn(1970, Jan, 2, 0, 0, 0, 0)?
+expect DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 0)?.add_nanoseconds(-1) == DateTime.from_ymdhmsn(1969, Dec, 31, 23, 59, 59, (Const.nanos_per_second - 1))?
+expect DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 0)?.add_nanoseconds(-Const.nanos_per_day) == DateTime.from_ymdhmsn(1969, Dec, 31, 0, 0, 0, 0)?
+expect DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 0)?.add_nanoseconds(((-Const.nanos_per_day) - 1)) == DateTime.from_ymdhmsn(1969, Dec, 30, 23, 59, 59, (Const.nanos_per_second - 1))?
 
 # <---- add_duration ---->
-expect DateTime.add_duration(DateTime.unix_epoch, Duration.from_nanoseconds(-1.I128)) == DateTime.from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Const.nanos_per_second - 1))
-expect DateTime.add_duration(DateTime.unix_epoch, Duration.from_days(365.I128)) == DateTime.from_ymdhmsn(1971, 1, 1, 0, 0, 0, 0)
+expect DateTime.add_duration(DateTime.unix_epoch, Duration.from_nanoseconds(-1.I128)) == DateTime.from_ymdhmsn(1969, Dec, 31, 23, 59, 59, (Const.nanos_per_second - 1))?
+expect DateTime.add_duration(DateTime.unix_epoch, Duration.from_days(365.I128)) == DateTime.from_ymdhmsn(1971, Jan, 1, 0, 0, 0, 0)?
 
 # <--- after --->
 expect {
@@ -305,29 +331,31 @@ expect {
 
 # <--- format --->
 expect {
-	res = DateTime.format(DateTime.from_ymdhmsn(1970, 1, 1, 1, 1, 1, 123456789), "{YYYY}-{MM}-{DD}T{hh}:{mm}:{ss}.{f:3}")
+	res = DateTime.format(DateTime.from_ymdhmsn(1970, Jan, 1, 1, 1, 1, 123456789)?, "{YYYY}-{MM}-{DD}T{hh}:{mm}:{ss}.{f:3}")
 	res == "1970-01-01T01:01:01.123"
 }
 
 # <--- from_nanos_since_epoch --->
-expect DateTime.from_nanos_since_epoch((364 * 24 * Const.nanos_per_hour.to_i128() + 12 * Const.nanos_per_hour.to_i128() + 34 * Const.nanos_per_minute.to_i128() + 56 * Const.nanos_per_second.to_i128() + 5)) == DateTime.from_ymdhmsn(1970, 12, 31, 12, 34, 56, 5)
-expect DateTime.from_nanos_since_epoch(-1.I128) == DateTime.from_ymdhmsn(1969, 12, 31, 23, 59, 59, (Const.nanos_per_second - 1))
+expect DateTime.from_nanos_since_epoch((364 * 24 * Const.nanos_per_hour.to_i128() + 12 * Const.nanos_per_hour.to_i128() + 34 * Const.nanos_per_minute.to_i128() + 56 * Const.nanos_per_second.to_i128() + 5)) == DateTime.from_ymdhmsn(1970, Dec, 31, 12, 34, 56, 5)?
+expect DateTime.from_nanos_since_epoch(-1.I128) == DateTime.from_ymdhmsn(1969, Dec, 31, 23, 59, 59, (Const.nanos_per_second - 1))?
+expect DateTime.from_nanos_since_epoch(I128.highest).date() == Date.highest
+expect DateTime.from_nanos_since_epoch(I128.lowest).date() == Date.lowest
 
 # <--- normalize --->
-expect DateTime.normalize(DateTime.from_ymdhmsn(1970, 1, 2, -12, 1, 2, 3)) == DateTime.from_ymdhmsn(1970, 1, 1, 12, 1, 2, 3)
-expect DateTime.normalize(DateTime.from_ymdhmsn(1970, 1, 1, 12, 1, 2, 3)) == DateTime.from_ymdhmsn(1970, 1, 1, 12, 1, 2, 3)
-expect DateTime.normalize(DateTime.from_ymdhmsn(1970, 1, 1, 36, 1, 2, 3)) == DateTime.from_ymdhmsn(1970, 1, 2, 12, 1, 2, 3)
+expect DateTime.normalize(DateTime.from_ymdhmsn(1970, Jan, 2, -12, 1, 2, 3)?) == DateTime.from_ymdhmsn(1970, Jan, 1, 12, 1, 2, 3)?
+expect DateTime.normalize(DateTime.from_ymdhmsn(1970, Jan, 1, 12, 1, 2, 3)?) == DateTime.from_ymdhmsn(1970, Jan, 1, 12, 1, 2, 3)?
+expect DateTime.normalize(DateTime.from_ymdhmsn(1970, Jan, 1, 36, 1, 2, 3)?) == DateTime.from_ymdhmsn(1970, Jan, 2, 12, 1, 2, 3)?
 
 # <--- sub --->
-expect DateTime.sub(DateTime.from_ymd(1970, 1, 1), DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, 1)) == Duration.from_nanoseconds(-1.I128)
-expect DateTime.sub(DateTime.from_ymdhmsn(1970, 1, 1, 1, 1, 1, 1), DateTime.from_yd(1968, 1)) == Duration.from_nanoseconds((Const.nanos_per_day.to_i128() * 731 + Const.nanos_per_hour.to_i128() + Const.nanos_per_minute.to_i128() + Const.nanos_per_second.to_i128() + 1))
+expect DateTime.sub(DateTime.from_ymd(1970, Jan, 1)?, DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, 1)?) == Duration.from_nanoseconds(-1.I128)
+expect DateTime.sub(DateTime.from_ymdhmsn(1970, Jan, 1, 1, 1, 1, 1)?, DateTime.from_yd(1968, 1)?) == Duration.from_nanoseconds((Const.nanos_per_day.to_i128() * 731 + Const.nanos_per_hour.to_i128() + Const.nanos_per_minute.to_i128() + Const.nanos_per_second.to_i128() + 1))
 
 # <---- to_iso_str ---->
 expect DateTime.to_iso_str(DateTime.unix_epoch) == "1970-01-01T00:00:00"
-expect DateTime.to_iso_str(DateTime.from_ymdhmsn(1970, 1, 1, 0, 0, 0, (Const.nanos_per_second // 2))) == "1970-01-01T00:00:00,5"
+expect DateTime.to_iso_str(DateTime.from_ymdhmsn(1970, Jan, 1, 0, 0, 0, (Const.nanos_per_second // 2))?) == "1970-01-01T00:00:00,5"
 
 # <---- to_iso_u8 ---->
 expect DateTime.to_iso_u8(DateTime.unix_epoch) == Str.to_utf8("1970-01-01T00:00:00")
 
 # <--- to_nanos_since_epoch --->
-expect DateTime.to_nanos_since_epoch(DateTime.from_ymdhmsn(1970, 12, 31, 12, 34, 56, 5)) == 364 * Const.nanos_per_day.to_i128() + 12 * Const.nanos_per_hour.to_i128() + 34 * Const.nanos_per_minute.to_i128() + 56 * Const.nanos_per_second.to_i128() + 5
+expect DateTime.to_nanos_since_epoch(DateTime.from_ymdhmsn(1970, Dec, 31, 12, 34, 56, 5)?) == 364 * Const.nanos_per_day.to_i128() + 12 * Const.nanos_per_hour.to_i128() + 34 * Const.nanos_per_minute.to_i128() + 56 * Const.nanos_per_second.to_i128() + 5

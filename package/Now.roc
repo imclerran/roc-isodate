@@ -10,9 +10,9 @@
 ## dt = now.date_time!()
 ## ```
 import Const
-import DateTime exposing [DateTime]
-import Date exposing [Date]
-import Time exposing [Time]
+import DateTime
+import Date
+import Time
 
 Now(a) :: { now! : () => a, now_to_nanos : a -> U128 }.{
 	create : { now! : () => a, now_to_nanos : a -> U128 } -> Now(a)
@@ -90,13 +90,13 @@ expect {
 expect {
 	nanos = (Const.nanos_per_day + Const.nanos_per_hour + Const.nanos_per_minute + Const.nanos_per_second + 500_000_000).to_u128_wrap()
 	mock_now = create_mock_now(nanos)
-	Now.date_time_from(nanos, mock_now.now_to_nanos) == DateTime.from_ymdhmsn(1970, 1, 2, 1, 1, 1, 500_000_000)
+	Now.date_time_from(nanos, mock_now.now_to_nanos) == DateTime.from_ymdhmsn(1970, Jan, 2, 1, 1, 1, 500_000_000)?
 }
 
 expect {
 	nanos = (Const.nanos_per_day + Const.nanos_per_hour + Const.nanos_per_minute + Const.nanos_per_second + 500_000_000).to_u128_wrap()
 	mock_now = create_mock_now(nanos)
-	Now.date_from(nanos, mock_now.now_to_nanos) == Date.from_ymd(1970, 1, 2)
+	Now.date_from(nanos, mock_now.now_to_nanos) == Date.from_ymd(1970, Jan, 2)?
 }
 
 expect {

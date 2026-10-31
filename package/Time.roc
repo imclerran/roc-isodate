@@ -19,21 +19,21 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 	## Are two Times equal?
 	is_eq : _
 
-	## Get the hour of the `Time` object.
-	get_hour : Time -> I8
-	get_hour = |time| time.hour
+	## The hour of the `Time`. May be outside 0 to 23 for a non-normalized `Time`.
+	hour : Time -> I8
+	hour = |time| time.hour
 
-	## Get the minute of the `Time` object.
-	get_minute : Time -> U8
-	get_minute = |time| time.minute
+	## The minute of the `Time`, from 0 to 59.
+	minute : Time -> U8
+	minute = |time| time.minute
 
-	## Get the second of the `Time` object.
-	get_second : Time -> U8
-	get_second = |time| time.second
+	## The second of the `Time`, from 0 to 59.
+	second : Time -> U8
+	second = |time| time.second
 
-	## Get the nanosecond of the `Time` object.
-	get_nanosecond : Time -> U32
-	get_nanosecond = |time| time.nanosecond
+	## The nanosecond of the `Time`, from 0 to 999,999,999.
+	nanosecond : Time -> U32
+	nanosecond = |time| time.nanosecond
 
 	## Same as [`add_duration`](Time#add_duration)
 	add : Time, Duration -> Time
@@ -129,11 +129,11 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 
 	## Create a `Time` object from the hour, minute, and second.
 	from_hms : I64, I64, I64 -> Time
-	from_hms = |hour, minute, second| { hour: hour.to_i8_wrap(), minute: minute.to_u8_wrap(), second: second.to_u8_wrap(), nanosecond: 0.U32 }
+	from_hms = |h, m, s| { hour: h.to_i8_wrap(), minute: m.to_u8_wrap(), second: s.to_u8_wrap(), nanosecond: 0.U32 }
 
 	## Create a `Time` object from the hour, minute, second, and nanosecond.
 	from_hmsn : I64, I64, I64, I64 -> Time
-	from_hmsn = |hour, minute, second, nanosecond| { hour: hour.to_i8_wrap(), minute: minute.to_u8_wrap(), second: second.to_u8_wrap(), nanosecond: nanosecond.to_u32_wrap() }
+	from_hmsn = |h, m, s, n| { hour: h.to_i8_wrap(), minute: m.to_u8_wrap(), second: s.to_u8_wrap(), nanosecond: n.to_u32_wrap() }
 
 	## Convert an ISO 8601 string to a `Time` object.
 	from_iso_str : Str -> Try(Time, [InvalidTimeFormat])
@@ -178,13 +178,13 @@ Time :: { hour : I8, minute : U8, second : U8, nanosecond : U32 }.{
 	from_nanos_since_midnight = |nanos| {
 		nanos1 = ((nanos % Const.nanos_per_day + Const.nanos_per_day) % Const.nanos_per_day).to_u64_wrap()
 		nanos2 = nanos1.to_i64_wrap() % Const.nanos_per_hour
-		minute = (nanos2 // Const.nanos_per_minute).to_u8_wrap()
+		m = (nanos2 // Const.nanos_per_minute).to_u8_wrap()
 		nanos3 = nanos2 % Const.nanos_per_minute
-		second = (nanos3 // Const.nanos_per_second).to_u8_wrap()
-		nanosecond = (nanos3 % Const.nanos_per_second).to_u32_wrap()
-		casted_val = (minute.to_i64() * Const.nanos_per_minute + second.to_i64() * Const.nanos_per_second + nanosecond.to_i64())
-		hour = ((nanos - casted_val) // Const.nanos_per_hour).to_i8_wrap()
-		{ hour, minute, second, nanosecond }
+		s = (nanos3 // Const.nanos_per_second).to_u8_wrap()
+		n = (nanos3 % Const.nanos_per_second).to_u32_wrap()
+		casted_val = (m.to_i64() * Const.nanos_per_minute + s.to_i64() * Const.nanos_per_second + n.to_i64())
+		h = ((nanos - casted_val) // Const.nanos_per_hour).to_i8_wrap()
+		{ hour: h, minute: m, second: s, nanosecond: n }
 	}
 
 	## `Time` object representing 00:00:00.
@@ -461,6 +461,13 @@ round = |x| {
 }
 
 # <===== TESTS ====>
+# <---- hour / minute / second / nanosecond ---->
+expect {
+	t = Time.from_hmsn(23, 59, 58, 999_999_999)
+	t.hour() == 23 and t.minute() == 59 and t.second() == 58 and t.nanosecond() == 999_999_999
+}
+expect Time.midnight.hour() == 0 and Time.midnight.minute() == 0 and Time.midnight.second() == 0 and Time.midnight.nanosecond() == 0
+
 # <---- add_nanoseconds ---->
 expect Time.from_hmsn(12, 34, 56, 5).add_nanoseconds(Const.nanos_per_second) == Time.from_hmsn(12, 34, 57, 5)
 expect Time.from_hmsn(12, 34, 56, 5).add_nanoseconds(-Const.nanos_per_second) == Time.from_hmsn(12, 34, 55, 5)
