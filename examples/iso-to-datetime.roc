@@ -21,8 +21,8 @@ main! = |_| {
 		dt_now = DT.from_iso_str(iso_str)?
 		date_str = dt_now.format("{YYYY}-{MM}-{DD}")
 		time_str = dt_now.format("{hh}:{mm}:{ss}")
-		_ = Stdout.line!("The current Zulu date is: ${date_str}")
-		_ = Stdout.line!("The current Zulu time is: ${time_str}")
+		_ = Stdout.line!("The current date in ${timezone} is: ${date_str}")
+		_ = Stdout.line!("The current time in ${timezone} is: ${time_str}")
 		Ok({})
 	} else {
 		Err(FailedToGetServerResponse(response.status()))
