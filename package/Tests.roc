@@ -257,23 +257,24 @@ expect {
 # <---- parseTime ---->
 # parseLocalTimeHour
 # 72
-expect Time.from_iso_str("11") == Ok(Time.from_hms(11, 0, 0))
+expect Time.from_iso_str("11") == Ok(Time.from_hms(11, 0, 0)?)
 expect Time.from_iso_str("11")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour
 # 73
-expect Time.from_iso_str("00Z") == Ok(Time.from_hms(0, 0, 0))
+expect Time.from_iso_str("00Z") == Ok(Time.from_hms(0, 0, 0)?)
 expect Time.from_iso_str("00Z")? |> Time.to_nanos_since_midnight == 0
 # 74
-expect Time.from_iso_str("T00") == Ok(Time.from_hms(0, 0, 0))
+expect Time.from_iso_str("T00") == Ok(Time.from_hms(0, 0, 0)?)
 expect Time.from_iso_str("T00")? |> Time.to_nanos_since_midnight == 0
 # 75
-expect Time.from_iso_str("T00Z") == Ok(Time.from_hms(0, 0, 0))
+expect Time.from_iso_str("T00Z") == Ok(Time.from_hms(0, 0, 0)?)
 expect Time.from_iso_str("T00Z")? |> Time.to_nanos_since_midnight == 0
 # 76
-expect Time.from_iso_str("T23") == Ok(Time.from_hms(23, 0, 0))
+expect Time.from_iso_str("T23") == Ok(Time.from_hms(23, 0, 0)?)
 expect Time.from_iso_str("T23")? |> Time.to_nanos_since_midnight == 23 * Const.nanos_per_hour
 # 77
-expect Time.from_iso_str("T24") == Ok(Time.from_hms(24, 0, 0))
-expect Time.from_iso_str("T24")? |> Time.to_nanos_since_midnight == 24 * Const.nanos_per_hour
+# "T24" is the end of the day, which normalizes to midnight with a day offset of 1.
+expect Time.from_iso_str("T24") == Ok(Time.midnight)
+expect Time.from_iso_str_with_day_offset("T24") == Ok({ time: Time.midnight, day_offset: 1 })
 # 78
 expect Time.from_iso_str("T25") == Err(InvalidTimeFormat)
 # 79
@@ -281,23 +282,24 @@ expect Time.from_iso_str("T0Z") == Err(InvalidTimeFormat)
 
 # parseLocalTimeMinuteBasic
 # 80
-expect Time.from_iso_str("1111") == Ok(Time.from_hms(11, 11, 0))
+expect Time.from_iso_str("1111") == Ok(Time.from_hms(11, 11, 0)?)
 expect Time.from_iso_str("1111")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour + 11 * Const.nanos_per_minute
 # 81
-expect Time.from_iso_str("0000Z") == Ok(Time.from_hms(0, 0, 0))
+expect Time.from_iso_str("0000Z") == Ok(Time.from_hms(0, 0, 0)?)
 expect Time.from_iso_str("0000Z")? |> Time.to_nanos_since_midnight == 0
 # 82
-expect Time.from_iso_str("T0000") == Ok(Time.from_hms(0, 0, 0))
+expect Time.from_iso_str("T0000") == Ok(Time.from_hms(0, 0, 0)?)
 expect Time.from_iso_str("T0000")? |> Time.to_nanos_since_midnight == 0
 # 83
-expect Time.from_iso_str("T0000Z") == Ok(Time.from_hms(0, 0, 0))
+expect Time.from_iso_str("T0000Z") == Ok(Time.from_hms(0, 0, 0)?)
 expect Time.from_iso_str("T0000Z")? |> Time.to_nanos_since_midnight == 0
 # 84
-expect Time.from_iso_str("T2359") == Ok(Time.from_hms(23, 59, 0))
+expect Time.from_iso_str("T2359") == Ok(Time.from_hms(23, 59, 0)?)
 expect Time.from_iso_str("T2359")? |> Time.to_nanos_since_midnight == 23 * Const.nanos_per_hour + 59 * Const.nanos_per_minute
 # 85
-expect Time.from_iso_str("T2400") == Ok(Time.from_hms(24, 0, 0))
-expect Time.from_iso_str("T2400")? |> Time.to_nanos_since_midnight == 24 * Const.nanos_per_hour
+# "T2400" is the end of the day, which normalizes to midnight with a day offset of 1.
+expect Time.from_iso_str("T2400") == Ok(Time.midnight)
+expect Time.from_iso_str_with_day_offset("T2400") == Ok({ time: Time.midnight, day_offset: 1 })
 # 86
 expect Time.from_iso_str("T2401") == Err(InvalidTimeFormat)
 # 87
@@ -305,7 +307,7 @@ expect Time.from_iso_str("T000Z") == Err(InvalidTimeFormat)
 
 # parseLocalTimeMinuteExtended
 # 88
-expect Time.from_iso_str("11:11") == Ok(Time.from_hms(11, 11, 0))
+expect Time.from_iso_str("11:11") == Ok(Time.from_hms(11, 11, 0)?)
 expect Time.from_iso_str("11:11")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour + 11 * Const.nanos_per_minute
 # 89
 expect Time.from_iso_str("00:00Z") == Ok(Time.midnight)
@@ -317,11 +319,12 @@ expect Time.from_iso_str("T00:00")? |> Time.to_nanos_since_midnight == 0
 expect Time.from_iso_str("T00:00Z") == Ok(Time.midnight)
 expect Time.from_iso_str("T00:00Z")? |> Time.to_nanos_since_midnight == 0
 # 92
-expect Time.from_iso_str("T23:59") == Ok(Time.from_hms(23, 59, 0))
+expect Time.from_iso_str("T23:59") == Ok(Time.from_hms(23, 59, 0)?)
 expect Time.from_iso_str("T23:59")? |> Time.to_nanos_since_midnight == 23 * Const.nanos_per_hour + 59 * Const.nanos_per_minute
 # 93
-expect Time.from_iso_str("T24:00") == Ok(Time.from_hms(24, 0, 0))
-expect Time.from_iso_str("T24:00")? |> Time.to_nanos_since_midnight == 24 * Const.nanos_per_hour
+# "T24:00" is the end of the day, which normalizes to midnight with a day offset of 1.
+expect Time.from_iso_str("T24:00") == Ok(Time.midnight)
+expect Time.from_iso_str_with_day_offset("T24:00") == Ok({ time: Time.midnight, day_offset: 1 })
 # 94
 expect Time.from_iso_str("T24:01") == Err(InvalidTimeFormat)
 # 95
@@ -329,7 +332,7 @@ expect Time.from_iso_str("T00:0Z") == Err(InvalidTimeFormat)
 
 # parseLocalTimeBasic
 # 96
-expect Time.from_iso_str("111111") == Ok(Time.from_hms(11, 11, 11))
+expect Time.from_iso_str("111111") == Ok(Time.from_hms(11, 11, 11)?)
 expect Time.from_iso_str("111111")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour + 11 * Const.nanos_per_minute + 11 * Const.nanos_per_second
 # 97
 expect Time.from_iso_str("000000Z") == Ok(Time.midnight)
@@ -341,11 +344,12 @@ expect Time.from_iso_str("T000000")? |> Time.to_nanos_since_midnight == 0
 expect Time.from_iso_str("T000000Z") == Ok(Time.midnight)
 expect Time.from_iso_str("T000000Z")? |> Time.to_nanos_since_midnight == 0
 # 100
-expect Time.from_iso_str("T235959") == Ok(Time.from_hms(23, 59, 59))
+expect Time.from_iso_str("T235959") == Ok(Time.from_hms(23, 59, 59)?)
 expect Time.from_iso_str("T235959")? |> Time.to_nanos_since_midnight == 23 * Const.nanos_per_hour + 59 * Const.nanos_per_minute + 59 * Const.nanos_per_second
 # 101
-expect Time.from_iso_str("T240000") == Ok(Time.from_hms(24, 0, 0))
-expect Time.from_iso_str("T240000")? |> Time.to_nanos_since_midnight == 24 * Const.nanos_per_hour
+# "T240000" is the end of the day, which normalizes to midnight with a day offset of 1.
+expect Time.from_iso_str("T240000") == Ok(Time.midnight)
+expect Time.from_iso_str_with_day_offset("T240000") == Ok({ time: Time.midnight, day_offset: 1 })
 # 102
 expect Time.from_iso_str("T240001") == Err(InvalidTimeFormat)
 # 103
@@ -353,7 +357,7 @@ expect Time.from_iso_str("T00000Z") == Err(InvalidTimeFormat)
 
 # parseLocalTimeExtended
 # 104
-expect Time.from_iso_str("11:11:11") == Ok(Time.from_hms(11, 11, 11))
+expect Time.from_iso_str("11:11:11") == Ok(Time.from_hms(11, 11, 11)?)
 expect Time.from_iso_str("11:11:11")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour + 11 * Const.nanos_per_minute + 11 * Const.nanos_per_second
 # 105
 expect Time.from_iso_str("00:00:00Z") == Ok(Time.midnight)
@@ -365,11 +369,12 @@ expect Time.from_iso_str("T00:00:00")? |> Time.to_nanos_since_midnight == 0
 expect Time.from_iso_str("T00:00:00Z") == Ok(Time.midnight)
 expect Time.from_iso_str("T00:00:00Z")? |> Time.to_nanos_since_midnight == 0
 # 108
-expect Time.from_iso_str("T23:59:59") == Ok(Time.from_hms(23, 59, 59))
+expect Time.from_iso_str("T23:59:59") == Ok(Time.from_hms(23, 59, 59)?)
 expect Time.from_iso_str("T23:59:59")? |> Time.to_nanos_since_midnight == 23 * Const.nanos_per_hour + 59 * Const.nanos_per_minute + 59 * Const.nanos_per_second
 # 109
-expect Time.from_iso_str("T24:00:00") == Ok(Time.from_hms(24, 0, 0))
-expect Time.from_iso_str("T24:00:00")? |> Time.to_nanos_since_midnight == 24 * Const.nanos_per_hour
+# "T24:00:00" is the end of the day, which normalizes to midnight with a day offset of 1.
+expect Time.from_iso_str("T24:00:00") == Ok(Time.midnight)
+expect Time.from_iso_str_with_day_offset("T24:00:00") == Ok({ time: Time.midnight, day_offset: 1 })
 # 110
 expect Time.from_iso_str("T24:00:01") == Err(InvalidTimeFormat)
 # 111
@@ -377,55 +382,55 @@ expect Time.from_iso_str("T00:00:0Z") == Err(InvalidTimeFormat)
 
 # parseFractionalTime
 # 112
-expect Time.from_iso_str("12.500") == Ok(Time.from_hms(12, 30, 0))
+expect Time.from_iso_str("12.500") == Ok(Time.from_hms(12, 30, 0)?)
 expect Time.from_iso_str("12.500")? |> Time.to_nanos_since_midnight == 12 * Const.nanos_per_hour + 30 * Const.nanos_per_minute
 # 113
-expect Time.from_iso_str("12,500") == Ok(Time.from_hms(12, 30, 0))
+expect Time.from_iso_str("12,500") == Ok(Time.from_hms(12, 30, 0)?)
 expect Time.from_iso_str("12,500")? |> Time.to_nanos_since_midnight == 12 * Const.nanos_per_hour + 30 * Const.nanos_per_minute
 # 114
-expect Time.from_iso_str("1200.500") == Ok(Time.from_hms(12, 0, 30))
+expect Time.from_iso_str("1200.500") == Ok(Time.from_hms(12, 0, 30)?)
 expect Time.from_iso_str("1200.500")? |> Time.to_nanos_since_midnight == 12 * Const.nanos_per_hour + 30 * Const.nanos_per_second
 # 115
-expect Time.from_iso_str("12:00,500") == Ok(Time.from_hms(12, 0, 30))
+expect Time.from_iso_str("12:00,500") == Ok(Time.from_hms(12, 0, 30)?)
 expect Time.from_iso_str("12:00,500")? |> Time.to_nanos_since_midnight == 12 * Const.nanos_per_hour + 30 * Const.nanos_per_second
 # 116
-expect Time.from_iso_str("12:00:00,123") == Ok(Time.from_hmsn(12, 0, 0, 123_000_000))
+expect Time.from_iso_str("12:00:00,123") == Ok(Time.from_hmsn(12, 0, 0, 123_000_000)?)
 expect Time.from_iso_str("12:00:00,123")? |> Time.to_nanos_since_midnight == 12 * Const.nanos_per_hour + 123_000_000
 
 # parseTime w/ offset
 # 117
-expect Time.from_iso_str("12:00:00+01") == Ok(Time.from_hms(11, 0, 0))
+expect Time.from_iso_str("12:00:00+01") == Ok(Time.from_hms(11, 0, 0)?)
 expect Time.from_iso_str("12:00:00+01")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour
 # 118
-expect Time.from_iso_str("12:00:00-01") == Ok(Time.from_hms(13, 0, 0))
+expect Time.from_iso_str("12:00:00-01") == Ok(Time.from_hms(13, 0, 0)?)
 expect Time.from_iso_str("12:00:00-01")? |> Time.to_nanos_since_midnight == 13 * Const.nanos_per_hour
 # 119
-expect Time.from_iso_str("12:00:00+0100") == Ok(Time.from_hms(11, 0, 0))
+expect Time.from_iso_str("12:00:00+0100") == Ok(Time.from_hms(11, 0, 0)?)
 expect Time.from_iso_str("12:00:00+0100")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour
 # 120
-expect Time.from_iso_str("12:00:00-0100") == Ok(Time.from_hms(13, 0, 0))
+expect Time.from_iso_str("12:00:00-0100") == Ok(Time.from_hms(13, 0, 0)?)
 expect Time.from_iso_str("12:00:00-0100")? |> Time.to_nanos_since_midnight == 13 * Const.nanos_per_hour
 # 121
-expect Time.from_iso_str("12:00:00+01:00") == Ok(Time.from_hms(11, 0, 0))
+expect Time.from_iso_str("12:00:00+01:00") == Ok(Time.from_hms(11, 0, 0)?)
 expect Time.from_iso_str("12:00:00+01:00")? |> Time.to_nanos_since_midnight == 11 * Const.nanos_per_hour
 # 122
-expect Time.from_iso_str("12:00:00-01:00") == Ok(Time.from_hms(13, 0, 0))
+expect Time.from_iso_str("12:00:00-01:00") == Ok(Time.from_hms(13, 0, 0)?)
 expect Time.from_iso_str("12:00:00-01:00")? |> Time.to_nanos_since_midnight == 13 * Const.nanos_per_hour
 # 123
-expect Time.from_iso_str("12:00:00+01:30") == Ok(Time.from_hms(10, 30, 0))
+expect Time.from_iso_str("12:00:00+01:30") == Ok(Time.from_hms(10, 30, 0)?)
 expect Time.from_iso_str("12:00:00+01:30")? |> Time.to_nanos_since_midnight == 10 * Const.nanos_per_hour + 30 * Const.nanos_per_minute
 # 124
-expect Time.from_iso_str("12:00:00-01:30") == Ok(Time.from_hms(13, 30, 0))
+expect Time.from_iso_str("12:00:00-01:30") == Ok(Time.from_hms(13, 30, 0)?)
 expect Time.from_iso_str("12:00:00-01:30")? |> Time.to_nanos_since_midnight == 13 * Const.nanos_per_hour + 30 * Const.nanos_per_minute
 # 125
-expect Time.from_iso_str("12.50+0030") == Ok(Time.from_hms(12, 0, 0))
+expect Time.from_iso_str("12.50+0030") == Ok(Time.from_hms(12, 0, 0)?)
 expect Time.from_iso_str("12.50+0030")? |> Time.to_nanos_since_midnight == 12 * Const.nanos_per_hour
 # 126
-expect Time.from_iso_str("0000+1400") == Ok(Time.from_hms(-14, 0, 0))
-expect Time.from_iso_str("0000+1400")? |> Time.to_nanos_since_midnight == -14 * Const.nanos_per_hour
+expect Time.from_iso_str("0000+1400") == Ok(Time.from_hms(10, 0, 0)?)
+expect Time.from_iso_str_with_day_offset("0000+1400") == Ok({ time: Time.from_hms(10, 0, 0)?, day_offset: -1 })
 # 127
-expect Time.from_iso_str("T24-1200") == Ok(Time.from_hms(36, 0, 0))
-expect Time.from_iso_str("T24-1200")? |> Time.to_nanos_since_midnight == 36 * Const.nanos_per_hour
+expect Time.from_iso_str("T24-1200") == Ok(Time.from_hms(12, 0, 0)?)
+expect Time.from_iso_str_with_day_offset("T24-1200") == Ok({ time: Time.from_hms(12, 0, 0)?, day_offset: 1 })
 # 128
 expect Time.from_iso_str("1200+1401") == Err(InvalidTimeFormat)
 # 129

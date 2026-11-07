@@ -37,8 +37,7 @@ Now(a) :: { now! : () => a, now_to_nanos : a -> I128 }.{
 	time_from = |val, now_to_nanos| {
 		nanos = val |> now_to_nanos
 		day = Const.nanos_per_day.to_i128()
-		((nanos % day + day) % day).to_i64_wrap()
-			|> Time.from_nanos_since_midnight
+		Time.midnight.add_nanoseconds(((nanos % day + day) % day).to_i64_wrap())
 	}
 
 	## Get the current system time as a `DateTime`.
@@ -94,10 +93,10 @@ expect {
 expect {
 	nanos = (Const.nanos_per_day + Const.nanos_per_hour + Const.nanos_per_minute + Const.nanos_per_second + 500_000_000).to_i128()
 	mock_now = create_mock_now(nanos)
-	Now.time_from(nanos, mock_now.now_to_nanos) == Time.from_hmsn(1, 1, 1, 500_000_000)
+	Now.time_from(nanos, mock_now.now_to_nanos) == Time.from_hmsn(1, 1, 1, 500_000_000)?
 }
 
 expect {
 	mock_now = create_mock_now(-1)
-	Now.time_from(-1.I128, mock_now.now_to_nanos) == Time.from_hmsn(23, 59, 59, 999_999_999)
+	Now.time_from(-1.I128, mock_now.now_to_nanos) == Time.from_hmsn(23, 59, 59, 999_999_999)?
 }
