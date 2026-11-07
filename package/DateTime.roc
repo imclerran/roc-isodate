@@ -217,6 +217,20 @@ DateTime :: { date : Date, time : Time }.{
 		Duration.from_nanoseconds(a_nanos - b_nanos)
 	}
 
+	## Let a string literal be used where a `DateTime` is expected, so the ISO 8601 date and time is checked at compile time.
+	## ```
+	## launch : DateTime
+	## launch = "2024-03-15T09:30:00"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(DateTime, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match from_iso_str(raw) {
+			Ok(date_time) => Ok(date_time)
+			Err(InvalidDateTimeFormat) => Err(BadQuotedBytes("expected an ISO 8601 date and time, such as 2024-03-15T09:30:00, but got ${raw}"))
+		}
+	}
+
 	## Convert a `DateTime` object to an ISO 8601 string.
 	to_iso_str : DateTime -> Str
 	to_iso_str = |date_time| {
@@ -331,6 +345,15 @@ expect {
 expect Str.inspect(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?) == "2024-03-15T09:30:00"
 expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) == "2024-03-15T09:30:00,25"
 expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
+
+# <---- from_quote ---->
+expect {
+	dt : DateTime
+	dt = "2024-03-15T09:30:00"
+	dt == DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?
+}
+expect DateTime.from_quote("2024-03-15T").is_err()
+expect DateTime.from_quote("not a date time").is_err()
 
 # <---- to_hash ---->
 expect {

@@ -49,6 +49,31 @@ Month := [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec].{
 		}
 	}
 
+	## Let a string literal be used where a `Month` is expected. Both the three-letter abbreviation and the full English name are accepted.
+	## ```
+	## start : Month
+	## start = "March"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(Month, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match raw {
+			"Jan" | "January" => Ok(Jan)
+			"Feb" | "February" => Ok(Feb)
+			"Mar" | "March" => Ok(Mar)
+			"Apr" | "April" => Ok(Apr)
+			"May" => Ok(May)
+			"Jun" | "June" => Ok(Jun)
+			"Jul" | "July" => Ok(Jul)
+			"Aug" | "August" => Ok(Aug)
+			"Sep" | "September" => Ok(Sep)
+			"Oct" | "October" => Ok(Oct)
+			"Nov" | "November" => Ok(Nov)
+			"Dec" | "December" => Ok(Dec)
+			_ => Err(BadQuotedBytes("expected a month name such as Mar or March, but got ${raw}"))
+		}
+	}
+
 	## The month after this one. December wraps around to January.
 	next : Month -> Month
 	next = |month| {
@@ -131,3 +156,18 @@ expect Month.all.map(|m| m.next().prev()) == Month.all
 expect Dict.empty().insert(Month.from_u8(3)?, "spring").get(Mar) == Ok("spring")
 expect Set.from_list(Month.all).len() == 12
 expect Set.from_list([Jan, Jan, Dec]).len() == 2
+
+# <---- from_quote ---->
+expect {
+	m : Month
+	m = "March"
+	m == Mar
+}
+expect {
+	m : Month
+	m = "Sep"
+	m == Sep
+}
+expect Month.all.map(|m| Month.from_quote(Str.inspect(m))) == Month.all.map(|m| Ok(m))
+expect Month.from_quote("Smarch").is_err()
+expect Month.from_quote("march").is_err()

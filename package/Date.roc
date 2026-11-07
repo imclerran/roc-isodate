@@ -341,6 +341,20 @@ Date :: {
 		Duration.from_nanoseconds(a_nanos - b_nanos)
 	}
 
+	## Let a string literal be used where a `Date` is expected, so the ISO 8601 date is checked at compile time.
+	## ```
+	## release : Date
+	## release = "2024-03-15"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(Date, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match from_iso_str(raw) {
+			Ok(date) => Ok(date)
+			Err(InvalidDateFormat) => Err(BadQuotedBytes("expected an ISO 8601 date, such as 2024-03-15, but got ${raw}"))
+		}
+	}
+
 	## Convert the given `Date` to an ISO 8601 string.
 	to_iso_str : Date -> Str
 	to_iso_str = |date| {
@@ -795,6 +809,20 @@ expect Str.inspect(Date.from_ymd(2024, 3, 15)?) == "2024-03-15"
 expect Str.inspect(Date.unix_epoch) == "1970-01-01"
 expect Str.inspect(Date.lowest) == Date.lowest.to_iso_str()
 expect Str.inspect({ when: Date.from_ymd(2024, 3, 15)? }) == "{ when: 2024-03-15 }"
+
+# <---- from_quote ---->
+expect {
+	d : Date
+	d = "2024-03-15"
+	d == Date.from_ymd(2024, 3, 15)?
+}
+expect {
+	d : Date
+	d = "2024-W11-5"
+	d == Date.from_ymd(2024, 3, 15)?
+}
+expect Date.from_quote("2024-13-01").is_err()
+expect Date.from_quote("not a date").is_err()
 
 # <---- to_hash ---->
 expect {

@@ -255,6 +255,20 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 		Duration.from_nanoseconds((a_nanos - b_nanos).to_i128())
 	}
 
+	## Let a string literal be used where a `Time` is expected, so the ISO 8601 time is checked at compile time.
+	## ```
+	## standup : Time
+	## standup = "09:30:00"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(Time, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match from_iso_str(raw) {
+			Ok(time) => Ok(time)
+			Err(InvalidTimeFormat) => Err(BadQuotedBytes("expected an ISO 8601 time, such as 09:30:00, but got ${raw}"))
+		}
+	}
+
 	## Convert a `Time` object to an ISO 8601 string.
 	to_iso_str : Time -> Str
 	to_iso_str = |time| {
@@ -659,6 +673,19 @@ expect Str.inspect(Time.from_hms(9, 30, 0)) == "09:30:00"
 expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)) == "09:30:00,5"
 expect Str.inspect(Time.midnight) == "00:00:00"
 expect Str.inspect([Time.from_hms(1, 2, 3)]) == "[01:02:03]"
+
+# <---- from_quote ---->
+expect {
+	t : Time
+	t = "09:30:00"
+	t == Time.from_hms(9, 30, 0)
+}
+expect {
+	t : Time
+	t = "09:30:00,5"
+	t == Time.from_hmsn(9, 30, 0, 500_000_000)
+}
+expect Time.from_quote("not a time").is_err()
 
 # <---- to_hash ---->
 expect {
