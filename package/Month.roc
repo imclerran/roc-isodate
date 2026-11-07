@@ -199,6 +199,10 @@ expect {
 expect Month.all.map(|m| Month.from_quote(Str.inspect(m))) == Month.all.map(|m| Ok(m))
 expect Month.from_quote("Smarch").is_err()
 expect Month.from_quote("march").is_err()
+expect Month.from_quote("Sept").is_err()
+expect Month.from_quote("").is_err()
+# The round trip above relies on Month's native inspect output being the short tag name.
+expect Str.inspect(Mar) == "Mar"
 
 # <---- ordering ---->
 expect {

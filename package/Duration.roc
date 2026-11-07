@@ -498,6 +498,8 @@ expect Str.inspect(Duration.from_hmsn(0, 0, 0, 500_000_000)) == "PT0,5S"
 expect Str.inspect(Duration.from_hmsn(1, 2, 3, 4)) == "PT1H2M3,000000004S"
 expect Str.inspect(Duration.from_seconds(-90)) == "-PT1M30S"
 expect Str.inspect(Duration.from_days(-1).sub(Duration.from_nanoseconds(1))) == "-P1DT0,000000001S"
+expect Str.inspect([Duration.from_minutes(5), Duration.from_days(-2)]) == "[PT5M, -P2D]"
+expect Str.inspect({ gap: Duration.from_nanoseconds(1) }) == "{ gap: PT0,000000001S }"
 
 # <---- arithmetic operators ---->
 expect Duration.from_minutes(90) + Duration.from_minutes(30) == Duration.from_hours(2)
@@ -508,8 +510,12 @@ expect -Duration.from_nanoseconds(0) == Duration.from_nanoseconds(0)
 expect Duration.from_minutes(90) * 2 == Duration.from_hours(3)
 expect Duration.from_minutes(90) * -1 == Duration.from_minutes(-90)
 expect Duration.from_minutes(90) * 0 == Duration.from_nanoseconds(0)
-# Scaling past the limit saturates instead of overflowing.
+# Arithmetic past either limit saturates instead of overflowing.
 expect Duration.from_days(I64.highest.to_i128()) * 2 == Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.lowest.to_i128()) * 2 == Duration.from_days(I64.lowest.to_i128())
+expect Duration.from_days(I64.highest.to_i128()) * -1 == -Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.highest.to_i128()) + Duration.from_days(1) == Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.lowest.to_i128()) - Duration.from_days(1) == Duration.from_days(I64.lowest.to_i128())
 expect Duration.from_hours(3) / 2 == Duration.from_minutes(90)
 expect Duration.from_nanoseconds(7) / 2 == Duration.from_nanoseconds(3)
 expect Duration.from_nanoseconds(-7) / 2 == Duration.from_nanoseconds(-3)

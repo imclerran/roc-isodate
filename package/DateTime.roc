@@ -370,12 +370,16 @@ expect {
 expect Str.inspect(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?) == "2024-03-15T09:30:00"
 expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) == "2024-03-15T09:30:00,25"
 expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
+expect Str.inspect([DateTime.unix_epoch]) == "[1970-01-01T00:00:00]"
 
 # <---- arithmetic operators ---->
 expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)? + Duration.from_hours(20) == DateTime.from_ymdhms(2024, 3, 16, 5, 30, 0)?
 expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)? - Duration.from_hours(10) == DateTime.from_ymdhms(2024, 3, 14, 23, 30, 0)?
 expect DateTime.unix_epoch - Duration.from_nanoseconds(1) == DateTime.from_iso_str("1969-12-31T23:59:59,999999999")?
 expect (DateTime.unix_epoch + Duration.from_days(400)) - Duration.from_days(400) == DateTime.unix_epoch
+# The operators saturate at the DateTime bounds, like the rest of date arithmetic.
+expect DateTime.highest + Duration.from_days(1) == DateTime.highest
+expect DateTime.lowest - Duration.from_days(1) == DateTime.lowest
 
 # <---- min / max ---->
 expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.min(DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?) == DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?
