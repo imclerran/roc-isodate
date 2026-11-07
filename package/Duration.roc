@@ -95,13 +95,40 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	nanoseconds : Duration -> I32
 	nanoseconds = |duration| duration.nanoseconds
 
-	## Add two `Duration` objects.
+	## Add two `Duration`s. Same as [`plus`](Duration#plus), which backs the `+` operator.
 	add : Duration, Duration -> Duration
 	add = |d1, d2| {
 		nanos1 = to_nanoseconds(d1)
 		nanos2 = to_nanoseconds(d2)
 		nanos1.plus_saturated(nanos2) |> from_nanoseconds
 	}
+
+	## Add two `Duration`s. Backs the `+` operator. Same as [`add`](Duration#add).
+	plus : Duration, Duration -> Duration
+	plus = add
+
+	## Subtract the second `Duration` from the first. Backs the `-` operator. Same as [`sub`](Duration#sub).
+	minus : Duration, Duration -> Duration
+	minus = sub
+
+	## Flip the sign of a `Duration`. Backs unary `-`.
+	negate : Duration -> Duration
+	negate = |d| from_nanoseconds(to_nanoseconds(d).negate())
+
+	## Scale a `Duration` by a whole number, saturating at the `Duration` limits. Backs the `*` operator.
+	## ```
+	## Duration.from_minutes(90) * 2 == Duration.from_hours(3)
+	## ```
+	times : Duration, I64 -> Duration
+	times = |d, n| from_nanoseconds(to_nanoseconds(d).times_saturated(n.to_i128()))
+
+	## Divide a `Duration` by a whole number, truncating toward zero like integer division. Backs the `/` operator.
+	## Dividing by zero crashes, as it does for the builtin number types.
+	## ```
+	## Duration.from_hours(3) / 2 == Duration.from_minutes(90)
+	## ```
+	div_by : Duration, I64 -> Duration
+	div_by = |d, n| from_nanoseconds(to_nanoseconds(d) // n.to_i128())
 
 	## Format a `Time` object according to the given format string.
 	## The following placeholders are supported:
@@ -301,7 +328,7 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 		}
 	}
 
-	## Subtract two `Duration` objects.
+	## Subtract the second `Duration` from the first. Same as [`minus`](Duration#minus), which backs the `-` operator.
 	sub : Duration, Duration -> Duration
 	sub = |d1, d2| {
 		nanos1 = to_nanoseconds(d1)
@@ -459,6 +486,22 @@ expect Str.inspect(Duration.from_hmsn(0, 0, 0, 500_000_000)) == "PT0,5S"
 expect Str.inspect(Duration.from_hmsn(1, 2, 3, 4)) == "PT1H2M3,000000004S"
 expect Str.inspect(Duration.from_seconds(-90)) == "-PT1M30S"
 expect Str.inspect(Duration.from_days(-1).sub(Duration.from_nanoseconds(1))) == "-P1DT0,000000001S"
+
+# <---- arithmetic operators ---->
+expect Duration.from_minutes(90) + Duration.from_minutes(30) == Duration.from_hours(2)
+expect Duration.from_hours(2) - Duration.from_minutes(30) == Duration.from_minutes(90)
+expect -Duration.from_minutes(90) == Duration.from_minutes(-90)
+expect -(-Duration.from_minutes(90)) == Duration.from_minutes(90)
+expect -Duration.from_nanoseconds(0) == Duration.from_nanoseconds(0)
+expect Duration.from_minutes(90) * 2 == Duration.from_hours(3)
+expect Duration.from_minutes(90) * -1 == Duration.from_minutes(-90)
+expect Duration.from_minutes(90) * 0 == Duration.from_nanoseconds(0)
+# Scaling past the limit saturates instead of overflowing.
+expect Duration.from_days(I64.highest.to_i128()) * 2 == Duration.from_days(I64.highest.to_i128())
+expect Duration.from_hours(3) / 2 == Duration.from_minutes(90)
+expect Duration.from_nanoseconds(7) / 2 == Duration.from_nanoseconds(3)
+expect Duration.from_nanoseconds(-7) / 2 == Duration.from_nanoseconds(-3)
+expect Duration.from_hours(3) / -3 == Duration.from_hours(-1)
 
 # <---- ordering ---->
 expect Duration.from_minutes(90) < Duration.from_hours(2)

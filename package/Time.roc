@@ -48,11 +48,21 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	nanosecond : Time -> U32
 	nanosecond = |time| time.nanosecond
 
-	## Same as [`add_duration`](Time#add_duration)
+	## Same as [`add_duration`](Time#add_duration) and [`plus`](Time#plus).
 	add : Time, Duration -> Time
 	add = add_duration
 
+	## Add a `Duration` to a `Time`. Backs the `+` operator. Same as [`add_duration`](Time#add_duration).
+	plus : Time, Duration -> Time
+	plus = add_duration
+
+	## Subtract a `Duration` from a `Time`, wrapping around midnight. Backs the `-` operator.
+	## To get the `Duration` between two `Time`s, use [`sub`](Time#sub) instead.
+	minus : Time, Duration -> Time
+	minus = |time, duration| add_duration(time, duration.negate())
+
 	## Add a `Duration` to a `Time`, wrapping around midnight: `23:00:00` plus two hours is `01:00:00`.
+	## Same as [`plus`](Time#plus), which backs the `+` operator.
 	## Use [`add_duration_with_day_offset`](Time#add_duration_with_day_offset) to also learn how many days were crossed.
 	add_duration : Time, Duration -> Time
 	add_duration = |time, duration| add_nanos_i128(time, duration.to_nanoseconds()).time
@@ -256,6 +266,7 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	normalize = |time| time
 
 	## Subtract two `Time` objects to get the `Duration` between them. The result is negative when the first is earlier.
+	## This is not the `-` operator: `time - duration` calls [`minus`](Time#minus) and gives a `Time`.
 	sub : Time, Time -> Duration
 	sub = |a, b| {
 		a_nanos = to_nanos_since_midnight(a)
@@ -681,6 +692,12 @@ expect Str.inspect(Time.from_hms(9, 30, 0)) == "09:30:00"
 expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)) == "09:30:00,5"
 expect Str.inspect(Time.midnight) == "00:00:00"
 expect Str.inspect([Time.from_hms(1, 2, 3)]) == "[01:02:03]"
+
+# <---- arithmetic operators ---->
+expect Time.from_hms(9, 30, 0) + Duration.from_minutes(45) == Time.from_hms(10, 15, 0)
+expect Time.from_hms(9, 30, 0) - Duration.from_minutes(45) == Time.from_hms(8, 45, 0)
+expect Time.from_hms(9, 30, 0) - Duration.from_hmsn(0, 0, 0, 500_000_000) == Time.from_hmsn(9, 29, 59, 500_000_000)
+expect (Time.from_hms(9, 30, 0) + Duration.from_minutes(45)) - Duration.from_minutes(45) == Time.from_hms(9, 30, 0)
 
 # <---- min / max ---->
 expect Time.from_hms(9, 30, 0).min(Time.from_hms(13, 0, 0)) == Time.from_hms(9, 30, 0)
