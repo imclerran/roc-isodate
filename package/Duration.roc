@@ -111,9 +111,21 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	minus : Duration, Duration -> Duration
 	minus = sub
 
+	## The zero `Duration`. This is what `List.sum` and `Iter.sum` start from, so a list of `Duration`s can be summed:
+	## ```
+	## [Duration.from_minutes(90), Duration.from_minutes(30)].sum() == Duration.from_hours(2)
+	## ```
+	default : () -> Duration
+	default = || from_nanoseconds(0)
+
 	## Flip the sign of a `Duration`. Backs unary `-`.
 	negate : Duration -> Duration
 	negate = |d| from_nanoseconds(to_nanoseconds(d).negate())
+
+	## The magnitude of a `Duration`, dropping its sign. Useful after [`sub`](Duration#sub) or `Time.sub`
+	## when you want the gap between two values without caring which came first.
+	abs : Duration -> Duration
+	abs = |d| from_nanoseconds(to_nanoseconds(d).abs())
 
 	## Scale a `Duration` by a whole number, saturating at the `Duration` limits. Backs the `*` operator.
 	## ```
@@ -502,6 +514,27 @@ expect Duration.from_hours(3) / 2 == Duration.from_minutes(90)
 expect Duration.from_nanoseconds(7) / 2 == Duration.from_nanoseconds(3)
 expect Duration.from_nanoseconds(-7) / 2 == Duration.from_nanoseconds(-3)
 expect Duration.from_hours(3) / -3 == Duration.from_hours(-1)
+
+# <---- default / sum ---->
+expect Duration.default() == Duration.from_nanoseconds(0)
+expect [Duration.from_minutes(90), Duration.from_minutes(30)].sum() == Duration.from_hours(2)
+expect [Duration.from_hours(1), Duration.from_minutes(-90)].sum() == Duration.from_minutes(-30)
+expect {
+	none : List(Duration)
+	none = []
+	none.sum() == Duration.default()
+}
+expect [Duration.from_minutes(90), Duration.from_minutes(30)].iter().sum() == Duration.from_hours(2)
+# Summing saturates like the rest of Duration arithmetic.
+expect [Duration.from_days(I64.highest.to_i128()), Duration.from_days(1)].sum() == Duration.from_days(I64.highest.to_i128())
+
+# <---- abs ---->
+expect Duration.from_minutes(-90).abs() == Duration.from_minutes(90)
+expect Duration.from_minutes(90).abs() == Duration.from_minutes(90)
+expect Duration.from_nanoseconds(0).abs() == Duration.from_nanoseconds(0)
+expect Duration.from_hmsn(-1, -2, -3, -4).abs() == Duration.from_hmsn(1, 2, 3, 4)
+expect Duration.from_days(I64.lowest.to_i128()).abs() == Duration.from_days(I64.highest.to_i128())
+expect Duration.sub(Duration.from_minutes(30), Duration.from_hours(1)).abs() == Duration.from_minutes(30)
 
 # <---- ordering ---->
 expect Duration.from_minutes(90) < Duration.from_hours(2)

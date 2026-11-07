@@ -272,6 +272,14 @@ DateTime :: { date : Date, time : Time }.{
 	unix_epoch : DateTime
 	unix_epoch = { date: Date.unix_epoch, time: Time.midnight }
 
+	## The latest `DateTime` that can be represented: the last nanosecond of [`Date.highest`](Date#highest).
+	highest : DateTime
+	highest = { date: Date.highest, time: Time.highest }
+
+	## The earliest `DateTime` that can be represented: midnight on [`Date.lowest`](Date#lowest).
+	lowest : DateTime
+	lowest = { date: Date.lowest, time: Time.midnight }
+
 	## Get the day of the week for a `DateTime` object (0 = Sunday, 6 = Saturday).
 	weekday : DateTime -> U8
 	weekday = |dt| Date.weekday(dt.date)
@@ -513,6 +521,15 @@ expect {
 	base.add_hours(I64.highest) == { date: Date.highest, time: Time.from_hms(19, 0, 0)? }
 		and base.add_hours(I64.lowest) == { date: Date.lowest, time: Time.from_hms(4, 0, 0)? }
 }
+
+# <---- lowest / highest ---->
+expect DateTime.lowest.date() == Date.lowest and DateTime.lowest.time() == Time.midnight
+expect DateTime.highest.date() == Date.highest and DateTime.highest.time() == Time.highest
+expect DateTime.lowest < DateTime.unix_epoch and DateTime.unix_epoch < DateTime.highest
+expect DateTime.highest.add_nanoseconds(1).date() == Date.highest
+expect DateTime.lowest.add_nanoseconds(-1).date() == Date.lowest
+expect [DateTime.unix_epoch, DateTime.highest, DateTime.lowest].min() == Ok(DateTime.lowest)
+expect [DateTime.unix_epoch, DateTime.highest, DateTime.lowest].max() == Ok(DateTime.highest)
 
 # <---- comparison operators and sorting ---->
 expect {
