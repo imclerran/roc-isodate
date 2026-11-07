@@ -11,7 +11,12 @@ import Utils
 ## DateTime :: { date : Date, time: Time }
 ## ```
 DateTime :: { date : Date, time : Time }.{
+	## Are two DateTimes equal?
+	## Two values are equal only when all of their parts match, so normalize non-normalized values first if you want calendar equality.
 	is_eq : _
+
+	## Hash a `DateTime`, so it can be used as a `Dict` key or `Set` element. Agrees with [`is_eq`](DateTime#is_eq).
+	to_hash : _
 
 	## Show the `DateTime` as an ISO 8601 string, such as `2024-03-15T09:30:00`.
 	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
@@ -326,6 +331,14 @@ expect {
 expect Str.inspect(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?) == "2024-03-15T09:30:00"
 expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) == "2024-03-15T09:30:00,25"
 expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, "launch")
+	d.get(DateTime.from_iso_str("2024-03-15T09:30:00")?) == Ok("launch")
+}
+expect Set.from_list([DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.from_iso_str("2024-03-15T09:30:00")?]).len() == 1
+expect Set.from_list([DateTime.unix_epoch, DateTime.unix_epoch.add_seconds(1)]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {

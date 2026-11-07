@@ -21,7 +21,11 @@ import Utils
 Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 
 	## Are two Times equal?
+	## Two values are equal only when all of their parts match, so normalize non-normalized values first if you want calendar equality.
 	is_eq : _
+
+	## Hash a `Time`, so it can be used as a `Dict` key or `Set` element. Agrees with [`is_eq`](Time#is_eq).
+	to_hash : _
 
 	## Show the `Time` as an ISO 8601 string, such as `09:30:00` or `09:30:00,5`.
 	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
@@ -655,6 +659,14 @@ expect Str.inspect(Time.from_hms(9, 30, 0)) == "09:30:00"
 expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)) == "09:30:00,5"
 expect Str.inspect(Time.midnight) == "00:00:00"
 expect Str.inspect([Time.from_hms(1, 2, 3)]) == "[01:02:03]"
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(Time.from_hms(9, 30, 0), "standup")
+	d.get(Time.from_iso_str("09:30:00")?) == Ok("standup")
+}
+expect Set.from_list([Time.from_hms(9, 30, 0), Time.from_hmsn(9, 30, 0, 0), Time.from_nanos_since_midnight(34_200_000_000_000)]).len() == 1
+expect Set.from_list([Time.from_hms(9, 30, 0), Time.from_hms(9, 30, 1)]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {

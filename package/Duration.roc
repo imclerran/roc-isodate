@@ -17,6 +17,9 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	## Are two Durations equal?
 	is_eq : _
 
+	## Hash a `Duration`, so it can be used as a `Dict` key or `Set` element.
+	to_hash : _
+
 	## Show the `Duration` as an ISO 8601 duration string, such as `P1DT2H3M4,5S`.
 	## Zero components are left out, a zero `Duration` is `PT0S`, and a negative `Duration` is prefixed with `-`.
 	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
@@ -428,6 +431,14 @@ expect Str.inspect(Duration.from_hmsn(0, 0, 0, 500_000_000)) == "PT0,5S"
 expect Str.inspect(Duration.from_hmsn(1, 2, 3, 4)) == "PT1H2M3,000000004S"
 expect Str.inspect(Duration.from_seconds(-90)) == "-PT1M30S"
 expect Str.inspect(Duration.from_days(-1).sub(Duration.from_nanoseconds(1))) == "-P1DT0,000000001S"
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(Duration.from_hms(1, 30, 0), "lunch")
+	d.get(Duration.from_minutes(90)) == Ok("lunch")
+}
+expect Set.from_list([Duration.from_hms(1, 30, 0), Duration.from_minutes(90), Duration.from_seconds(5400)]).len() == 1
+expect Set.from_list([Duration.from_minutes(90), Duration.from_minutes(91)]).len() == 2
 
 # <---- to_* conversions ---->
 expect {

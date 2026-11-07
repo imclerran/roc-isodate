@@ -11,6 +11,9 @@ Month := [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec].{
 	## Are two Months equal?
 	is_eq : _
 
+	## Hash a `Month`, so it can be used as a `Dict` key or `Set` element.
+	to_hash : _
+
 	## All twelve months, in calendar order.
 	all : List(Month)
 	all = [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec]
@@ -123,3 +126,8 @@ expect Month.from_u8(255) == Err(InvalidMonth)
 expect Month.all.map(Month.next) == [Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec, Jan]
 expect Month.all.map(Month.prev) == [Dec, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov]
 expect Month.all.map(|m| m.next().prev()) == Month.all
+
+# <---- to_hash ---->
+expect Dict.empty().insert(Month.from_u8(3)?, "spring").get(Mar) == Ok("spring")
+expect Set.from_list(Month.all).len() == 12
+expect Set.from_list([Jan, Jan, Dec]).len() == 2

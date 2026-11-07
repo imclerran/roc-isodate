@@ -24,8 +24,10 @@ Date :: {
 }.{
 
 	## Are two Dates equal?
-	is_eq : Date, Date -> Bool
-	is_eq = |a, b| a.year == b.year and a.day_of_year == b.day_of_year
+	is_eq : _
+
+	## Hash a `Date`, so it can be used as a `Dict` key or `Set` element.
+	to_hash : _
 
 	## Show the `Date` as an ISO 8601 string, such as `2024-03-15`.
 	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
@@ -793,6 +795,15 @@ expect Str.inspect(Date.from_ymd(2024, 3, 15)?) == "2024-03-15"
 expect Str.inspect(Date.unix_epoch) == "1970-01-01"
 expect Str.inspect(Date.lowest) == Date.lowest.to_iso_str()
 expect Str.inspect({ when: Date.from_ymd(2024, 3, 15)? }) == "{ when: 2024-03-15 }"
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(Date.from_ymd(2024, 3, 15)?, "launch")
+	d.get(Date.from_iso_str("2024-03-15")?) == Ok("launch")
+}
+# The same date built three different ways is one Set element.
+expect Set.from_list([Date.from_ymd(2024, 3, 15)?, Date.from_yd(2024, 75)?, Date.from_days_since_epoch(19_797)]).len() == 1
+expect Set.from_list([Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2024, 3, 16)?]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {
