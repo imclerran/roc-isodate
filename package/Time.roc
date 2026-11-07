@@ -20,8 +20,7 @@ import Utils
 ## or [`from_iso_str_with_day_offset`](Time#from_iso_str_with_day_offset).
 Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 
-	## Are two Times equal?
-	## Two values are equal only when all of their parts match, so normalize non-normalized values first if you want calendar equality.
+	## Are two Times equal? Two values are equal only when all of their parts match.
 	is_eq : _
 
 	## Hash a `Time`, so it can be used as a `Dict` key or `Set` element. Agrees with [`is_eq`](Time#is_eq).
@@ -688,44 +687,47 @@ expect {
 }
 
 # <---- to_inspect ---->
-expect Str.inspect(Time.from_hms(9, 30, 0)) == "09:30:00"
-expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)) == "09:30:00,5"
+expect Str.inspect(Time.from_hms(9, 30, 0)?) == "09:30:00"
+expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)?) == "09:30:00,5"
 expect Str.inspect(Time.midnight) == "00:00:00"
-expect Str.inspect([Time.from_hms(1, 2, 3)]) == "[01:02:03]"
+expect Str.inspect([Time.from_hms(1, 2, 3)?]) == "[01:02:03]"
 
 # <---- arithmetic operators ---->
-expect Time.from_hms(9, 30, 0) + Duration.from_minutes(45) == Time.from_hms(10, 15, 0)
-expect Time.from_hms(9, 30, 0) - Duration.from_minutes(45) == Time.from_hms(8, 45, 0)
-expect Time.from_hms(9, 30, 0) - Duration.from_hmsn(0, 0, 0, 500_000_000) == Time.from_hmsn(9, 29, 59, 500_000_000)
-expect (Time.from_hms(9, 30, 0) + Duration.from_minutes(45)) - Duration.from_minutes(45) == Time.from_hms(9, 30, 0)
+expect Time.from_hms(9, 30, 0)? + Duration.from_minutes(45) == Time.from_hms(10, 15, 0)?
+expect Time.from_hms(9, 30, 0)? - Duration.from_minutes(45) == Time.from_hms(8, 45, 0)?
+expect Time.from_hms(9, 30, 0)? - Duration.from_hmsn(0, 0, 0, 500_000_000) == Time.from_hmsn(9, 29, 59, 500_000_000)?
+expect (Time.from_hms(9, 30, 0)? + Duration.from_minutes(45)) - Duration.from_minutes(45) == Time.from_hms(9, 30, 0)?
+# Both operators wrap around midnight.
+expect Time.from_hms(23, 30, 0)? + Duration.from_hours(1) == Time.from_hms(0, 30, 0)?
+expect Time.from_hms(0, 30, 0)? - Duration.from_hours(1) == Time.from_hms(23, 30, 0)?
 
 # <---- min / max ---->
-expect Time.from_hms(9, 30, 0).min(Time.from_hms(13, 0, 0)) == Time.from_hms(9, 30, 0)
-expect Time.from_hms(9, 30, 0).max(Time.from_hms(13, 0, 0)) == Time.from_hms(13, 0, 0)
-expect [Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0), Time.from_hms(0, 0, 1)].min() == Ok(Time.from_hms(0, 0, 1))
-expect [Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0), Time.from_hms(0, 0, 1)].max() == Ok(Time.from_hms(13, 0, 0))
-expect [Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0), Time.from_hms(0, 0, 1)].sort() == [Time.from_hms(0, 0, 1), Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0)]
+expect Time.from_hms(9, 30, 0)?.min(Time.from_hms(13, 0, 0)?) == Time.from_hms(9, 30, 0)?
+expect Time.from_hms(9, 30, 0)?.max(Time.from_hms(13, 0, 0)?) == Time.from_hms(13, 0, 0)?
+expect [Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?, Time.from_hms(0, 0, 1)?].min() == Ok(Time.from_hms(0, 0, 1)?)
+expect [Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?, Time.from_hms(0, 0, 1)?].max() == Ok(Time.from_hms(13, 0, 0)?)
+expect [Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?, Time.from_hms(0, 0, 1)?].sort() == [Time.from_hms(0, 0, 1)?, Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?]
 
 # <---- from_quote ---->
 expect {
 	t : Time
 	t = "09:30:00"
-	t == Time.from_hms(9, 30, 0)
+	t == Time.from_hms(9, 30, 0)?
 }
 expect {
 	t : Time
 	t = "09:30:00,5"
-	t == Time.from_hmsn(9, 30, 0, 500_000_000)
+	t == Time.from_hmsn(9, 30, 0, 500_000_000)?
 }
 expect Time.from_quote("not a time").is_err()
 
 # <---- to_hash ---->
 expect {
-	d = Dict.empty().insert(Time.from_hms(9, 30, 0), "standup")
+	d = Dict.empty().insert(Time.from_hms(9, 30, 0)?, "standup")
 	d.get(Time.from_iso_str("09:30:00")?) == Ok("standup")
 }
-expect Set.from_list([Time.from_hms(9, 30, 0), Time.from_hmsn(9, 30, 0, 0), Time.from_nanos_since_midnight(34_200_000_000_000)]).len() == 1
-expect Set.from_list([Time.from_hms(9, 30, 0), Time.from_hms(9, 30, 1)]).len() == 2
+expect Set.from_list([Time.from_hms(9, 30, 0)?, Time.from_hmsn(9, 30, 0, 0)?, Time.from_nanos_since_midnight(34_200_000_000_000)?]).len() == 1
+expect Set.from_list([Time.from_hms(9, 30, 0)?, Time.from_hms(9, 30, 1)?]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {

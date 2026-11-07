@@ -11,8 +11,7 @@ import Utils
 ## DateTime :: { date : Date, time: Time }
 ## ```
 DateTime :: { date : Date, time : Time }.{
-	## Are two DateTimes equal?
-	## Two values are equal only when all of their parts match, so normalize non-normalized values first if you want calendar equality.
+	## Are two DateTimes equal? Two values are equal only when all of their parts match.
 	is_eq : _
 
 	## Hash a `DateTime`, so it can be used as a `Dict` key or `Set` element. Agrees with [`is_eq`](DateTime#is_eq).
