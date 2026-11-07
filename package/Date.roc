@@ -286,11 +286,13 @@ Date :: {
 		}
 	}
 
-	## Create a `Date` object from the given year, month, and day of the month.
-	## Returns `Err(YearOutOfRange)` if the year is outside the supported range, or `Err(InvalidDayOfMonth)` if the day is 0 or past the end of that month.
-	from_ymd : I64, Month, U8 -> Try(Date, [YearOutOfRange, InvalidDayOfMonth])
-	from_ymd = |y, m, d| {
+	## Create a `Date` object from the given year, month number (1 = January, 12 = December), and day of the month.
+	## Returns `Err(YearOutOfRange)` if the year is outside the supported range, `Err(InvalidMonth)` if the month is outside 1 to 12,
+	## or `Err(InvalidDayOfMonth)` if the day is 0 or past the end of that month.
+	from_ymd : I64, U8, U8 -> Try(Date, [YearOutOfRange, InvalidMonth, InvalidDayOfMonth])
+	from_ymd = |y, month_num, d| {
 		check_year(y)?
+		m = Month.from_u8(month_num)?
 		if d == 0 or d > days_in_month(y, m) {
 			Err(InvalidDayOfMonth)
 		} else {
@@ -492,7 +494,7 @@ signed_leap_years_since_epoch = |year| {
 parse_calendar_date_century : List(U8) -> Try(Date, [InvalidDateFormat])
 parse_calendar_date_century = |bytes| {
 	match Utils.utf8_to_int_signed(bytes) {
-		Ok(century) => Date.from_ymd(century * 100, Jan, 1) |> or_invalid_format
+		Ok(century) => Date.from_ymd(century * 100, 1, 1) |> or_invalid_format
 		_ => Err(InvalidDateFormat)
 	}
 }
@@ -500,7 +502,7 @@ parse_calendar_date_century = |bytes| {
 parse_calendar_date_year : List(U8) -> Try(Date, [InvalidDateFormat])
 parse_calendar_date_year = |bytes| {
 	match Utils.utf8_to_int_signed(bytes) {
-		Ok(year) => Date.from_ymd(year, Jan, 1) |> or_invalid_format
+		Ok(year) => Date.from_ymd(year, 1, 1) |> or_invalid_format
 		_ => Err(InvalidDateFormat)
 	}
 }
@@ -509,23 +511,10 @@ parse_calendar_date_month : List(U8) -> Try(Date, [InvalidDateFormat])
 parse_calendar_date_month = |bytes| {
 	match Utils.split_at_indices(bytes, [4, 5]) {
 		[year_bytes, _, month_bytes] => {
-			match (Utils.utf8_to_int_signed(year_bytes), parse_month(month_bytes)) {
-				(Ok(year), Ok(month)) => Date.from_ymd(year, month, 1) |> or_invalid_format
+			match (Utils.utf8_to_int_signed(year_bytes), Utils.utf8_to_int(month_bytes)) {
+				# Two month digits always fit in a U8; the constructor validates the range.
+				(Ok(year), Ok(month)) => Date.from_ymd(year, month.to_u8_wrap(), 1) |> or_invalid_format
 				_ => Err(InvalidDateFormat)
-			}
-		}
-		_ => Err(InvalidDateFormat)
-	}
-}
-
-## Parse a two-digit month, rejecting anything outside 1..12.
-parse_month : List(U8) -> Try(Month, [InvalidDateFormat])
-parse_month = |bytes| {
-	match Utils.utf8_to_int(bytes) {
-		Ok(n) if n <= 12 => {
-			match Month.from_u8(n.to_u8_wrap()) {
-				Ok(month) => Ok(month)
-				Err(InvalidMonth) => Err(InvalidDateFormat)
 			}
 		}
 		_ => Err(InvalidDateFormat)
@@ -620,9 +609,9 @@ parse_calendar_date_basic : List(U8) -> Try(Date, [InvalidDateFormat])
 parse_calendar_date_basic = |bytes| {
 	match Utils.split_at_indices(bytes, [4, 6]) {
 		[year_bytes, month_bytes, day_bytes] => {
-			match (Utils.utf8_to_int(year_bytes), parse_month(month_bytes), Utils.utf8_to_int(day_bytes)) {
-				# Four year digits and two day digits always fit; the constructor validates the range.
-				(Ok(y), Ok(m), Ok(d)) => Date.from_ymd(y.to_i64_wrap(), m, d.to_u8_wrap()) |> or_invalid_format
+			match (Utils.utf8_to_int(year_bytes), Utils.utf8_to_int(month_bytes), Utils.utf8_to_int(day_bytes)) {
+				# Four year digits and two month and day digits always fit; the constructor validates the ranges.
+				(Ok(y), Ok(m), Ok(d)) => Date.from_ymd(y.to_i64_wrap(), m.to_u8_wrap(), d.to_u8_wrap()) |> or_invalid_format
 				_ => Err(InvalidDateFormat)
 			}
 		}
@@ -634,9 +623,9 @@ parse_calendar_date_extended : List(U8) -> Try(Date, [InvalidDateFormat])
 parse_calendar_date_extended = |bytes| {
 	match Utils.split_at_indices(bytes, [4, 5, 7, 8]) {
 		[year_bytes, _, month_bytes, _, day_bytes] => {
-			match (Utils.utf8_to_int_signed(year_bytes), parse_month(month_bytes), Utils.utf8_to_int(day_bytes)) {
-				# Two day digits always fit in a U8; the constructor validates the range.
-				(Ok(y), Ok(m), Ok(d)) => Date.from_ymd(y, m, d.to_u8_wrap()) |> or_invalid_format
+			match (Utils.utf8_to_int_signed(year_bytes), Utils.utf8_to_int(month_bytes), Utils.utf8_to_int(day_bytes)) {
+				# Two month and day digits always fit in a U8; the constructor validates the ranges.
+				(Ok(y), Ok(m), Ok(d)) => Date.from_ymd(y, m.to_u8_wrap(), d.to_u8_wrap()) |> or_invalid_format
 				_ => Err(InvalidDateFormat)
 			}
 		}
@@ -665,44 +654,44 @@ months_before = |month| Month.all.take_first(month.to_u8().to_u64() - 1)
 
 # <===== TESTS ====>
 # <---- add_days ---->
-expect Date.add_days(Date.unix_epoch, 365) == Date.from_ymd(1971, Jan, 1)?
-expect Date.add_days(Date.unix_epoch, (365 * 2)) == Date.from_ymd(1972, Jan, 1)?
-expect Date.add_days(Date.unix_epoch, (365 * 2 + 366)) == Date.from_ymd(1973, Jan, 1)?
-expect Date.add_days(Date.unix_epoch, -1) == Date.from_ymd(1969, Dec, 31)?
-expect Date.add_days(Date.unix_epoch, -365) == Date.from_ymd(1969, Jan, 1)?
-expect Date.add_days(Date.unix_epoch, (-365 - 1)) == Date.from_ymd(1968, Dec, 31)?
-expect Date.add_days(Date.unix_epoch, (-365 - 366)) == Date.from_ymd(1968, Jan, 1)?
+expect Date.add_days(Date.unix_epoch, 365) == Date.from_ymd(1971, 1, 1)?
+expect Date.add_days(Date.unix_epoch, (365 * 2)) == Date.from_ymd(1972, 1, 1)?
+expect Date.add_days(Date.unix_epoch, (365 * 2 + 366)) == Date.from_ymd(1973, 1, 1)?
+expect Date.add_days(Date.unix_epoch, -1) == Date.from_ymd(1969, 12, 31)?
+expect Date.add_days(Date.unix_epoch, -365) == Date.from_ymd(1969, 1, 1)?
+expect Date.add_days(Date.unix_epoch, (-365 - 1)) == Date.from_ymd(1968, 12, 31)?
+expect Date.add_days(Date.unix_epoch, (-365 - 366)) == Date.from_ymd(1968, 1, 1)?
 
 expect Date.add_days(Date.unix_epoch, I64.highest) == Date.highest
 expect Date.add_days(Date.unix_epoch, I64.lowest) == Date.lowest
 expect Date.add_days(Date.highest, 1) == Date.highest
 expect Date.add_days(Date.lowest, -1) == Date.lowest
-expect Date.add_days(Date.highest, -1) == Date.from_ymd(Const.max_year, Dec, 30)?
-expect Date.add_days(Date.lowest, 1) == Date.from_ymd(Const.min_year, Jan, 2)?
+expect Date.add_days(Date.highest, -1) == Date.from_ymd(Const.max_year, 12, 30)?
+expect Date.add_days(Date.lowest, 1) == Date.from_ymd(Const.min_year, 1, 2)?
 
 # <---- add_duration ---->
-expect Date.add_duration(Date.unix_epoch, Duration.from_days(1)) == Date.from_ymd(1970, Jan, 2)?
+expect Date.add_duration(Date.unix_epoch, Duration.from_days(1)) == Date.from_ymd(1970, 1, 2)?
 expect Date.add_duration(Date.unix_epoch, Duration.from_days(I128.highest)) == Date.highest
 expect Date.add_duration(Date.unix_epoch, Duration.from_days(I128.lowest)) == Date.lowest
 
 # <---- add_months ---->
-expect Date.add_months(Date.unix_epoch, 12) == Date.from_ymd(1971, Jan, 1)?
-expect Date.add_months(Date.from_ymd(1970, Jan, 31)?, 1) == Date.from_ymd(1970, Feb, 28)?
-expect Date.add_months(Date.from_ymd(1972, Feb, 29)?, 12) == Date.from_ymd(1973, Feb, 28)?
-expect Date.add_months(Date.from_ymd(2024, Jan, 31)?, -1) == Date.from_ymd(2023, Dec, 31)?
-expect Date.add_months(Date.from_ymd(2024, Jan, 31)?, -11) == Date.from_ymd(2023, Feb, 28)?
-expect Date.add_months(Date.from_ymd(2024, Mar, 31)?, 25) == Date.from_ymd(2026, Apr, 30)?
-expect Date.add_months(Date.from_ymd(2024, Mar, 15)?, -27) == Date.from_ymd(2021, Dec, 15)?
+expect Date.add_months(Date.unix_epoch, 12) == Date.from_ymd(1971, 1, 1)?
+expect Date.add_months(Date.from_ymd(1970, 1, 31)?, 1) == Date.from_ymd(1970, 2, 28)?
+expect Date.add_months(Date.from_ymd(1972, 2, 29)?, 12) == Date.from_ymd(1973, 2, 28)?
+expect Date.add_months(Date.from_ymd(2024, 1, 31)?, -1) == Date.from_ymd(2023, 12, 31)?
+expect Date.add_months(Date.from_ymd(2024, 1, 31)?, -11) == Date.from_ymd(2023, 2, 28)?
+expect Date.add_months(Date.from_ymd(2024, 3, 31)?, 25) == Date.from_ymd(2026, 4, 30)?
+expect Date.add_months(Date.from_ymd(2024, 3, 15)?, -27) == Date.from_ymd(2021, 12, 15)?
 expect Month.all.map(|m| Date.add_months(unchecked_ymd(2024, m, 1), 12)) == Month.all.map(|m| unchecked_ymd(2025, m, 1))
 expect Month.all.map(|m| Date.add_months(unchecked_ymd(2024, m, 1), -12)) == Month.all.map(|m| unchecked_ymd(2023, m, 1))
 expect Date.add_months(Date.unix_epoch, I64.highest) == Date.highest
 expect Date.add_months(Date.unix_epoch, I64.lowest) == Date.lowest
 expect Date.add_months(Date.highest, 1) == Date.highest
 expect Date.add_months(Date.lowest, -1) == Date.lowest
-expect Date.add_months(Date.highest, -1) == Date.from_ymd(Const.max_year, Nov, 30)?
+expect Date.add_months(Date.highest, -1) == Date.from_ymd(Const.max_year, 11, 30)?
 expect Date.add_years(Date.unix_epoch, I64.highest) == Date.highest
 expect Date.add_years(Date.unix_epoch, I64.lowest) == Date.lowest
-expect Date.add_years(Date.highest, -1) == Date.from_ymd(Const.max_year - 1, Dec, 31)?
+expect Date.add_years(Date.highest, -1) == Date.from_ymd(Const.max_year - 1, 12, 31)?
 
 # <---- after ---->
 expect {
@@ -750,11 +739,11 @@ expect Date.calendar_week_to_days_in_year(2, 2024) == 7
 
 # <---- year / month / day_of_month / day_of_year ---->
 expect {
-	date = Date.from_ymd(2024, Feb, 29)?
+	date = Date.from_ymd(2024, 2, 29)?
 	date.year() == 2024 and date.month() == Feb and date.day_of_month() == 29 and date.day_of_year() == 60
 }
 expect {
-	date = Date.from_ymd(1969, Dec, 31)?
+	date = Date.from_ymd(1969, 12, 31)?
 	date.year() == 1969 and date.month() == Dec and date.day_of_month() == 31 and date.day_of_year() == 365
 }
 expect Date.unix_epoch.year() == 1970 and Date.unix_epoch.month() == Jan and Date.unix_epoch.day_of_month() == 1 and Date.unix_epoch.day_of_year() == 1
@@ -813,7 +802,7 @@ expect {
 
 # <---- format ---->
 expect {
-	date = Date.from_ymd(2024, Dec, 31)?
+	date = Date.from_ymd(2024, 12, 31)?
 	Date.format(date, "{YYYY}-{MM}-{DD}") == "2024-12-31" and
 		Date.format(date, "{MM}/{DD}/{YYYY}") == "12/31/2024" and
 			Date.format(date, "{YY}-{MM}-{DD}") == "24-12-31" and
@@ -839,9 +828,9 @@ expect Date.from_days_since_epoch(min_days_since_epoch) == Date.lowest
 expect Date.from_days_since_epoch(min_days_since_epoch - 1) == Date.lowest
 expect Month.all.map(|m| Date.from_days_since_epoch(num_days_since_epoch(unchecked_ymd(2023, m, 15)))) == Month.all.map(|m| unchecked_ymd(2023, m, 15))
 expect Month.all.map(|m| Date.from_days_since_epoch(num_days_since_epoch(unchecked_ymd(1969, m, 1)))) == Month.all.map(|m| unchecked_ymd(1969, m, 1))
-expect Date.from_days_since_epoch(num_days_since_epoch(Date.from_ymd(2024, Feb, 29)?)) == Date.from_ymd(2024, Feb, 29)?
-expect Date.from_days_since_epoch(num_days_since_epoch(Date.from_ymd(2024, Dec, 31)?)) == Date.from_ymd(2024, Dec, 31)?
-expect Date.from_days_since_epoch(num_days_since_epoch(Date.from_ymd(2025, Jan, 1)?)) == Date.from_ymd(2025, Jan, 1)?
+expect Date.from_days_since_epoch(num_days_since_epoch(Date.from_ymd(2024, 2, 29)?)) == Date.from_ymd(2024, 2, 29)?
+expect Date.from_days_since_epoch(num_days_since_epoch(Date.from_ymd(2024, 12, 31)?)) == Date.from_ymd(2024, 12, 31)?
+expect Date.from_days_since_epoch(num_days_since_epoch(Date.from_ymd(2025, 1, 1)?)) == Date.from_ymd(2025, 1, 1)?
 
 # <---- from_nanos_since_epoch ---->
 expect Date.from_nanos_since_epoch(0) == { year: 1970, month: Jan, day_of_month: 1, day_of_year: 1 }
@@ -866,8 +855,8 @@ expect Date.lowest.to_iso_str() == "-999999999-01-01"
 expect Date.lowest.before(Date.highest)
 
 # <---- from_yd ---->
-expect Date.from_yd(2024, 366)? == Date.from_ymd(2024, Dec, 31)?
-expect Date.from_yd(2023, 365)? == Date.from_ymd(2023, Dec, 31)?
+expect Date.from_yd(2024, 366)? == Date.from_ymd(2024, 12, 31)?
+expect Date.from_yd(2023, 365)? == Date.from_ymd(2023, 12, 31)?
 expect Date.from_yd(2023, 366) == Err(InvalidDayOfYear)
 expect Date.from_yd(2024, 367) == Err(InvalidDayOfYear)
 expect Date.from_yd(2024, 0) == Err(InvalidDayOfYear)
@@ -880,22 +869,25 @@ expect Date.from_yd(1970, 60)? == { year: 1970, month: Mar, day_of_month: 1, day
 expect Date.from_yd(1972, 61)? == { year: 1972, month: Mar, day_of_month: 1, day_of_year: 61 }
 
 # <---- from_ymd ---->
-expect Date.from_ymd(2024, Feb, 29)? == Date.from_yd(2024, 60)?
-expect Date.from_ymd(2023, Feb, 29) == Err(InvalidDayOfMonth)
-expect Date.from_ymd(2024, Apr, 31) == Err(InvalidDayOfMonth)
-expect Date.from_ymd(2024, Jan, 0) == Err(InvalidDayOfMonth)
-expect Date.from_ymd(2024, Jan, 255) == Err(InvalidDayOfMonth)
-expect Date.from_ymd(Const.max_year, Dec, 31)? == Date.highest
-expect Date.from_ymd(Const.min_year, Jan, 1)? == Date.lowest
-expect Date.from_ymd(Const.max_year + 1, Jan, 1) == Err(YearOutOfRange)
-expect Date.from_ymd(Const.min_year - 1, Dec, 31) == Err(YearOutOfRange)
-expect Month.all.map(|m| Date.from_ymd(2023, m, Date.days_in_month(2023, m) + 1)) == Month.all.map(|_| Err(InvalidDayOfMonth))
-expect Date.from_ymd(1970, Jan, 1)? == { year: 1970, month: Jan, day_of_month: 1, day_of_year: 1 }
-expect Date.from_ymd(1970, Dec, 31)? == { year: 1970, month: Dec, day_of_month: 31, day_of_year: 365 }
-expect Date.from_ymd(1972, Mar, 1)? == { year: 1972, month: Mar, day_of_month: 1, day_of_year: 61 }
+expect Date.from_ymd(2024, 2, 29)? == Date.from_yd(2024, 60)?
+expect Date.from_ymd(2023, 2, 29) == Err(InvalidDayOfMonth)
+expect Date.from_ymd(2024, 4, 31) == Err(InvalidDayOfMonth)
+expect Date.from_ymd(2024, 0, 1) == Err(InvalidMonth)
+expect Date.from_ymd(2024, 13, 1) == Err(InvalidMonth)
+expect Date.from_ymd(2024, 255, 1) == Err(InvalidMonth)
+expect Date.from_ymd(2024, 1, 0) == Err(InvalidDayOfMonth)
+expect Date.from_ymd(2024, 1, 255) == Err(InvalidDayOfMonth)
+expect Date.from_ymd(Const.max_year, 12, 31)? == Date.highest
+expect Date.from_ymd(Const.min_year, 1, 1)? == Date.lowest
+expect Date.from_ymd(Const.max_year + 1, 1, 1) == Err(YearOutOfRange)
+expect Date.from_ymd(Const.min_year - 1, 12, 31) == Err(YearOutOfRange)
+expect Month.all.map(|m| Date.from_ymd(2023, m.to_u8(), Date.days_in_month(2023, m) + 1)) == Month.all.map(|_| Err(InvalidDayOfMonth))
+expect Date.from_ymd(1970, 1, 1)? == { year: 1970, month: Jan, day_of_month: 1, day_of_year: 1 }
+expect Date.from_ymd(1970, 12, 31)? == { year: 1970, month: Dec, day_of_month: 31, day_of_year: 365 }
+expect Date.from_ymd(1972, 3, 1)? == { year: 1972, month: Mar, day_of_month: 1, day_of_year: 61 }
 
 # <---- from_yw ---->
-expect Date.from_yw(2020, 53)? == Date.from_ymd(2020, Dec, 28)?
+expect Date.from_yw(2020, 53)? == Date.from_ymd(2020, 12, 28)?
 expect Date.from_yw(2024, 53) == Err(InvalidWeek)
 expect Date.from_yw(2024, 0) == Err(InvalidWeek)
 expect Date.from_yw(Const.max_year + 1, 1) == Err(YearOutOfRange)
@@ -903,7 +895,7 @@ expect Date.from_yw(1970, 1)? == { year: 1970, month: Jan, day_of_month: 1, day_
 expect Date.from_yw(1971, 1)? == { year: 1971, month: Jan, day_of_month: 4, day_of_year: 4 }
 
 # <---- from_ywd ---->
-expect Date.from_ywd(2020, 53, 7)? == Date.from_ymd(2021, Jan, 3)?
+expect Date.from_ywd(2020, 53, 7)? == Date.from_ymd(2021, 1, 3)?
 expect Date.from_ywd(2024, 1, 0) == Err(InvalidWeekday)
 expect Date.from_ywd(2024, 1, 8) == Err(InvalidWeekday)
 expect Date.from_ywd(2024, 53, 1) == Err(InvalidWeek)
@@ -912,16 +904,16 @@ expect Date.from_ywd(1970, 1, 1)? == { year: 1970, month: Jan, day_of_month: 1, 
 expect Date.from_ywd(1970, 52, 5)? == { year: 1971, month: Jan, day_of_month: 1, day_of_year: 1 }
 
 # <---- num_days_since_epoch ---->
-expect num_days_since_epoch(Date.from_ymd(2024, Jan, 1)?) == 19723 # Removed due to compiler bug with optional record fields
-expect num_days_since_epoch(Date.from_ymd(1970, Dec, 31)?) == 365 - 1
-expect num_days_since_epoch(Date.from_ymd(1971, Jan, 2)?) == 365 + 1
-expect num_days_since_epoch(Date.from_ymd(2024, Jan, 1)?) == 19723
-expect num_days_since_epoch(Date.from_ymd(2024, Feb, 1)?) == 19723 + 31
-expect num_days_since_epoch(Date.from_ymd(2024, Dec, 31)?) == 19723 + 366 - 1
-expect num_days_since_epoch(Date.from_ymd(1969, Dec, 31)?) == -1
-expect num_days_since_epoch(Date.from_ymd(1969, Dec, 30)?) == -2
-expect num_days_since_epoch(Date.from_ymd(1969, Jan, 1)?) == -365
-expect num_days_since_epoch(Date.from_ymd(1968, Jan, 1)?) == -365 - 366
+expect num_days_since_epoch(Date.from_ymd(2024, 1, 1)?) == 19723 # Removed due to compiler bug with optional record fields
+expect num_days_since_epoch(Date.from_ymd(1970, 12, 31)?) == 365 - 1
+expect num_days_since_epoch(Date.from_ymd(1971, 1, 2)?) == 365 + 1
+expect num_days_since_epoch(Date.from_ymd(2024, 1, 1)?) == 19723
+expect num_days_since_epoch(Date.from_ymd(2024, 2, 1)?) == 19723 + 31
+expect num_days_since_epoch(Date.from_ymd(2024, 12, 31)?) == 19723 + 366 - 1
+expect num_days_since_epoch(Date.from_ymd(1969, 12, 31)?) == -1
+expect num_days_since_epoch(Date.from_ymd(1969, 12, 30)?) == -2
+expect num_days_since_epoch(Date.from_ymd(1969, 1, 1)?) == -365
+expect num_days_since_epoch(Date.from_ymd(1968, 1, 1)?) == -365 - 366
 
 # <---- num_days_since_epoch_until_year ---->
 expect num_days_since_epoch_until_year(1968) == -365 - 366
@@ -931,19 +923,9 @@ expect num_days_since_epoch_until_year(1972) == 365 + 365
 expect num_days_since_epoch_until_year(1973) == 365 + 365 + 366
 expect num_days_since_epoch_until_year(2024) == 19723
 
-# <---- parse_month ---->
-expect parse_month(['0', '1']) == Ok(Jan)
-expect parse_month(['1', '2']) == Ok(Dec)
-expect parse_month(['0', '0']) == Err(InvalidDateFormat)
-expect parse_month(['1', '3']) == Err(InvalidDateFormat)
-expect parse_month(['9', '9']) == Err(InvalidDateFormat)
-expect parse_month(['1', 'a']) == Err(InvalidDateFormat)
-expect parse_month([]) == Err(InvalidDateFormat)
-expect Month.all.map(|m| parse_month(Utils.expand_int_with_zeros(m.to_u8().to_i64(), 2).to_utf8())) == Month.all.map(|m| Ok(m))
-
 # <---- sub ---->
-expect Date.sub(Date.from_ymd(2025, Jan, 1)?, Date.from_ymd(2025, Jan, 2)?) == Duration.from_days(-1.I128)
-expect Date.sub(Date.from_ymd(1970, Jan, 1)?, Date.from_ymd(1968, Jan, 1)?) == Duration.from_days(731.I128)
+expect Date.sub(Date.from_ymd(2025, 1, 1)?, Date.from_ymd(2025, 1, 2)?) == Duration.from_days(-1.I128)
+expect Date.sub(Date.from_ymd(1970, 1, 1)?, Date.from_ymd(1968, 1, 1)?) == Duration.from_days(731.I128)
 
 # <---- to_nanos_since_epoch ---->
 expect Date.to_nanos_since_epoch({ year: 1970, month: Jan, day_of_month: 1, day_of_year: 1 }) == 0
@@ -972,17 +954,17 @@ expect ymd_to_days_in_year(2024, Mar, 1) == 61
 expect ymd_to_days_in_year(2023, Mar, 1) == 60
 
 # <---- comparison operators and sorting ---->
-expect Date.from_ymd(2024, Jan, 1)? < Date.from_ymd(2024, Jan, 2)?
-expect Date.from_ymd(2024, Jan, 2)? > Date.from_ymd(2024, Jan, 1)?
-expect Date.from_ymd(2024, Jan, 1)? <= Date.from_ymd(2024, Jan, 1)?
-expect Date.from_ymd(2024, Jan, 1)? <= Date.from_ymd(2024, Jan, 2)?
-expect Date.from_ymd(2024, Jan, 1)? >= Date.from_ymd(2024, Jan, 1)?
-expect Date.from_ymd(2024, Jan, 2)? >= Date.from_ymd(2024, Jan, 1)?
-expect !(Date.from_ymd(2024, Jan, 2)? < Date.from_ymd(2024, Jan, 1)?)
-expect !(Date.from_ymd(2024, Jan, 1)? > Date.from_ymd(2024, Jan, 1)?)
-expect Date.from_ymd(2023, Dec, 31)? < Date.from_ymd(2024, Jan, 1)?
+expect Date.from_ymd(2024, 1, 1)? < Date.from_ymd(2024, 1, 2)?
+expect Date.from_ymd(2024, 1, 2)? > Date.from_ymd(2024, 1, 1)?
+expect Date.from_ymd(2024, 1, 1)? <= Date.from_ymd(2024, 1, 1)?
+expect Date.from_ymd(2024, 1, 1)? <= Date.from_ymd(2024, 1, 2)?
+expect Date.from_ymd(2024, 1, 1)? >= Date.from_ymd(2024, 1, 1)?
+expect Date.from_ymd(2024, 1, 2)? >= Date.from_ymd(2024, 1, 1)?
+expect !(Date.from_ymd(2024, 1, 2)? < Date.from_ymd(2024, 1, 1)?)
+expect !(Date.from_ymd(2024, 1, 1)? > Date.from_ymd(2024, 1, 1)?)
+expect Date.from_ymd(2023, 12, 31)? < Date.from_ymd(2024, 1, 1)?
 expect Date.lowest < Date.unix_epoch and Date.unix_epoch < Date.highest
 expect {
-	sorted = [Date.from_ymd(2024, Mar, 1)?, Date.from_ymd(2023, Jan, 1)?, Date.from_ymd(2024, Jan, 15)?].sort()
-	sorted == [Date.from_ymd(2023, Jan, 1)?, Date.from_ymd(2024, Jan, 15)?, Date.from_ymd(2024, Mar, 1)?]
+	sorted = [Date.from_ymd(2024, 3, 1)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2024, 1, 15)?].sort()
+	sorted == [Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2024, 1, 15)?, Date.from_ymd(2024, 3, 1)?]
 }
