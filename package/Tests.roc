@@ -432,9 +432,19 @@ expect Time.from_iso_str_with_day_offset("0000+1400") == Ok({ time: Time.from_hm
 expect Time.from_iso_str("T24-1200") == Ok(Time.from_hms(12, 0, 0)?)
 expect Time.from_iso_str_with_day_offset("T24-1200") == Ok({ time: Time.from_hms(12, 0, 0)?, day_offset: 1 })
 # 128
-expect Time.from_iso_str("1200+1401") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("1200+1401") == Ok(Time.from_hms(21, 59, 0)?)
+expect Time.from_iso_str_with_day_offset("1200+1401") == Ok({ time: Time.from_hms(21, 59, 0)?, day_offset: -1 })
 # 129
-expect Time.from_iso_str("1200-1201") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("1200-1201") == Ok(Time.from_hms(0, 1, 0)?)
+expect Time.from_iso_str_with_day_offset("1200-1201") == Ok({ time: Time.from_hms(0, 1, 0)?, day_offset: 1 })
+# 129a: offsets are bounded by syntax, so anything under 24 hours is valid
+expect Time.from_iso_str("1200+2359") == Ok(Time.from_hms(12, 1, 0)?)
+expect Time.from_iso_str("1200-2359") == Ok(Time.from_hms(11, 59, 0)?)
+expect Time.from_iso_str("1200+2400") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("1200-2400") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("1200+2360") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("12:00:00+23:59") == Ok(Time.from_hms(12, 1, 0)?)
+expect Time.from_iso_str("12:00:00-23") == Ok(Time.from_hms(11, 0, 0)?)
 # 130
 expect Time.from_iso_str("T24+1200Z") == Err(InvalidTimeFormat)
 

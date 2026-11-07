@@ -366,6 +366,9 @@ expect DateTime.from_iso_str("2024-03-15T01:00:00+03:00") == DateTime.from_ymdhm
 expect DateTime.from_iso_str("2024-03-15T24:00:00") == DateTime.from_ymdhms(2024, 3, 16, 0, 0, 0)
 expect DateTime.from_iso_str("2024-12-31T23:30:00-01:00") == DateTime.from_ymdhms(2025, 1, 1, 0, 30, 0)
 expect DateTime.from_iso_str("2024-01-01T00:30:00+01:00") == DateTime.from_ymdhms(2023, 12, 31, 23, 30, 0)
+expect DateTime.from_iso_str("2024-03-15T12:00:00-23:00") == DateTime.from_ymdhms(2024, 3, 16, 11, 0, 0)
+expect DateTime.from_iso_str("2024-03-15T12:00:00+23:00") == DateTime.from_ymdhms(2024, 3, 14, 13, 0, 0)
+expect DateTime.from_iso_str("2024-03-15T12:00:00+24:00") == Err(InvalidDateTimeFormat)
 
 # <--- normalize --->
 # Every DateTime already holds a valid time of day, so normalize is the identity.

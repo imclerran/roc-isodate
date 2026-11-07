@@ -389,10 +389,10 @@ parse_time_offset_help : U8, U8, U8, U8, I64 -> Try(I64, [InvalidTimeFormat])
 parse_time_offset_help = |h1, h2, m1, m2, sign| {
 	match (Utils.utf8_to_int_signed([h1, h2]), Utils.utf8_to_int_signed([m1, m2])) {
 		(Ok(hour), Ok(minute)) => {
-			offset_nanos = sign * (hour * Const.nanos_per_hour + minute * Const.nanos_per_minute)
-			# Real-world offsets run from UTC-12:00 to UTC+14:00. Converting to UTC negates them.
-			if offset_nanos >= -14 * Const.nanos_per_hour and offset_nanos <= 12 * Const.nanos_per_hour {
-				Ok(offset_nanos)
+			# ISO 8601 bounds the offset only by its syntax: any offset of less than 24 hours in either direction is
+			# accepted, as in chrono, Temporal and Python. Converting the local time to UTC negates the offset.
+			if hour >= 0 and hour < 24 and minute >= 0 and minute < 60 {
+				Ok(sign * (hour * Const.nanos_per_hour + minute * Const.nanos_per_minute))
 			} else {
 				Err(InvalidTimeFormat)
 			}
@@ -546,6 +546,15 @@ expect Time.from_iso_str_with_day_offset("24:00:00") == Ok({ time: Time.midnight
 expect Time.from_iso_str_with_day_offset("23:59:59,5-00:30") == Ok({ time: Time.from_hmsn(0, 29, 59, 500_000_000)?, day_offset: 1 })
 expect Time.from_iso_u8_with_day_offset("00:00:00+14:00".to_utf8()) == Ok({ time: Time.from_hms(10, 0, 0)?, day_offset: -1 })
 expect Time.from_iso_str_with_day_offset("not a time") == Err(InvalidTimeFormat)
+# Any offset of less than 24 hours in either direction is accepted, and large ones can cross a day.
+expect Time.from_iso_str_with_day_offset("12:00:00-23:00") == Ok({ time: Time.from_hms(11, 0, 0)?, day_offset: 1 })
+expect Time.from_iso_str_with_day_offset("12:00:00+23:00") == Ok({ time: Time.from_hms(13, 0, 0)?, day_offset: -1 })
+expect Time.from_iso_str_with_day_offset("00:00:00-23:59") == Ok({ time: Time.from_hms(23, 59, 0)?, day_offset: 0 })
+expect Time.from_iso_str_with_day_offset("00:00:00+23:59") == Ok({ time: Time.from_hms(0, 1, 0)?, day_offset: -1 })
+expect Time.from_iso_str("12:00:00+24:00") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("12:00:00-24:00") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("12:00:00+00:60") == Err(InvalidTimeFormat)
+expect Time.from_iso_str("12:00:00+-500") == Err(InvalidTimeFormat)
 # ISO 8601 allows hour 24 only as exactly 24:00:00, with a zero fraction.
 expect Time.from_iso_str("24:00:00,000") == Ok(Time.midnight)
 expect Time.from_iso_str("24:00:00,5") == Err(InvalidTimeFormat)
