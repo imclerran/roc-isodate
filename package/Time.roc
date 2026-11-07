@@ -563,6 +563,19 @@ expect Time.from_iso_str("24:00.5") == Err(InvalidTimeFormat)
 expect Time.from_iso_str("24:30:00") == Err(InvalidTimeFormat)
 expect Time.from_iso_str("24:00:01") == Err(InvalidTimeFormat)
 expect Time.from_iso_str("25:00:00") == Err(InvalidTimeFormat)
+# The end-of-day notation combines with an offset like any other time, in every format.
+expect Time.from_iso_str_with_day_offset("24:00:00-01:00") == Ok({ time: Time.from_hms(1, 0, 0)?, day_offset: 1 })
+expect Time.from_iso_str_with_day_offset("24:00:00+01:00") == Ok({ time: Time.from_hms(23, 0, 0)?, day_offset: 0 })
+expect Time.from_iso_str_with_day_offset("24:00:00+14:00") == Ok({ time: Time.from_hms(10, 0, 0)?, day_offset: 0 })
+expect Time.from_iso_str_with_day_offset("T24Z") == Ok({ time: Time.midnight, day_offset: 1 })
+expect Time.from_iso_str_with_day_offset("240000Z") == Ok({ time: Time.midnight, day_offset: 1 })
+expect Time.from_iso_str_with_day_offset("T24:00:00Z") == Ok({ time: Time.midnight, day_offset: 1 })
+# A fraction is rounded to the nearest nanosecond, and rounding can carry all the way into the next day.
+expect Time.from_iso_str("00:00:00,0000000001") == Ok(Time.midnight)
+expect Time.from_iso_str("00:00:00,0000000009") == Ok(Time.from_hmsn(0, 0, 0, 1)?)
+expect Time.from_iso_str("23:59:59,999999999") == Ok(Time.highest)
+expect Time.from_iso_str_with_day_offset("23:59:59,9999999994") == Ok({ time: Time.highest, day_offset: 0 })
+expect Time.from_iso_str_with_day_offset("23:59:59,9999999999") == Ok({ time: Time.midnight, day_offset: 1 })
 # Every parsed time, with or without an offset, has an hour from 0 to 23.
 expect ["23:00:00-05:00", "01:00:00+03:00", "T24", "0000+1400", "T24-1200", "12:00:00Z"].map(|str| Time.from_iso_str(str).map_ok(|time| time.hour() >= 0 and time.hour() < 24)) == [Ok(Bool.True), Ok(Bool.True), Ok(Bool.True), Ok(Bool.True), Ok(Bool.True), Ok(Bool.True)]
 
@@ -580,6 +593,8 @@ expect Time.midnight.add_duration_with_day_offset(Duration.from_days(I64.lowest.
 # <---- to_iso_str ---->
 expect Time.to_iso_str(Time.from_hmsn(12, 34, 56, 5)?) == "12:34:56,000000005"
 expect Time.to_iso_str(Time.midnight) == "00:00:00"
+expect Time.to_iso_str(Time.highest) == "23:59:59,999999999"
+expect Time.from_iso_str(Time.to_iso_str(Time.highest)) == Ok(Time.highest)
 expect {
 	str = Time.to_iso_str(Time.from_hmsn(0, 0, 0, 500_000_000)?)
 	str == "00:00:00,5"
