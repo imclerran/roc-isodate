@@ -23,6 +23,11 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	## Are two Times equal?
 	is_eq : _
 
+	## Show the `Time` as an ISO 8601 string, such as `09:30:00` or `09:30:00,5`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : Time -> Str
+	to_inspect = |time| to_iso_str(time)
+
 	## The hour of the `Time`, from 0 to 23.
 	hour : Time -> U8
 	hour = |time| time.hour
@@ -644,6 +649,12 @@ expect {
 	b = Time.from_nanos_since_midnight(0)?
 	!(b.after(a))
 }
+
+# <---- to_inspect ---->
+expect Str.inspect(Time.from_hms(9, 30, 0)) == "09:30:00"
+expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)) == "09:30:00,5"
+expect Str.inspect(Time.midnight) == "00:00:00"
+expect Str.inspect([Time.from_hms(1, 2, 3)]) == "[01:02:03]"
 
 # <---- is_eq (==) ---->
 expect {

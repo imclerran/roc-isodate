@@ -12,6 +12,12 @@ import Utils
 ## ```
 DateTime :: { date : Date, time : Time }.{
 	is_eq : _
+
+	## Show the `DateTime` as an ISO 8601 string, such as `2024-03-15T09:30:00`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : DateTime -> Str
+	to_inspect = |date_time| to_iso_str(date_time)
+
 	Interval : { start : DateTime, end : DateTime }
 
 	## The `Date` part of the `DateTime`.
@@ -315,6 +321,11 @@ expect {
 	b = DateTime.from_nanos_since_epoch(0.I128)
 	!(a.before(b))
 }
+
+# <---- to_inspect ---->
+expect Str.inspect(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?) == "2024-03-15T09:30:00"
+expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) == "2024-03-15T09:30:00,25"
+expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
 
 # <---- is_eq (==) ---->
 expect {

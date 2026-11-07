@@ -17,6 +17,33 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	## Are two Durations equal?
 	is_eq : _
 
+	## Show the `Duration` as an ISO 8601 duration string, such as `P1DT2H3M4,5S`.
+	## Zero components are left out, a zero `Duration` is `PT0S`, and a negative `Duration` is prefixed with `-`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : Duration -> Str
+	to_inspect = |d| {
+		sign = if to_nanoseconds(d) < 0 { "-" } else { "" }
+		# Every component shares the sign of the whole, so take each one's magnitude.
+		# Days is widened first because I64.lowest has no I64 absolute value.
+		days = d.days.to_i128().abs()
+		hours = d.hours.to_i128().abs()
+		minutes = d.minutes.to_i128().abs()
+		seconds = d.seconds.to_i128().abs()
+		frac = Utils.nanos_to_frac_str(d.nanoseconds)
+		date_part = if days == 0 { "" } else { days.to_str().concat("D") }
+		time_part =
+			(if hours == 0 { "" } else { hours.to_str().concat("H") })
+				.concat(if minutes == 0 { "" } else { minutes.to_str().concat("M") })
+				.concat(if seconds == 0 and frac == "" { "" } else { seconds.to_str().concat(frac).concat("S") })
+		if date_part == "" and time_part == "" {
+			"PT0S"
+		} else if time_part == "" {
+			sign.concat("P").concat(date_part)
+		} else {
+			sign.concat("P").concat(date_part).concat("T").concat(time_part)
+		}
+	}
+
 	## The whole-days component of the `Duration`. See [`to_days`](Duration#to_days) for the total.
 	days : Duration -> I64
 	days = |duration| duration.days
@@ -391,6 +418,16 @@ expect {
 	d = Duration.from_seconds(-90)
 	Duration.format_unsigned(d, "{m}:{ss}") == "1:30"
 }
+
+# <---- to_inspect ---->
+expect Str.inspect(Duration.from_nanoseconds(0)) == "PT0S"
+expect Str.inspect(Duration.from_days(2)) == "P2D"
+expect Str.inspect(Duration.from_hms(1, 2, 3)) == "PT1H2M3S"
+expect Str.inspect(Duration.from_days(1).add(Duration.from_hours(2))) == "P1DT2H"
+expect Str.inspect(Duration.from_hmsn(0, 0, 0, 500_000_000)) == "PT0,5S"
+expect Str.inspect(Duration.from_hmsn(1, 2, 3, 4)) == "PT1H2M3,000000004S"
+expect Str.inspect(Duration.from_seconds(-90)) == "-PT1M30S"
+expect Str.inspect(Duration.from_days(-1).sub(Duration.from_nanoseconds(1))) == "-P1DT0,000000001S"
 
 # <---- to_* conversions ---->
 expect {

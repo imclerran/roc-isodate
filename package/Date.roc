@@ -27,6 +27,11 @@ Date :: {
 	is_eq : Date, Date -> Bool
 	is_eq = |a, b| a.year == b.year and a.day_of_year == b.day_of_year
 
+	## Show the `Date` as an ISO 8601 string, such as `2024-03-15`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : Date -> Str
+	to_inspect = |date| to_iso_str(date)
+
 	## The year of the `Date`.
 	year : Date -> I64
 	year = |date| date.year
@@ -782,6 +787,12 @@ expect Date.weeks_in_year(2023) == 52
 expect Date.weeks_in_year(2024) == 52
 expect Date.weeks_in_year(2025) == 52
 expect Date.weeks_in_year(1970) == 53 # starts on a Thursday
+
+# <---- to_inspect ---->
+expect Str.inspect(Date.from_ymd(2024, 3, 15)?) == "2024-03-15"
+expect Str.inspect(Date.unix_epoch) == "1970-01-01"
+expect Str.inspect(Date.lowest) == Date.lowest.to_iso_str()
+expect Str.inspect({ when: Date.from_ymd(2024, 3, 15)? }) == "{ when: 2024-03-15 }"
 
 # <---- is_eq (==) ---->
 expect {
