@@ -20,6 +20,34 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	## Hash a `Duration`, so it can be used as a `Dict` key or `Set` element.
 	to_hash : _
 
+	## Is the first `Duration` shorter than the second? Backs the `<` operator.
+	is_lt : Duration, Duration -> Bool
+	is_lt = |a, b| a.order_relative_to(b) == Before
+
+	## Is the first `Duration` longer than the second? Backs the `>` operator.
+	is_gt : Duration, Duration -> Bool
+	is_gt = |a, b| a.order_relative_to(b) == After
+
+	## Is the first `Duration` shorter than or equal to the second? Backs the `<=` operator.
+	is_lte : Duration, Duration -> Bool
+	is_lte = |a, b| a.order_relative_to(b) != After
+
+	## Is the first `Duration` longer than or equal to the second? Backs the `>=` operator.
+	is_gte : Duration, Duration -> Bool
+	is_gte = |a, b| a.order_relative_to(b) != Before
+
+	## Compare two `Duration`s by their total length. Lets `List.sort` work on a `List(Duration)`.
+	order_relative_to : Duration, Duration -> [Before, Same, After]
+	order_relative_to = |a, b| to_nanoseconds(a).order_relative_to(to_nanoseconds(b))
+
+	## The shorter of two `Duration`s. Returns the first when they are equal. Lets `List.min` work on a `List(Duration)`.
+	min : Duration, Duration -> Duration
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The longer of two `Duration`s. Returns the first when they are equal. Lets `List.max` work on a `List(Duration)`.
+	max : Duration, Duration -> Duration
+	max = |a, b| if b.is_gt(a) { b } else { a }
+
 	## Show the `Duration` as an ISO 8601 duration string, such as `P1DT2H3M4,5S`.
 	## Zero components are left out, a zero `Duration` is `PT0S`, and a negative `Duration` is prefixed with `-`.
 	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
@@ -431,6 +459,21 @@ expect Str.inspect(Duration.from_hmsn(0, 0, 0, 500_000_000)) == "PT0,5S"
 expect Str.inspect(Duration.from_hmsn(1, 2, 3, 4)) == "PT1H2M3,000000004S"
 expect Str.inspect(Duration.from_seconds(-90)) == "-PT1M30S"
 expect Str.inspect(Duration.from_days(-1).sub(Duration.from_nanoseconds(1))) == "-P1DT0,000000001S"
+
+# <---- ordering ---->
+expect Duration.from_minutes(90) < Duration.from_hours(2)
+expect Duration.from_hours(2) > Duration.from_minutes(90)
+expect Duration.from_minutes(90) <= Duration.from_hms(1, 30, 0)
+expect Duration.from_minutes(90) >= Duration.from_hms(1, 30, 0)
+expect !(Duration.from_minutes(90) < Duration.from_hms(1, 30, 0))
+expect Duration.from_seconds(-1) < Duration.from_nanoseconds(0)
+expect Duration.from_minutes(90).order_relative_to(Duration.from_hms(1, 30, 0)) == Same
+expect Duration.from_days(1).order_relative_to(Duration.from_hours(23)) == After
+expect [Duration.from_hours(2), Duration.from_seconds(-1), Duration.from_minutes(90)].sort() == [Duration.from_seconds(-1), Duration.from_minutes(90), Duration.from_hours(2)]
+expect Duration.from_hours(2).min(Duration.from_minutes(90)) == Duration.from_minutes(90)
+expect Duration.from_hours(2).max(Duration.from_minutes(90)) == Duration.from_hours(2)
+expect [Duration.from_hours(2), Duration.from_seconds(-1), Duration.from_minutes(90)].min() == Ok(Duration.from_seconds(-1))
+expect [Duration.from_hours(2), Duration.from_seconds(-1), Duration.from_minutes(90)].max() == Ok(Duration.from_hours(2))
 
 # <---- to_hash ---->
 expect {

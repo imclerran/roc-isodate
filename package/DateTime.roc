@@ -98,6 +98,14 @@ DateTime :: { date : Date, time : Time }.{
 	is_gte : DateTime, DateTime -> Bool
 	is_gte = |a, b| a.order_relative_to(b) != Before
 
+	## The earlier of two `DateTime`s. Returns the first when they are equal. Lets `List.min` work on a `List(DateTime)`.
+	min : DateTime, DateTime -> DateTime
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `DateTime`s. Returns the first when they are equal. Lets `List.max` work on a `List(DateTime)`.
+	max : DateTime, DateTime -> DateTime
+	max = |a, b| if b.is_gt(a) { b } else { a }
+
 	## Compare two `DateTime` objects.
 	## If the first occurs before the second, it returns Before.
 	## If the first and the second are equal, it returns Same.
@@ -345,6 +353,13 @@ expect {
 expect Str.inspect(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?) == "2024-03-15T09:30:00"
 expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) == "2024-03-15T09:30:00,25"
 expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
+
+# <---- min / max ---->
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.min(DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?) == DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.max(DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?) == DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?
+expect [DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.unix_epoch].min() == Ok(DateTime.unix_epoch)
+expect [DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.unix_epoch].max() == Ok(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?)
+expect [DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.unix_epoch].sort() == [DateTime.unix_epoch, DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?]
 
 # <---- from_quote ---->
 expect {

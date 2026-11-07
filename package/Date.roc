@@ -123,6 +123,14 @@ Date :: {
 	is_gte : Date, Date -> Bool
 	is_gte = |a, b| a.order_relative_to(b) != Before
 
+	## The earlier of two `Date`s. Returns the first when they are equal. Lets `List.min` work on a `List(Date)`.
+	min : Date, Date -> Date
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `Date`s. Returns the first when they are equal. Lets `List.max` work on a `List(Date)`.
+	max : Date, Date -> Date
+	max = |a, b| if b.is_gt(a) { b } else { a }
+
 	## Convert the given calendar week and year to the day of the year.
 	calendar_week_to_days_in_year : U8, I64 -> I64
 	calendar_week_to_days_in_year = |week, y| {
@@ -809,6 +817,13 @@ expect Str.inspect(Date.from_ymd(2024, 3, 15)?) == "2024-03-15"
 expect Str.inspect(Date.unix_epoch) == "1970-01-01"
 expect Str.inspect(Date.lowest) == Date.lowest.to_iso_str()
 expect Str.inspect({ when: Date.from_ymd(2024, 3, 15)? }) == "{ when: 2024-03-15 }"
+
+# <---- min / max ---->
+expect Date.from_ymd(2024, 3, 15)?.min(Date.from_ymd(2023, 1, 1)?) == Date.from_ymd(2023, 1, 1)?
+expect Date.from_ymd(2024, 3, 15)?.max(Date.from_ymd(2023, 1, 1)?) == Date.from_ymd(2024, 3, 15)?
+expect [Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2025, 7, 4)?].min() == Ok(Date.from_ymd(2023, 1, 1)?)
+expect [Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2025, 7, 4)?].max() == Ok(Date.from_ymd(2025, 7, 4)?)
+expect [Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2025, 7, 4)?].sort() == [Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2025, 7, 4)?]
 
 # <---- from_quote ---->
 expect {

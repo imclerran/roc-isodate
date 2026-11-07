@@ -14,6 +14,34 @@ Month := [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec].{
 	## Hash a `Month`, so it can be used as a `Dict` key or `Set` element.
 	to_hash : _
 
+	## Does the first `Month` come earlier in the year than the second? Backs the `<` operator.
+	is_lt : Month, Month -> Bool
+	is_lt = |a, b| a.order_relative_to(b) == Before
+
+	## Does the first `Month` come later in the year than the second? Backs the `>` operator.
+	is_gt : Month, Month -> Bool
+	is_gt = |a, b| a.order_relative_to(b) == After
+
+	## Does the first `Month` come earlier in the year than, or equal, the second? Backs the `<=` operator.
+	is_lte : Month, Month -> Bool
+	is_lte = |a, b| a.order_relative_to(b) != After
+
+	## Does the first `Month` come later in the year than, or equal, the second? Backs the `>=` operator.
+	is_gte : Month, Month -> Bool
+	is_gte = |a, b| a.order_relative_to(b) != Before
+
+	## Compare two `Month`s by calendar order. Lets `List.sort` work on a `List(Month)`.
+	order_relative_to : Month, Month -> [Before, Same, After]
+	order_relative_to = |a, b| a.to_u8().order_relative_to(b.to_u8())
+
+	## The earlier of two `Month`s. Lets `List.min` work on a `List(Month)`.
+	min : Month, Month -> Month
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `Month`s. Lets `List.max` work on a `List(Month)`.
+	max : Month, Month -> Month
+	max = |a, b| if b.is_gt(a) { b } else { a }
+
 	## All twelve months, in calendar order.
 	all : List(Month)
 	all = [Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec]
@@ -171,3 +199,20 @@ expect {
 expect Month.all.map(|m| Month.from_quote(Str.inspect(m))) == Month.all.map(|m| Ok(m))
 expect Month.from_quote("Smarch").is_err()
 expect Month.from_quote("march").is_err()
+
+# <---- ordering ---->
+expect {
+	a : Month
+	a = Jan
+	b : Month
+	b = Dec
+	a < b and b > a and a <= a and a >= a and !(b < a) and a.order_relative_to(b) == Before and b.order_relative_to(b) == Same
+}
+expect Month.all.drop_first(6).concat(Month.all.take_first(6)).sort() == Month.all
+expect Month.all.min() == Ok(Jan)
+expect Month.all.max() == Ok(Dec)
+expect {
+	a : Month
+	a = Mar
+	a.min(Sep) == Mar and a.max(Sep) == Sep
+}

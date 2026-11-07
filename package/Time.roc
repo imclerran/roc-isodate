@@ -105,6 +105,14 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	is_gte : Time, Time -> Bool
 	is_gte = |a, b| a.order_relative_to(b) != Before
 
+	## The earlier of two `Time`s. Returns the first when they are equal. Lets `List.min` work on a `List(Time)`.
+	min : Time, Time -> Time
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `Time`s. Returns the first when they are equal. Lets `List.max` work on a `List(Time)`.
+	max : Time, Time -> Time
+	max = |a, b| if b.is_gt(a) { b } else { a }
+
 	## Compare two `Time` objects.
 	## If the first occurs before the second, it returns Before.
 	## If the first and the second are equal, it returns Same.
@@ -673,6 +681,13 @@ expect Str.inspect(Time.from_hms(9, 30, 0)) == "09:30:00"
 expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)) == "09:30:00,5"
 expect Str.inspect(Time.midnight) == "00:00:00"
 expect Str.inspect([Time.from_hms(1, 2, 3)]) == "[01:02:03]"
+
+# <---- min / max ---->
+expect Time.from_hms(9, 30, 0).min(Time.from_hms(13, 0, 0)) == Time.from_hms(9, 30, 0)
+expect Time.from_hms(9, 30, 0).max(Time.from_hms(13, 0, 0)) == Time.from_hms(13, 0, 0)
+expect [Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0), Time.from_hms(0, 0, 1)].min() == Ok(Time.from_hms(0, 0, 1))
+expect [Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0), Time.from_hms(0, 0, 1)].max() == Ok(Time.from_hms(13, 0, 0))
+expect [Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0), Time.from_hms(0, 0, 1)].sort() == [Time.from_hms(0, 0, 1), Time.from_hms(9, 30, 0), Time.from_hms(13, 0, 0)]
 
 # <---- from_quote ---->
 expect {
