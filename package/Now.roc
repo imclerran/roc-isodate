@@ -82,13 +82,13 @@ expect {
 expect {
 	nanos = (Const.nanos_per_day + Const.nanos_per_hour + Const.nanos_per_minute + Const.nanos_per_second + 500_000_000).to_i128()
 	mock_now = create_mock_now(nanos)
-	Now.date_time_from(nanos, mock_now.now_to_nanos) == DateTime.from_ymdhmsn(1970, Jan, 2, 1, 1, 1, 500_000_000)?
+	Now.date_time_from(nanos, mock_now.now_to_nanos) == DateTime.from_ymdhmsn(1970, 1, 2, 1, 1, 1, 500_000_000)?
 }
 
 expect {
 	nanos = (Const.nanos_per_day + Const.nanos_per_hour + Const.nanos_per_minute + Const.nanos_per_second + 500_000_000).to_i128()
 	mock_now = create_mock_now(nanos)
-	Now.date_from(nanos, mock_now.now_to_nanos) == Date.from_ymd(1970, Jan, 2)?
+	Now.date_from(nanos, mock_now.now_to_nanos) == Date.from_ymd(1970, 1, 2)?
 }
 
 expect {
