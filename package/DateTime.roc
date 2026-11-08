@@ -11,7 +11,17 @@ import Utils
 ## DateTime :: { date : Date, time: Time }
 ## ```
 DateTime :: { date : Date, time : Time }.{
+	## Are two DateTimes equal? Two values are equal only when all of their parts match.
 	is_eq : _
+
+	## Hash a `DateTime`, so it can be used as a `Dict` key or `Set` element. Agrees with [`is_eq`](DateTime#is_eq).
+	to_hash : _
+
+	## Show the `DateTime` as an ISO 8601 string, such as `2024-03-15T09:30:00`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : DateTime -> Str
+	to_inspect = |date_time| to_iso_str(date_time)
+
 	Interval : { start : DateTime, end : DateTime }
 
 	## The `Date` part of the `DateTime`.
@@ -22,15 +32,24 @@ DateTime :: { date : Date, time : Time }.{
 	time : DateTime -> Time
 	time = |date_time| date_time.time
 
-	## Same as [`add_duration`](DateTime#add_duration)
+	## Same as [`add_duration`](DateTime#add_duration) and [`plus`](DateTime#plus).
 	add : DateTime, Duration -> DateTime
 	add = add_duration
+
+	## Add a `Duration` to a `DateTime`. Backs the `+` operator. Same as [`add_duration`](DateTime#add_duration).
+	plus : DateTime, Duration -> DateTime
+	plus = add_duration
+
+	## Subtract a `Duration` from a `DateTime`. Backs the `-` operator.
+	## To get the `Duration` between two `DateTime`s, use [`sub`](DateTime#sub) instead.
+	minus : DateTime, Duration -> DateTime
+	minus = |date_time, duration| add_duration(date_time, duration.negate())
 
 	## Add days to a `DateTime` object.
 	add_days : DateTime, I64 -> DateTime
 	add_days = |date_time, days| { date: Date.add_days(date_time.date, days), time: date_time.time }
 
-	## Add a `Duration` object to a `DateTime` object. (May be deprecated in favor of [`add`](DateTime#add) in the future.)
+	## Add a `Duration` to a `DateTime`. Same as [`plus`](DateTime#plus), which backs the `+` operator.
 	add_duration : DateTime, Duration -> DateTime
 	add_duration = |date_time, duration| {
 		duration_nanos = duration.to_nanoseconds()
@@ -86,6 +105,14 @@ DateTime :: { date : Date, time : Time }.{
 	## Whether the first `DateTime` is after or the same as the second. This is what the `>=` operator uses.
 	is_gte : DateTime, DateTime -> Bool
 	is_gte = |a, b| a.order_relative_to(b) != Before
+
+	## The earlier of two `DateTime`s. Returns the first when they are equal. Lets `List.min` work on a `List(DateTime)`.
+	min : DateTime, DateTime -> DateTime
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `DateTime`s. Returns the first when they are equal. Lets `List.max` work on a `List(DateTime)`.
+	max : DateTime, DateTime -> DateTime
+	max = |a, b| if b.is_gt(a) { b } else { a }
 
 	## Compare two `DateTime` objects.
 	## If the first occurs before the second, it returns Before.
@@ -199,11 +226,26 @@ DateTime :: { date : Date, time : Time }.{
 	}
 
 	## Subtract two `DateTime` objects to get the `Duration` between them.
+	## This is not the `-` operator: `date_time - duration` calls [`minus`](DateTime#minus) and gives a `DateTime`.
 	sub : DateTime, DateTime -> Duration
 	sub = |a, b| {
 		a_nanos = to_nanos_since_epoch(a)
 		b_nanos = to_nanos_since_epoch(b)
 		Duration.from_nanoseconds(a_nanos - b_nanos)
+	}
+
+	## Let a string literal be used where a `DateTime` is expected, so the ISO 8601 date and time is checked at compile time.
+	## ```
+	## launch : DateTime
+	## launch = "2024-03-15T09:30:00"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(DateTime, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match from_iso_str(raw) {
+			Ok(date_time) => Ok(date_time)
+			Err(InvalidDateTimeFormat) => Err(BadQuotedBytes("expected an ISO 8601 date and time, such as 2024-03-15T09:30:00, but got ${raw}"))
+		}
 	}
 
 	## Convert a `DateTime` object to an ISO 8601 string.
@@ -229,6 +271,14 @@ DateTime :: { date : Date, time : Time }.{
 	## `DateTime` object representing the Unix epoch (1970-01-01T00:00:00).
 	unix_epoch : DateTime
 	unix_epoch = { date: Date.unix_epoch, time: Time.midnight }
+
+	## The latest `DateTime` that can be represented: the last nanosecond of [`Date.highest`](Date#highest).
+	highest : DateTime
+	highest = { date: Date.highest, time: Time.highest }
+
+	## The earliest `DateTime` that can be represented: midnight on [`Date.lowest`](Date#lowest).
+	lowest : DateTime
+	lowest = { date: Date.lowest, time: Time.midnight }
 
 	## Get the day of the week for a `DateTime` object (0 = Sunday, 6 = Saturday).
 	weekday : DateTime -> U8
@@ -315,6 +365,45 @@ expect {
 	b = DateTime.from_nanos_since_epoch(0.I128)
 	!(a.before(b))
 }
+
+# <---- to_inspect ---->
+expect Str.inspect(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?) == "2024-03-15T09:30:00"
+expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) == "2024-03-15T09:30:00,25"
+expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
+expect Str.inspect([DateTime.unix_epoch]) == "[1970-01-01T00:00:00]"
+
+# <---- arithmetic operators ---->
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)? + Duration.from_hours(20) == DateTime.from_ymdhms(2024, 3, 16, 5, 30, 0)?
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)? - Duration.from_hours(10) == DateTime.from_ymdhms(2024, 3, 14, 23, 30, 0)?
+expect DateTime.unix_epoch - Duration.from_nanoseconds(1) == DateTime.from_iso_str("1969-12-31T23:59:59,999999999")?
+expect (DateTime.unix_epoch + Duration.from_days(400)) - Duration.from_days(400) == DateTime.unix_epoch
+# The operators saturate at the DateTime bounds, like the rest of date arithmetic.
+expect DateTime.highest + Duration.from_days(1) == DateTime.highest
+expect DateTime.lowest - Duration.from_days(1) == DateTime.lowest
+
+# <---- min / max ---->
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.min(DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?) == DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.max(DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?) == DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?
+expect [DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.unix_epoch].min() == Ok(DateTime.unix_epoch)
+expect [DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.unix_epoch].max() == Ok(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?)
+expect [DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.unix_epoch].sort() == [DateTime.unix_epoch, DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?]
+
+# <---- from_quote ---->
+expect {
+	dt : DateTime
+	dt = "2024-03-15T09:30:00"
+	dt == DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?
+}
+expect DateTime.from_quote("2024-03-15T").is_err()
+expect DateTime.from_quote("not a date time").is_err()
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, "launch")
+	d.get(DateTime.from_iso_str("2024-03-15T09:30:00")?) == Ok("launch")
+}
+expect Set.from_list([DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?, DateTime.from_iso_str("2024-03-15T09:30:00")?]).len() == 1
+expect Set.from_list([DateTime.unix_epoch, DateTime.unix_epoch.add_seconds(1)]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {
@@ -436,6 +525,15 @@ expect {
 	base.add_hours(I64.highest) == { date: Date.highest, time: Time.from_hms(19, 0, 0)? }
 		and base.add_hours(I64.lowest) == { date: Date.lowest, time: Time.from_hms(4, 0, 0)? }
 }
+
+# <---- lowest / highest ---->
+expect DateTime.lowest.date() == Date.lowest and DateTime.lowest.time() == Time.midnight
+expect DateTime.highest.date() == Date.highest and DateTime.highest.time() == Time.highest
+expect DateTime.lowest < DateTime.unix_epoch and DateTime.unix_epoch < DateTime.highest
+expect DateTime.highest.add_nanoseconds(1).date() == Date.highest
+expect DateTime.lowest.add_nanoseconds(-1).date() == Date.lowest
+expect [DateTime.unix_epoch, DateTime.highest, DateTime.lowest].min() == Ok(DateTime.lowest)
+expect [DateTime.unix_epoch, DateTime.highest, DateTime.lowest].max() == Ok(DateTime.highest)
 
 # <---- comparison operators and sorting ---->
 expect {

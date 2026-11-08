@@ -17,6 +17,64 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	## Are two Durations equal?
 	is_eq : _
 
+	## Hash a `Duration`, so it can be used as a `Dict` key or `Set` element.
+	to_hash : _
+
+	## Is the first `Duration` shorter than the second? Backs the `<` operator.
+	is_lt : Duration, Duration -> Bool
+	is_lt = |a, b| a.order_relative_to(b) == Before
+
+	## Is the first `Duration` longer than the second? Backs the `>` operator.
+	is_gt : Duration, Duration -> Bool
+	is_gt = |a, b| a.order_relative_to(b) == After
+
+	## Is the first `Duration` shorter than or equal to the second? Backs the `<=` operator.
+	is_lte : Duration, Duration -> Bool
+	is_lte = |a, b| a.order_relative_to(b) != After
+
+	## Is the first `Duration` longer than or equal to the second? Backs the `>=` operator.
+	is_gte : Duration, Duration -> Bool
+	is_gte = |a, b| a.order_relative_to(b) != Before
+
+	## Compare two `Duration`s by their total length. Lets `List.sort` work on a `List(Duration)`.
+	order_relative_to : Duration, Duration -> [Before, Same, After]
+	order_relative_to = |a, b| to_nanoseconds(a).order_relative_to(to_nanoseconds(b))
+
+	## The shorter of two `Duration`s. Returns the first when they are equal. Lets `List.min` work on a `List(Duration)`.
+	min : Duration, Duration -> Duration
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The longer of two `Duration`s. Returns the first when they are equal. Lets `List.max` work on a `List(Duration)`.
+	max : Duration, Duration -> Duration
+	max = |a, b| if b.is_gt(a) { b } else { a }
+
+	## Show the `Duration` as an ISO 8601 duration string, such as `P1DT2H3M4,5S`.
+	## Zero components are left out, a zero `Duration` is `PT0S`, and a negative `Duration` is prefixed with `-`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : Duration -> Str
+	to_inspect = |d| {
+		sign = if to_nanoseconds(d) < 0 { "-" } else { "" }
+		# Every component shares the sign of the whole, so take each one's magnitude.
+		# Days is widened first because I64.lowest has no I64 absolute value.
+		days = d.days.to_i128().abs()
+		hours = d.hours.to_i128().abs()
+		minutes = d.minutes.to_i128().abs()
+		seconds = d.seconds.to_i128().abs()
+		frac = Utils.nanos_to_frac_str(d.nanoseconds)
+		date_part = if days == 0 { "" } else { days.to_str().concat("D") }
+		time_part =
+			(if hours == 0 { "" } else { hours.to_str().concat("H") })
+				.concat(if minutes == 0 { "" } else { minutes.to_str().concat("M") })
+				.concat(if seconds == 0 and frac == "" { "" } else { seconds.to_str().concat(frac).concat("S") })
+		if date_part == "" and time_part == "" {
+			"PT0S"
+		} else if time_part == "" {
+			sign.concat("P").concat(date_part)
+		} else {
+			sign.concat("P").concat(date_part).concat("T").concat(time_part)
+		}
+	}
+
 	## The whole-days component of the `Duration`. See [`to_days`](Duration#to_days) for the total.
 	days : Duration -> I64
 	days = |duration| duration.days
@@ -37,13 +95,52 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	nanoseconds : Duration -> I32
 	nanoseconds = |duration| duration.nanoseconds
 
-	## Add two `Duration` objects.
+	## Add two `Duration`s. Same as [`plus`](Duration#plus), which backs the `+` operator.
 	add : Duration, Duration -> Duration
 	add = |d1, d2| {
 		nanos1 = to_nanoseconds(d1)
 		nanos2 = to_nanoseconds(d2)
 		nanos1.plus_saturated(nanos2) |> from_nanoseconds
 	}
+
+	## Add two `Duration`s. Backs the `+` operator. Same as [`add`](Duration#add).
+	plus : Duration, Duration -> Duration
+	plus = add
+
+	## Subtract the second `Duration` from the first. Backs the `-` operator. Same as [`sub`](Duration#sub).
+	minus : Duration, Duration -> Duration
+	minus = sub
+
+	## The zero `Duration`. This is what `List.sum` and `Iter.sum` start from, so a list of `Duration`s can be summed:
+	## ```
+	## [Duration.from_minutes(90), Duration.from_minutes(30)].sum() == Duration.from_hours(2)
+	## ```
+	default : () -> Duration
+	default = || from_nanoseconds(0)
+
+	## Flip the sign of a `Duration`. Backs unary `-`.
+	negate : Duration -> Duration
+	negate = |d| from_nanoseconds(to_nanoseconds(d).negate())
+
+	## The magnitude of a `Duration`, dropping its sign. Useful after [`sub`](Duration#sub) or `Time.sub`
+	## when you want the gap between two values without caring which came first.
+	abs : Duration -> Duration
+	abs = |d| from_nanoseconds(to_nanoseconds(d).abs())
+
+	## Scale a `Duration` by a whole number, saturating at the `Duration` limits. Backs the `*` operator.
+	## ```
+	## Duration.from_minutes(90) * 2 == Duration.from_hours(3)
+	## ```
+	times : Duration, I64 -> Duration
+	times = |d, n| from_nanoseconds(to_nanoseconds(d).times_saturated(n.to_i128()))
+
+	## Divide a `Duration` by a whole number, truncating toward zero like integer division. Backs the `/` operator.
+	## Dividing by zero crashes, as it does for the builtin number types.
+	## ```
+	## Duration.from_hours(3) / 2 == Duration.from_minutes(90)
+	## ```
+	div_by : Duration, I64 -> Duration
+	div_by = |d, n| from_nanoseconds(to_nanoseconds(d) // n.to_i128())
 
 	## Format a `Time` object according to the given format string.
 	## The following placeholders are supported:
@@ -243,7 +340,7 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 		}
 	}
 
-	## Subtract two `Duration` objects.
+	## Subtract the second `Duration` from the first. Same as [`minus`](Duration#minus), which backs the `-` operator.
 	sub : Duration, Duration -> Duration
 	sub = |d1, d2| {
 		nanos1 = to_nanoseconds(d1)
@@ -391,6 +488,82 @@ expect {
 	d = Duration.from_seconds(-90)
 	Duration.format_unsigned(d, "{m}:{ss}") == "1:30"
 }
+
+# <---- to_inspect ---->
+expect Str.inspect(Duration.from_nanoseconds(0)) == "PT0S"
+expect Str.inspect(Duration.from_days(2)) == "P2D"
+expect Str.inspect(Duration.from_hms(1, 2, 3)) == "PT1H2M3S"
+expect Str.inspect(Duration.from_days(1).add(Duration.from_hours(2))) == "P1DT2H"
+expect Str.inspect(Duration.from_hmsn(0, 0, 0, 500_000_000)) == "PT0,5S"
+expect Str.inspect(Duration.from_hmsn(1, 2, 3, 4)) == "PT1H2M3,000000004S"
+expect Str.inspect(Duration.from_seconds(-90)) == "-PT1M30S"
+expect Str.inspect(Duration.from_days(-1).sub(Duration.from_nanoseconds(1))) == "-P1DT0,000000001S"
+expect Str.inspect([Duration.from_minutes(5), Duration.from_days(-2)]) == "[PT5M, -P2D]"
+expect Str.inspect({ gap: Duration.from_nanoseconds(1) }) == "{ gap: PT0,000000001S }"
+
+# <---- arithmetic operators ---->
+expect Duration.from_minutes(90) + Duration.from_minutes(30) == Duration.from_hours(2)
+expect Duration.from_hours(2) - Duration.from_minutes(30) == Duration.from_minutes(90)
+expect -Duration.from_minutes(90) == Duration.from_minutes(-90)
+expect -(-Duration.from_minutes(90)) == Duration.from_minutes(90)
+expect -Duration.from_nanoseconds(0) == Duration.from_nanoseconds(0)
+expect Duration.from_minutes(90) * 2 == Duration.from_hours(3)
+expect Duration.from_minutes(90) * -1 == Duration.from_minutes(-90)
+expect Duration.from_minutes(90) * 0 == Duration.from_nanoseconds(0)
+# Arithmetic past either limit saturates instead of overflowing.
+expect Duration.from_days(I64.highest.to_i128()) * 2 == Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.lowest.to_i128()) * 2 == Duration.from_days(I64.lowest.to_i128())
+expect Duration.from_days(I64.highest.to_i128()) * -1 == -Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.highest.to_i128()) + Duration.from_days(1) == Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.lowest.to_i128()) - Duration.from_days(1) == Duration.from_days(I64.lowest.to_i128())
+expect Duration.from_hours(3) / 2 == Duration.from_minutes(90)
+expect Duration.from_nanoseconds(7) / 2 == Duration.from_nanoseconds(3)
+expect Duration.from_nanoseconds(-7) / 2 == Duration.from_nanoseconds(-3)
+expect Duration.from_hours(3) / -3 == Duration.from_hours(-1)
+
+# <---- default / sum ---->
+expect Duration.default() == Duration.from_nanoseconds(0)
+expect [Duration.from_minutes(90), Duration.from_minutes(30)].sum() == Duration.from_hours(2)
+expect [Duration.from_hours(1), Duration.from_minutes(-90)].sum() == Duration.from_minutes(-30)
+expect {
+	none : List(Duration)
+	none = []
+	none.sum() == Duration.default()
+}
+expect [Duration.from_minutes(90), Duration.from_minutes(30)].iter().sum() == Duration.from_hours(2)
+# Summing saturates like the rest of Duration arithmetic.
+expect [Duration.from_days(I64.highest.to_i128()), Duration.from_days(1)].sum() == Duration.from_days(I64.highest.to_i128())
+
+# <---- abs ---->
+expect Duration.from_minutes(-90).abs() == Duration.from_minutes(90)
+expect Duration.from_minutes(90).abs() == Duration.from_minutes(90)
+expect Duration.from_nanoseconds(0).abs() == Duration.from_nanoseconds(0)
+expect Duration.from_hmsn(-1, -2, -3, -4).abs() == Duration.from_hmsn(1, 2, 3, 4)
+expect Duration.from_days(I64.lowest.to_i128()).abs() == Duration.from_days(I64.highest.to_i128())
+expect Duration.sub(Duration.from_minutes(30), Duration.from_hours(1)).abs() == Duration.from_minutes(30)
+
+# <---- ordering ---->
+expect Duration.from_minutes(90) < Duration.from_hours(2)
+expect Duration.from_hours(2) > Duration.from_minutes(90)
+expect Duration.from_minutes(90) <= Duration.from_hms(1, 30, 0)
+expect Duration.from_minutes(90) >= Duration.from_hms(1, 30, 0)
+expect !(Duration.from_minutes(90) < Duration.from_hms(1, 30, 0))
+expect Duration.from_seconds(-1) < Duration.from_nanoseconds(0)
+expect Duration.from_minutes(90).order_relative_to(Duration.from_hms(1, 30, 0)) == Same
+expect Duration.from_days(1).order_relative_to(Duration.from_hours(23)) == After
+expect [Duration.from_hours(2), Duration.from_seconds(-1), Duration.from_minutes(90)].sort() == [Duration.from_seconds(-1), Duration.from_minutes(90), Duration.from_hours(2)]
+expect Duration.from_hours(2).min(Duration.from_minutes(90)) == Duration.from_minutes(90)
+expect Duration.from_hours(2).max(Duration.from_minutes(90)) == Duration.from_hours(2)
+expect [Duration.from_hours(2), Duration.from_seconds(-1), Duration.from_minutes(90)].min() == Ok(Duration.from_seconds(-1))
+expect [Duration.from_hours(2), Duration.from_seconds(-1), Duration.from_minutes(90)].max() == Ok(Duration.from_hours(2))
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(Duration.from_hms(1, 30, 0), "lunch")
+	d.get(Duration.from_minutes(90)) == Ok("lunch")
+}
+expect Set.from_list([Duration.from_hms(1, 30, 0), Duration.from_minutes(90), Duration.from_seconds(5400)]).len() == 1
+expect Set.from_list([Duration.from_minutes(90), Duration.from_minutes(91)]).len() == 2
 
 # <---- to_* conversions ---->
 expect {

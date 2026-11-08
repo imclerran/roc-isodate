@@ -24,8 +24,15 @@ Date :: {
 }.{
 
 	## Are two Dates equal?
-	is_eq : Date, Date -> Bool
-	is_eq = |a, b| a.year == b.year and a.day_of_year == b.day_of_year
+	is_eq : _
+
+	## Hash a `Date`, so it can be used as a `Dict` key or `Set` element.
+	to_hash : _
+
+	## Show the `Date` as an ISO 8601 string, such as `2024-03-15`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : Date -> Str
+	to_inspect = |date| to_iso_str(date)
 
 	## The year of the `Date`.
 	year : Date -> I64
@@ -43,9 +50,18 @@ Date :: {
 	day_of_year : Date -> U16
 	day_of_year = |date| date.day_of_year
 
-	## Same as [`add_duration`](Date#add_duration).
+	## Same as [`add_duration`](Date#add_duration) and [`plus`](Date#plus).
 	add : Date, Duration -> Date
 	add = add_duration
+
+	## Add a `Duration` to a `Date`. Backs the `+` operator. Same as [`add_duration`](Date#add_duration).
+	plus : Date, Duration -> Date
+	plus = add_duration
+
+	## Subtract a `Duration` from a `Date`. Backs the `-` operator.
+	## To get the `Duration` between two `Date`s, use [`sub`](Date#sub) instead.
+	minus : Date, Duration -> Date
+	minus = |date, duration| add_duration(date, duration.negate())
 
 	## Add the given number of days to the given `Date`.
 	add_days : Date, I64 -> Date
@@ -53,7 +69,7 @@ Date :: {
 		from_days_since_epoch(num_days_since_epoch(date).plus_saturated(days))
 	}
 
-	## Add the given `Date` and `Duration`. (May be deprecated in favor of [`add`](Date#add) in the future.)
+	## Add a `Duration` to a `Date`. Same as [`plus`](Date#plus), which backs the `+` operator.
 	add_duration : Date, Duration -> Date
 	add_duration = |date, duration| {
 		duration_nanos = duration.to_nanoseconds()
@@ -115,6 +131,14 @@ Date :: {
 	## Whether the first `Date` is after or the same as the second. This is what the `>=` operator uses.
 	is_gte : Date, Date -> Bool
 	is_gte = |a, b| a.order_relative_to(b) != Before
+
+	## The earlier of two `Date`s. Returns the first when they are equal. Lets `List.min` work on a `List(Date)`.
+	min : Date, Date -> Date
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `Date`s. Returns the first when they are equal. Lets `List.max` work on a `List(Date)`.
+	max : Date, Date -> Date
+	max = |a, b| if b.is_gt(a) { b } else { a }
 
 	## Convert the given calendar week and year to the day of the year.
 	calendar_week_to_days_in_year : U8, I64 -> I64
@@ -327,11 +351,26 @@ Date :: {
 	is_leap = |date| is_leap_year(date.year)
 
 	## Subtract two `Date` objects to get the `Duration` between them.
+	## This is not the `-` operator: `date - duration` calls [`minus`](Date#minus) and gives a `Date`.
 	sub : Date, Date -> Duration
 	sub = |a, b| {
 		a_nanos = to_nanos_since_epoch(a)
 		b_nanos = to_nanos_since_epoch(b)
 		Duration.from_nanoseconds(a_nanos - b_nanos)
+	}
+
+	## Let a string literal be used where a `Date` is expected, so the ISO 8601 date is checked at compile time.
+	## ```
+	## release : Date
+	## release = "2024-03-15"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(Date, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match from_iso_str(raw) {
+			Ok(date) => Ok(date)
+			Err(InvalidDateFormat) => Err(BadQuotedBytes("expected an ISO 8601 date, such as 2024-03-15, but got ${raw}"))
+		}
 	}
 
 	## Convert the given `Date` to an ISO 8601 string.
@@ -782,6 +821,50 @@ expect Date.weeks_in_year(2023) == 52
 expect Date.weeks_in_year(2024) == 52
 expect Date.weeks_in_year(2025) == 52
 expect Date.weeks_in_year(1970) == 53 # starts on a Thursday
+
+# <---- to_inspect ---->
+expect Str.inspect(Date.from_ymd(2024, 3, 15)?) == "2024-03-15"
+expect Str.inspect(Date.unix_epoch) == "1970-01-01"
+expect Str.inspect(Date.lowest) == Date.lowest.to_iso_str()
+expect Str.inspect({ when: Date.from_ymd(2024, 3, 15)? }) == "{ when: 2024-03-15 }"
+
+# <---- arithmetic operators ---->
+expect Date.from_ymd(2024, 3, 15)? + Duration.from_days(10) == Date.from_ymd(2024, 3, 25)?
+expect Date.from_ymd(2024, 3, 15)? - Duration.from_days(15) == Date.from_ymd(2024, 2, 29)?
+expect Date.from_ymd(2024, 3, 15)? - Duration.from_days(-1) == Date.from_ymd(2024, 3, 16)?
+expect (Date.from_ymd(2024, 3, 15)? + Duration.from_days(10)) - Duration.from_days(10) == Date.from_ymd(2024, 3, 15)?
+expect Date.lowest - Duration.from_days(1) == Date.lowest
+expect Date.highest + Duration.from_days(1) == Date.highest
+
+# <---- min / max ---->
+expect Date.from_ymd(2024, 3, 15)?.min(Date.from_ymd(2023, 1, 1)?) == Date.from_ymd(2023, 1, 1)?
+expect Date.from_ymd(2024, 3, 15)?.max(Date.from_ymd(2023, 1, 1)?) == Date.from_ymd(2024, 3, 15)?
+expect [Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2025, 7, 4)?].min() == Ok(Date.from_ymd(2023, 1, 1)?)
+expect [Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2025, 7, 4)?].max() == Ok(Date.from_ymd(2025, 7, 4)?)
+expect [Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2025, 7, 4)?].sort() == [Date.from_ymd(2023, 1, 1)?, Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2025, 7, 4)?]
+
+# <---- from_quote ---->
+expect {
+	d : Date
+	d = "2024-03-15"
+	d == Date.from_ymd(2024, 3, 15)?
+}
+expect {
+	d : Date
+	d = "2024-W11-5"
+	d == Date.from_ymd(2024, 3, 15)?
+}
+expect Date.from_quote("2024-13-01").is_err()
+expect Date.from_quote("not a date").is_err()
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(Date.from_ymd(2024, 3, 15)?, "launch")
+	d.get(Date.from_iso_str("2024-03-15")?) == Ok("launch")
+}
+# The same date built three different ways is one Set element.
+expect Set.from_list([Date.from_ymd(2024, 3, 15)?, Date.from_yd(2024, 75)?, Date.from_days_since_epoch(19_797)]).len() == 1
+expect Set.from_list([Date.from_ymd(2024, 3, 15)?, Date.from_ymd(2024, 3, 16)?]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {

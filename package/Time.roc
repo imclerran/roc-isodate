@@ -20,8 +20,16 @@ import Utils
 ## or [`from_iso_str_with_day_offset`](Time#from_iso_str_with_day_offset).
 Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 
-	## Are two Times equal?
+	## Are two Times equal? Two values are equal only when all of their parts match.
 	is_eq : _
+
+	## Hash a `Time`, so it can be used as a `Dict` key or `Set` element. Agrees with [`is_eq`](Time#is_eq).
+	to_hash : _
+
+	## Show the `Time` as an ISO 8601 string, such as `09:30:00` or `09:30:00,5`.
+	## This is what `Str.inspect`, `dbg`, and failing `expect` reports use.
+	to_inspect : Time -> Str
+	to_inspect = |time| to_iso_str(time)
 
 	## The hour of the `Time`, from 0 to 23.
 	hour : Time -> U8
@@ -39,11 +47,21 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	nanosecond : Time -> U32
 	nanosecond = |time| time.nanosecond
 
-	## Same as [`add_duration`](Time#add_duration)
+	## Same as [`add_duration`](Time#add_duration) and [`plus`](Time#plus).
 	add : Time, Duration -> Time
 	add = add_duration
 
+	## Add a `Duration` to a `Time`. Backs the `+` operator. Same as [`add_duration`](Time#add_duration).
+	plus : Time, Duration -> Time
+	plus = add_duration
+
+	## Subtract a `Duration` from a `Time`, wrapping around midnight. Backs the `-` operator.
+	## To get the `Duration` between two `Time`s, use [`sub`](Time#sub) instead.
+	minus : Time, Duration -> Time
+	minus = |time, duration| add_duration(time, duration.negate())
+
 	## Add a `Duration` to a `Time`, wrapping around midnight: `23:00:00` plus two hours is `01:00:00`.
+	## Same as [`plus`](Time#plus), which backs the `+` operator.
 	## Use [`add_duration_with_day_offset`](Time#add_duration_with_day_offset) to also learn how many days were crossed.
 	add_duration : Time, Duration -> Time
 	add_duration = |time, duration| add_nanos_i128(time, duration.to_nanoseconds()).time
@@ -95,6 +113,14 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	## Whether the first `Time` is after or the same as the second. This is what the `>=` operator uses.
 	is_gte : Time, Time -> Bool
 	is_gte = |a, b| a.order_relative_to(b) != Before
+
+	## The earlier of two `Time`s. Returns the first when they are equal. Lets `List.min` work on a `List(Time)`.
+	min : Time, Time -> Time
+	min = |a, b| if b.is_lt(a) { b } else { a }
+
+	## The later of two `Time`s. Returns the first when they are equal. Lets `List.max` work on a `List(Time)`.
+	max : Time, Time -> Time
+	max = |a, b| if b.is_gt(a) { b } else { a }
 
 	## Compare two `Time` objects.
 	## If the first occurs before the second, it returns Before.
@@ -239,11 +265,26 @@ Time :: { hour : U8, minute : U8, second : U8, nanosecond : U32 }.{
 	normalize = |time| time
 
 	## Subtract two `Time` objects to get the `Duration` between them. The result is negative when the first is earlier.
+	## This is not the `-` operator: `time - duration` calls [`minus`](Time#minus) and gives a `Time`.
 	sub : Time, Time -> Duration
 	sub = |a, b| {
 		a_nanos = to_nanos_since_midnight(a)
 		b_nanos = to_nanos_since_midnight(b)
 		Duration.from_nanoseconds((a_nanos - b_nanos).to_i128())
+	}
+
+	## Let a string literal be used where a `Time` is expected, so the ISO 8601 time is checked at compile time.
+	## ```
+	## standup : Time
+	## standup = "09:30:00"
+	## ```
+	## An invalid literal is a compile-time error.
+	from_quote : Str -> Try(Time, [BadQuotedBytes(Str)])
+	from_quote = |raw| {
+		match from_iso_str(raw) {
+			Ok(time) => Ok(time)
+			Err(InvalidTimeFormat) => Err(BadQuotedBytes("expected an ISO 8601 time, such as 09:30:00, but got ${raw}"))
+		}
 	}
 
 	## Convert a `Time` object to an ISO 8601 string.
@@ -644,6 +685,49 @@ expect {
 	b = Time.from_nanos_since_midnight(0)?
 	!(b.after(a))
 }
+
+# <---- to_inspect ---->
+expect Str.inspect(Time.from_hms(9, 30, 0)?) == "09:30:00"
+expect Str.inspect(Time.from_hmsn(9, 30, 0, 500_000_000)?) == "09:30:00,5"
+expect Str.inspect(Time.midnight) == "00:00:00"
+expect Str.inspect([Time.from_hms(1, 2, 3)?]) == "[01:02:03]"
+
+# <---- arithmetic operators ---->
+expect Time.from_hms(9, 30, 0)? + Duration.from_minutes(45) == Time.from_hms(10, 15, 0)?
+expect Time.from_hms(9, 30, 0)? - Duration.from_minutes(45) == Time.from_hms(8, 45, 0)?
+expect Time.from_hms(9, 30, 0)? - Duration.from_hmsn(0, 0, 0, 500_000_000) == Time.from_hmsn(9, 29, 59, 500_000_000)?
+expect (Time.from_hms(9, 30, 0)? + Duration.from_minutes(45)) - Duration.from_minutes(45) == Time.from_hms(9, 30, 0)?
+# Both operators wrap around midnight.
+expect Time.from_hms(23, 30, 0)? + Duration.from_hours(1) == Time.from_hms(0, 30, 0)?
+expect Time.from_hms(0, 30, 0)? - Duration.from_hours(1) == Time.from_hms(23, 30, 0)?
+
+# <---- min / max ---->
+expect Time.from_hms(9, 30, 0)?.min(Time.from_hms(13, 0, 0)?) == Time.from_hms(9, 30, 0)?
+expect Time.from_hms(9, 30, 0)?.max(Time.from_hms(13, 0, 0)?) == Time.from_hms(13, 0, 0)?
+expect [Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?, Time.from_hms(0, 0, 1)?].min() == Ok(Time.from_hms(0, 0, 1)?)
+expect [Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?, Time.from_hms(0, 0, 1)?].max() == Ok(Time.from_hms(13, 0, 0)?)
+expect [Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?, Time.from_hms(0, 0, 1)?].sort() == [Time.from_hms(0, 0, 1)?, Time.from_hms(9, 30, 0)?, Time.from_hms(13, 0, 0)?]
+
+# <---- from_quote ---->
+expect {
+	t : Time
+	t = "09:30:00"
+	t == Time.from_hms(9, 30, 0)?
+}
+expect {
+	t : Time
+	t = "09:30:00,5"
+	t == Time.from_hmsn(9, 30, 0, 500_000_000)?
+}
+expect Time.from_quote("not a time").is_err()
+
+# <---- to_hash ---->
+expect {
+	d = Dict.empty().insert(Time.from_hms(9, 30, 0)?, "standup")
+	d.get(Time.from_iso_str("09:30:00")?) == Ok("standup")
+}
+expect Set.from_list([Time.from_hms(9, 30, 0)?, Time.from_hmsn(9, 30, 0, 0)?, Time.from_nanos_since_midnight(34_200_000_000_000)?]).len() == 1
+expect Set.from_list([Time.from_hms(9, 30, 0)?, Time.from_hms(9, 30, 1)?]).len() == 2
 
 # <---- is_eq (==) ---->
 expect {
