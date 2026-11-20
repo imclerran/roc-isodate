@@ -56,16 +56,38 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 		sign = if to_nanoseconds(d) < 0 { "-" } else { "" }
 		# Every component shares the sign of the whole, so take each one's magnitude.
 		# Days is widened first because I64.lowest has no I64 absolute value.
-		days = d.days.to_i128().abs()
-		hours = d.hours.to_i128().abs()
-		minutes = d.minutes.to_i128().abs()
-		seconds = d.seconds.to_i128().abs()
+		days_magnitude = d.days.to_i128().abs()
+		hours_magnitude = d.hours.to_i128().abs()
+		minutes_magnitude = d.minutes.to_i128().abs()
+		seconds_magnitude = d.seconds.to_i128().abs()
 		frac = Utils.nanos_to_frac_str(d.nanoseconds)
-		date_part = if days == 0 { "" } else { days.to_str().concat("D") }
+		date_part = if days_magnitude == 0 {
+			""
+		} else {
+			days_magnitude.to_str().concat("D")
+		}
 		time_part =
-			(if hours == 0 { "" } else { hours.to_str().concat("H") })
-				.concat(if minutes == 0 { "" } else { minutes.to_str().concat("M") })
-				.concat(if seconds == 0 and frac == "" { "" } else { seconds.to_str().concat(frac).concat("S") })
+			(
+				if hours_magnitude == 0 {
+					""
+				} else {
+					hours_magnitude.to_str().concat("H")
+				}
+			)
+				.concat(
+					if minutes_magnitude == 0 {
+						""
+					} else {
+						minutes_magnitude.to_str().concat("M")
+					},
+				)
+				.concat(
+					if seconds_magnitude == 0 and frac == "" {
+						""
+					} else {
+						seconds_magnitude.to_str().concat(frac).concat("S")
+					},
+				)
 		if date_part == "" and time_part == "" {
 			"PT0S"
 		} else if time_part == "" {
@@ -127,17 +149,17 @@ Duration :: { days : I64, hours : I8, minutes : I8, seconds : I8, nanoseconds : 
 	abs : Duration -> Duration
 	abs = |d| from_nanoseconds(to_nanoseconds(d).abs())
 
-	## Scale a `Duration` by a whole number, saturating at the `Duration` limits. Backs the `*` operator.
+	## Scale a `Duration` by a whole number, saturating at the `Duration` limits.
 	## ```
-	## Duration.from_minutes(90) * 2 == Duration.from_hours(3)
+	## Duration.from_minutes(90).times(2) == Duration.from_hours(3)
 	## ```
 	times : Duration, I64 -> Duration
 	times = |d, n| from_nanoseconds(to_nanoseconds(d).times_saturated(n.to_i128()))
 
-	## Divide a `Duration` by a whole number, truncating toward zero like integer division. Backs the `/` operator.
+	## Divide a `Duration` by a whole number, truncating toward zero like integer division.
 	## Dividing by zero crashes, as it does for the builtin number types.
 	## ```
-	## Duration.from_hours(3) / 2 == Duration.from_minutes(90)
+	## Duration.from_hours(3).div_by(2) == Duration.from_minutes(90)
 	## ```
 	div_by : Duration, I64 -> Duration
 	div_by = |d, n| from_nanoseconds(to_nanoseconds(d) // n.to_i128())
@@ -507,19 +529,19 @@ expect Duration.from_hours(2) - Duration.from_minutes(30) == Duration.from_minut
 expect -Duration.from_minutes(90) == Duration.from_minutes(-90)
 expect -(-Duration.from_minutes(90)) == Duration.from_minutes(90)
 expect -Duration.from_nanoseconds(0) == Duration.from_nanoseconds(0)
-expect Duration.from_minutes(90) * 2 == Duration.from_hours(3)
-expect Duration.from_minutes(90) * -1 == Duration.from_minutes(-90)
-expect Duration.from_minutes(90) * 0 == Duration.from_nanoseconds(0)
+expect Duration.from_minutes(90).times(2) == Duration.from_hours(3)
+expect Duration.from_minutes(90).times(-1) == Duration.from_minutes(-90)
+expect Duration.from_minutes(90).times(0) == Duration.from_nanoseconds(0)
 # Arithmetic past either limit saturates instead of overflowing.
-expect Duration.from_days(I64.highest.to_i128()) * 2 == Duration.from_days(I64.highest.to_i128())
-expect Duration.from_days(I64.lowest.to_i128()) * 2 == Duration.from_days(I64.lowest.to_i128())
-expect Duration.from_days(I64.highest.to_i128()) * -1 == -Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.highest.to_i128()).times(2) == Duration.from_days(I64.highest.to_i128())
+expect Duration.from_days(I64.lowest.to_i128()).times(2) == Duration.from_days(I64.lowest.to_i128())
+expect Duration.from_days(I64.highest.to_i128()).times(-1) == -Duration.from_days(I64.highest.to_i128())
 expect Duration.from_days(I64.highest.to_i128()) + Duration.from_days(1) == Duration.from_days(I64.highest.to_i128())
 expect Duration.from_days(I64.lowest.to_i128()) - Duration.from_days(1) == Duration.from_days(I64.lowest.to_i128())
-expect Duration.from_hours(3) / 2 == Duration.from_minutes(90)
-expect Duration.from_nanoseconds(7) / 2 == Duration.from_nanoseconds(3)
-expect Duration.from_nanoseconds(-7) / 2 == Duration.from_nanoseconds(-3)
-expect Duration.from_hours(3) / -3 == Duration.from_hours(-1)
+expect Duration.from_hours(3).div_by(2) == Duration.from_minutes(90)
+expect Duration.from_nanoseconds(7).div_by(2) == Duration.from_nanoseconds(3)
+expect Duration.from_nanoseconds(-7).div_by(2) == Duration.from_nanoseconds(-3)
+expect Duration.from_hours(3).div_by(-3) == Duration.from_hours(-1)
 
 # <---- default / sum ---->
 expect Duration.default() == Duration.from_nanoseconds(0)

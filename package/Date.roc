@@ -54,11 +54,11 @@ Date :: {
 	add : Date, Duration -> Date
 	add = add_duration
 
-	## Add a `Duration` to a `Date`. Backs the `+` operator. Same as [`add_duration`](Date#add_duration).
+	## Add a `Duration` to a `Date`. Same as [`add_duration`](Date#add_duration).
 	plus : Date, Duration -> Date
 	plus = add_duration
 
-	## Subtract a `Duration` from a `Date`. Backs the `-` operator.
+	## Subtract a `Duration` from a `Date`.
 	## To get the `Duration` between two `Date`s, use [`sub`](Date#sub) instead.
 	minus : Date, Duration -> Date
 	minus = |date, duration| add_duration(date, duration.negate())
@@ -69,7 +69,7 @@ Date :: {
 		from_days_since_epoch(num_days_since_epoch(date).plus_saturated(days))
 	}
 
-	## Add a `Duration` to a `Date`. Same as [`plus`](Date#plus), which backs the `+` operator.
+	## Add a `Duration` to a `Date`. Same as [`plus`](Date#plus).
 	add_duration : Date, Duration -> Date
 	add_duration = |date, duration| {
 		duration_nanos = duration.to_nanoseconds()
@@ -351,7 +351,7 @@ Date :: {
 	is_leap = |date| is_leap_year(date.year)
 
 	## Subtract two `Date` objects to get the `Duration` between them.
-	## This is not the `-` operator: `date - duration` calls [`minus`](Date#minus) and gives a `Date`.
+	## `date.minus(duration)` calls [`minus`](Date#minus) and gives a `Date`.
 	sub : Date, Date -> Duration
 	sub = |a, b| {
 		a_nanos = to_nanos_since_epoch(a)
@@ -828,13 +828,13 @@ expect Str.inspect(Date.unix_epoch) == "1970-01-01"
 expect Str.inspect(Date.lowest) == Date.lowest.to_iso_str()
 expect Str.inspect({ when: Date.from_ymd(2024, 3, 15)? }) == "{ when: 2024-03-15 }"
 
-# <---- arithmetic operators ---->
-expect Date.from_ymd(2024, 3, 15)? + Duration.from_days(10) == Date.from_ymd(2024, 3, 25)?
-expect Date.from_ymd(2024, 3, 15)? - Duration.from_days(15) == Date.from_ymd(2024, 2, 29)?
-expect Date.from_ymd(2024, 3, 15)? - Duration.from_days(-1) == Date.from_ymd(2024, 3, 16)?
-expect (Date.from_ymd(2024, 3, 15)? + Duration.from_days(10)) - Duration.from_days(10) == Date.from_ymd(2024, 3, 15)?
-expect Date.lowest - Duration.from_days(1) == Date.lowest
-expect Date.highest + Duration.from_days(1) == Date.highest
+# <---- duration arithmetic methods ---->
+expect Date.from_ymd(2024, 3, 15)?.plus(Duration.from_days(10)) == Date.from_ymd(2024, 3, 25)?
+expect Date.from_ymd(2024, 3, 15)?.minus(Duration.from_days(15)) == Date.from_ymd(2024, 2, 29)?
+expect Date.from_ymd(2024, 3, 15)?.minus(Duration.from_days(-1)) == Date.from_ymd(2024, 3, 16)?
+expect Date.from_ymd(2024, 3, 15)?.plus(Duration.from_days(10)).minus(Duration.from_days(10)) == Date.from_ymd(2024, 3, 15)?
+expect Date.lowest.minus(Duration.from_days(1)) == Date.lowest
+expect Date.highest.plus(Duration.from_days(1)) == Date.highest
 
 # <---- min / max ---->
 expect Date.from_ymd(2024, 3, 15)?.min(Date.from_ymd(2023, 1, 1)?) == Date.from_ymd(2023, 1, 1)?
