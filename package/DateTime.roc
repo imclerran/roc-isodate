@@ -36,11 +36,11 @@ DateTime :: { date : Date, time : Time }.{
 	add : DateTime, Duration -> DateTime
 	add = add_duration
 
-	## Add a `Duration` to a `DateTime`. Backs the `+` operator. Same as [`add_duration`](DateTime#add_duration).
+	## Add a `Duration` to a `DateTime`. Same as [`add_duration`](DateTime#add_duration).
 	plus : DateTime, Duration -> DateTime
 	plus = add_duration
 
-	## Subtract a `Duration` from a `DateTime`. Backs the `-` operator.
+	## Subtract a `Duration` from a `DateTime`.
 	## To get the `Duration` between two `DateTime`s, use [`sub`](DateTime#sub) instead.
 	minus : DateTime, Duration -> DateTime
 	minus = |date_time, duration| add_duration(date_time, duration.negate())
@@ -49,7 +49,7 @@ DateTime :: { date : Date, time : Time }.{
 	add_days : DateTime, I64 -> DateTime
 	add_days = |date_time, days| { date: Date.add_days(date_time.date, days), time: date_time.time }
 
-	## Add a `Duration` to a `DateTime`. Same as [`plus`](DateTime#plus), which backs the `+` operator.
+	## Add a `Duration` to a `DateTime`. Same as [`plus`](DateTime#plus).
 	add_duration : DateTime, Duration -> DateTime
 	add_duration = |date_time, duration| {
 		duration_nanos = duration.to_nanoseconds()
@@ -226,7 +226,7 @@ DateTime :: { date : Date, time : Time }.{
 	}
 
 	## Subtract two `DateTime` objects to get the `Duration` between them.
-	## This is not the `-` operator: `date_time - duration` calls [`minus`](DateTime#minus) and gives a `DateTime`.
+	## `date_time.minus(duration)` calls [`minus`](DateTime#minus) and gives a `DateTime`.
 	sub : DateTime, DateTime -> Duration
 	sub = |a, b| {
 		a_nanos = to_nanos_since_epoch(a)
@@ -372,14 +372,14 @@ expect Str.inspect(DateTime.from_ymdhmsn(2024, 3, 15, 9, 30, 0, 250_000_000)?) =
 expect Str.inspect(DateTime.unix_epoch) == "1970-01-01T00:00:00"
 expect Str.inspect([DateTime.unix_epoch]) == "[1970-01-01T00:00:00]"
 
-# <---- arithmetic operators ---->
-expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)? + Duration.from_hours(20) == DateTime.from_ymdhms(2024, 3, 16, 5, 30, 0)?
-expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)? - Duration.from_hours(10) == DateTime.from_ymdhms(2024, 3, 14, 23, 30, 0)?
-expect DateTime.unix_epoch - Duration.from_nanoseconds(1) == DateTime.from_iso_str("1969-12-31T23:59:59,999999999")?
-expect (DateTime.unix_epoch + Duration.from_days(400)) - Duration.from_days(400) == DateTime.unix_epoch
-# The operators saturate at the DateTime bounds, like the rest of date arithmetic.
-expect DateTime.highest + Duration.from_days(1) == DateTime.highest
-expect DateTime.lowest - Duration.from_days(1) == DateTime.lowest
+# <---- duration arithmetic methods ---->
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.plus(Duration.from_hours(20)) == DateTime.from_ymdhms(2024, 3, 16, 5, 30, 0)?
+expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.minus(Duration.from_hours(10)) == DateTime.from_ymdhms(2024, 3, 14, 23, 30, 0)?
+expect DateTime.unix_epoch.minus(Duration.from_nanoseconds(1)) == DateTime.from_iso_str("1969-12-31T23:59:59,999999999")?
+expect DateTime.unix_epoch.plus(Duration.from_days(400)).minus(Duration.from_days(400)) == DateTime.unix_epoch
+# The methods saturate at the DateTime bounds, like the rest of date arithmetic.
+expect DateTime.highest.plus(Duration.from_days(1)) == DateTime.highest
+expect DateTime.lowest.minus(Duration.from_days(1)) == DateTime.lowest
 
 # <---- min / max ---->
 expect DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?.min(DateTime.from_ymdhms(2024, 3, 15, 13, 0, 0)?) == DateTime.from_ymdhms(2024, 3, 15, 9, 30, 0)?
